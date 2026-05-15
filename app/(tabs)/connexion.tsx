@@ -20,8 +20,8 @@ export default function ConnexionScreen() {
     setErreur('');
     setMessage('');
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
         password: motDePasse,
       });
       if (error) {
@@ -39,12 +39,18 @@ export default function ConnexionScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+
+      {/* HERO */}
+      <View style={styles.hero}>
+        <View style={styles.logoWrapper}>
+          <Text style={styles.logoTexte}>W</Text>
+        </View>
         <Text style={styles.logo}>WyytU</Text>
         <Text style={styles.titre}>Content de te revoir ! 👋</Text>
         <Text style={styles.sousTitre}>Connecte-toi pour continuer</Text>
       </View>
 
+      {/* FORMULAIRE */}
       <View style={styles.formulaire}>
 
         {erreur ? (
@@ -63,7 +69,7 @@ export default function ConnexionScreen() {
         <TextInput
           style={styles.input}
           placeholder="ton@email.com"
-          placeholderTextColor="#888"
+          placeholderTextColor="#BBB"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
@@ -74,25 +80,25 @@ export default function ConnexionScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ton mot de passe"
-          placeholderTextColor="#888"
+          placeholderTextColor="#BBB"
           secureTextEntry={true}
           value={motDePasse}
           onChangeText={setMotDePasse}
         />
 
         <TouchableOpacity
-          style={[styles.boutonConnexion, loading && styles.boutonLoading]}
+          style={[styles.bouton, loading && styles.boutonLoading]}
           onPress={connecter}
           disabled={loading}>
-          <Text style={styles.boutonConnexionTexte}>
+          <Text style={styles.boutonTexte}>
             {loading ? 'Connexion...' : 'Se connecter 🚀'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/inscription')}>
-          <Text style={styles.inscriptionTexte}>
+          <Text style={styles.lienTexte}>
             Pas encore de compte ?{' '}
-            <Text style={styles.inscriptionLien}>Inscris-toi</Text>
+            <Text style={styles.lien}>Inscris-toi</Text>
           </Text>
         </TouchableOpacity>
 
@@ -102,103 +108,31 @@ export default function ConnexionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A2E5A',
-    justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    paddingBottom: 30,
-  },
-  logo: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    letterSpacing: 2,
-  },
-  titre: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginTop: 10,
-  },
-  sousTitre: {
-    fontSize: 14,
-    color: '#FF6B2B',
-    marginTop: 6,
-    fontStyle: 'italic',
-  },
-  formulaire: {
-    paddingHorizontal: 24,
-  },
-  erreurBox: {
-    backgroundColor: '#3A1A1A',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FF4444',
-  },
-  erreurTexte: {
-    color: '#FF4444',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  successBox: {
-    backgroundColor: '#1A3A2A',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#27AE60',
-  },
-  successTexte: {
-    color: '#27AE60',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  label: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: '#243660',
-    borderRadius: 12,
-    padding: 14,
-    color: '#FFFFFF',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#2B4C9B',
-  },
-  boutonConnexion: {
-    backgroundColor: '#FF6B2B',
-    borderRadius: 30,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  boutonLoading: {
-    backgroundColor: '#AA4400',
-  },
-  boutonConnexionTexte: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  inscriptionTexte: {
-    color: '#AAAAAA',
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 14,
-  },
-  inscriptionLien: {
-    color: '#FF6B2B',
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: '#FAF7F2', justifyContent: 'center' },
+
+  hero: { alignItems: 'center', paddingBottom: 36, paddingHorizontal: 24 },
+  logoWrapper: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#E8000D', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16 },
+  logoTexte: { color: '#fff', fontSize: 36, fontWeight: '800' },
+  logo: { fontSize: 32, fontWeight: '800', color: '#1A1A1A', letterSpacing: 1, marginBottom: 8 },
+  titre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A', marginBottom: 4 },
+  sousTitre: { fontSize: 14, color: '#AAA', fontStyle: 'italic' },
+
+  formulaire: { paddingHorizontal: 24 },
+
+  erreurBox: { backgroundColor: '#FFF0F0', borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1.5, borderColor: '#E8000D' },
+  erreurTexte: { color: '#E8000D', fontSize: 14, fontWeight: '700', textAlign: 'center' },
+
+  successBox: { backgroundColor: '#EEF7EE', borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1.5, borderColor: '#1DB954' },
+  successTexte: { color: '#1DB954', fontSize: 14, fontWeight: '700', textAlign: 'center' },
+
+  label: { color: '#1A1A1A', fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 18 },
+
+  input: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 16, color: '#1A1A1A', fontSize: 15, borderWidth: 1, borderColor: '#DDD4C4' },
+
+  bouton: { backgroundColor: '#E8000D', borderRadius: 20, padding: 18, alignItems: 'center', marginTop: 28, shadowColor: '#E8000D', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 12 },
+  boutonLoading: { backgroundColor: '#AAA' },
+  boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+  lienTexte: { color: '#AAA', textAlign: 'center', marginTop: 20, fontSize: 14 },
+  lien: { color: '#E8000D', fontWeight: '800' },
 });

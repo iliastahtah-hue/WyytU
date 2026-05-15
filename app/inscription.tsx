@@ -65,27 +65,18 @@ export default function InscriptionScreen() {
     setMessage('');
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
+      const { error } = await supabase.auth.signUp({
+        email,
         password: motDePasse,
-        options: {
-          data: {
-            prenom: prenom,
-            telephone: telephone,
-            ville: ville,
-          }
-        }
+        options: { data: { prenom, telephone, ville } },
       });
 
       if (error) {
         setMessage(`❌ ${error.message}`);
       } else {
         await supabase.from('utilisateurs').insert({
-          prenom: prenom,
-          email: email,
-          telephone: telephone,
-          ville: ville,
-          bio: bio,
+          prenom, email, telephone, ville, bio,
+          activites_favorites: activitesFavorites,
         });
         setMessage('🎉 Compte créé avec succès ! Bienvenue sur WyytU !');
         setTimeout(() => router.push('/'), 2000);
@@ -98,103 +89,65 @@ export default function InscriptionScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+
+      {/* HEADER */}
       <View style={styles.header}>
+        <View style={styles.logoWrapper}>
+          <Text style={styles.logoTexte}>W</Text>
+        </View>
         <Text style={styles.logo}>WyytU</Text>
-        <Text style={styles.titre}>Crée ton compte</Text>
-        <Text style={styles.sousTitre}>Rejoins la communauté 🔥</Text>
+        <Text style={styles.titre}>Crée ton compte 🔥</Text>
+        <Text style={styles.sousTitre}>Rejoins la communauté</Text>
       </View>
 
       <View style={styles.formulaire}>
 
         {message ? (
           <View style={[styles.messageBox, {
-            borderColor: message.includes('❌') ? '#FF4444' : '#27AE60',
-            backgroundColor: message.includes('❌') ? '#3A1A1A' : '#1A3A2A',
+            borderColor: message.includes('❌') ? '#E8000D' : '#1DB954',
+            backgroundColor: message.includes('❌') ? '#FFF0F0' : '#EEF7EE',
           }]}>
             <Text style={[styles.messageTexte, {
-              color: message.includes('❌') ? '#FF4444' : '#27AE60'
+              color: message.includes('❌') ? '#E8000D' : '#1DB954',
             }]}>{message}</Text>
           </View>
         ) : null}
 
+        {/* CHAMPS */}
         <Text style={styles.label}>Prénom *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ton prénom"
-          placeholderTextColor="#888"
-          value={prenom}
-          onChangeText={setPrenom}
-        />
+        <TextInput style={styles.input} placeholder="Ton prénom" placeholderTextColor="#BBB" value={prenom} onChangeText={setPrenom} />
 
         <Text style={styles.label}>Email *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="ton@email.com"
-          placeholderTextColor="#888"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-        />
+        <TextInput style={styles.input} placeholder="ton@email.com" placeholderTextColor="#BBB" keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" />
 
         <Text style={styles.label}>Téléphone</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="+32 ou +212..."
-          placeholderTextColor="#888"
-          keyboardType="phone-pad"
-          value={telephone}
-          onChangeText={setTelephone}
-        />
+        <TextInput style={styles.input} placeholder="+32 ou +212..." placeholderTextColor="#BBB" keyboardType="phone-pad" value={telephone} onChangeText={setTelephone} />
 
         <Text style={styles.label}>Mot de passe *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Minimum 6 caractères"
-          placeholderTextColor="#888"
-          secureTextEntry={true}
-          value={motDePasse}
-          onChangeText={setMotDePasse}
-        />
+        <TextInput style={styles.input} placeholder="Minimum 6 caractères" placeholderTextColor="#BBB" secureTextEntry value={motDePasse} onChangeText={setMotDePasse} />
 
         <Text style={styles.label}>Ville</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ta ville"
-          placeholderTextColor="#888"
-          value={ville}
-          onChangeText={setVille}
-        />
+        <TextInput style={styles.input} placeholder="Ta ville" placeholderTextColor="#BBB" value={ville} onChangeText={setVille} />
 
         <Text style={styles.label}>Ma bio 📝</Text>
         <TextInput
           style={styles.inputBio}
-          placeholder="Décris-toi en quelques mots... Ex: Sportif, jovial, toujours partant pour une aventure !"
-          placeholderTextColor="#888"
-          multiline={true}
+          placeholder="Décris-toi en quelques mots..."
+          placeholderTextColor="#BBB"
+          multiline
           numberOfLines={4}
           value={bio}
           onChangeText={setBio}
         />
 
-        <Text style={styles.label}>Mes activités favorites 🎯</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: Sport, Cinéma, Restaurant, Voyages..."
-          placeholderTextColor="#888"
-          value={activitesFavorites}
-          onChangeText={setActivitesFavorites}
-        />
+        <Text style={styles.label}>Activités favorites 🎯</Text>
+        <TextInput style={styles.input} placeholder="Ex: Sport, Ciné, Resto, Voyages..." placeholderTextColor="#BBB" value={activitesFavorites} onChangeText={setActivitesFavorites} />
 
+        {/* PHOTOS */}
         <View style={styles.photosBox}>
-          <Text style={styles.photosTitre}>
-            📸 Mes photos de profil
-          </Text>
-          <Text style={styles.photosSubTitre}>
-            Minimum 2 photos, maximum 3
-          </Text>
-
+          <Text style={styles.boxTitre}>📸 Mes photos de profil</Text>
+          <Text style={styles.boxSub}>Minimum 2 photos, maximum 3</Text>
           <View style={styles.photosGrid}>
             {photos.map((photo, index) => (
               <View key={index} style={styles.photoWrapper}>
@@ -202,99 +155,105 @@ export default function InscriptionScreen() {
                 <TouchableOpacity
                   style={styles.supprimerPhoto}
                   onPress={() => setPhotos(photos.filter((_, i) => i !== index))}>
-                  <Text style={styles.supprimerPhotoTexte}>✕</Text>
+                  <Text style={styles.supprimerTexte}>✕</Text>
                 </TouchableOpacity>
               </View>
             ))}
-
             {photos.length < 3 && (
               <TouchableOpacity style={styles.ajouterPhoto} onPress={choisirPhoto}>
-                <Text style={styles.ajouterPhotoIcon}>+</Text>
-                <Text style={styles.ajouterPhotoTexte}>
-                  {photos.length}/3
-                </Text>
+                <Text style={styles.ajouterIcon}>+</Text>
+                <Text style={styles.ajouterTexte}>{photos.length}/3</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
+        {/* VERIFICATION */}
         <View style={styles.verificationBox}>
-          <Text style={styles.verificationTitre}>
-            🪪 Vérification d'identité
+          <Text style={styles.boxTitre}>🪪 Vérification d'identité</Text>
+          <Text style={styles.boxSub}>
+            Pour la sécurité de tous, WyytU vérifie l'identité de chaque membre.
           </Text>
-          <Text style={styles.verificationTexte}>
-            Pour la sécurité de tous, WyytU vérifie l'identité de chaque membre. Prends un selfie pour confirmer ton identité.
-          </Text>
-
           {selfie ? (
-            <View style={styles.selfiePreviewContainer}>
+            <View style={styles.selfieContainer}>
               <Image source={{ uri: selfie }} style={styles.selfiePreview} />
               <Text style={styles.selfieOk}>✅ Selfie validé !</Text>
             </View>
           ) : null}
-
-          <TouchableOpacity style={styles.verificationBouton} onPress={prendreSelfiee}>
-            <Text style={styles.verificationBoutonTexte}>
-              {selfie ? '🔄 Reprendre le selfie' : '🤳 Prendre mon selfie de vérification'}
+          <TouchableOpacity style={styles.selfieBtn} onPress={prendreSelfiee}>
+            <Text style={styles.selfieBtnTexte}>
+              {selfie ? '🔄 Reprendre le selfie' : '🤳 Prendre mon selfie'}
             </Text>
           </TouchableOpacity>
         </View>
 
+        {/* BOUTON */}
         <TouchableOpacity
-          style={[styles.boutonInscription, loading && styles.boutonLoading]}
+          style={[styles.bouton, loading && styles.boutonLoading]}
           onPress={inscrire}
           disabled={loading}>
-          <Text style={styles.boutonInscriptionTexte}>
-            {loading ? 'Création en cours...' : 'Créer mon compte WyytU'}
+          <Text style={styles.boutonTexte}>
+            {loading ? 'Création en cours...' : 'Créer mon compte WyytU 🚀'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/connexion')}>
-          <Text style={styles.connexionTexte}>
+          <Text style={styles.lienTexte}>
             Déjà un compte ?{' '}
-            <Text style={styles.connexionLien}>Connecte-toi</Text>
+            <Text style={styles.lien}>Connecte-toi</Text>
           </Text>
         </TouchableOpacity>
 
+        <View style={{ height: 40 }} />
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1A2E5A' },
-  header: { alignItems: 'center', paddingTop: 60, paddingBottom: 30 },
-  logo: { fontSize: 36, fontWeight: 'bold', color: '#FFFFFF', letterSpacing: 2 },
-  titre: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginTop: 10 },
-  sousTitre: { fontSize: 16, color: '#FF6B2B', marginTop: 6, fontStyle: 'italic' },
+  container: { flex: 1, backgroundColor: '#FAF7F2' },
+
+  header: { alignItems: 'center', paddingTop: 60, paddingBottom: 32, paddingHorizontal: 24 },
+  logoWrapper: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  logoTexte: { color: '#fff', fontSize: 36, fontWeight: '800' },
+  logo: { fontSize: 32, fontWeight: '800', color: '#1A1A1A', letterSpacing: 1, marginBottom: 6 },
+  titre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A', marginBottom: 4 },
+  sousTitre: { fontSize: 14, color: '#AAA', fontStyle: 'italic' },
+
   formulaire: { paddingHorizontal: 24, paddingBottom: 40 },
-  messageBox: { borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1 },
-  messageTexte: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-  label: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', marginBottom: 6, marginTop: 16 },
-  input: { backgroundColor: '#243660', borderRadius: 12, padding: 14, color: '#FFFFFF', fontSize: 16, borderWidth: 1, borderColor: '#2B4C9B' },
-  inputBio: { backgroundColor: '#243660', borderRadius: 12, padding: 14, color: '#FFFFFF', fontSize: 16, borderWidth: 1, borderColor: '#2B4C9B', height: 100, textAlignVertical: 'top' },
-  photosBox: { backgroundColor: '#243660', borderRadius: 16, padding: 20, marginTop: 24, borderWidth: 1, borderColor: '#3498DB' },
-  photosTitre: { color: '#3498DB', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  photosSubTitre: { color: '#AAAAAA', fontSize: 12, marginBottom: 16 },
+
+  messageBox: { borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1.5 },
+  messageTexte: { fontSize: 14, fontWeight: '700', textAlign: 'center' },
+
+  label: { color: '#1A1A1A', fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 18 },
+  input: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 16, color: '#1A1A1A', fontSize: 15, borderWidth: 1, borderColor: '#DDD4C4' },
+  inputBio: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 16, color: '#1A1A1A', fontSize: 15, borderWidth: 1, borderColor: '#DDD4C4', height: 100, textAlignVertical: 'top' },
+
+  photosBox: { backgroundColor: '#EEE8DE', borderRadius: 20, padding: 20, marginTop: 24, borderWidth: 1.5, borderColor: '#0070F3' },
+  verificationBox: { backgroundColor: '#EEE8DE', borderRadius: 20, padding: 20, marginTop: 16, borderWidth: 1.5, borderColor: '#E8000D' },
+
+  boxTitre: { fontSize: 15, fontWeight: '800', color: '#1A1A1A', marginBottom: 4 },
+  boxSub: { fontSize: 12, color: '#AAA', marginBottom: 16, lineHeight: 18 },
+
   photosGrid: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   photoWrapper: { position: 'relative' },
-  photoPreview: { width: 90, height: 90, borderRadius: 12 },
-  supprimerPhoto: { position: 'absolute', top: -8, right: -8, backgroundColor: '#FF4444', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  supprimerPhotoTexte: { color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' },
-  ajouterPhoto: { width: 90, height: 90, borderRadius: 12, backgroundColor: '#1A2E5A', borderWidth: 2, borderColor: '#3498DB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  ajouterPhotoIcon: { color: '#3498DB', fontSize: 30, fontWeight: 'bold' },
-  ajouterPhotoTexte: { color: '#3498DB', fontSize: 12 },
-  verificationBox: { backgroundColor: '#243660', borderRadius: 16, padding: 20, marginTop: 24, borderWidth: 1, borderColor: '#FF6B2B' },
-  verificationTitre: { color: '#FF6B2B', fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  verificationTexte: { color: '#AAAAAA', fontSize: 13, lineHeight: 20, marginBottom: 14 },
-  selfiePreviewContainer: { alignItems: 'center', marginBottom: 12 },
-  selfiePreview: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#27AE60' },
-  selfieOk: { color: '#27AE60', fontWeight: 'bold', marginTop: 8, fontSize: 14 },
-  verificationBouton: { backgroundColor: '#FF6B2B', borderRadius: 12, padding: 14, alignItems: 'center' },
-  verificationBoutonTexte: { color: '#FFFFFF', fontSize: 15, fontWeight: 'bold' },
-  boutonInscription: { backgroundColor: '#FF6B2B', borderRadius: 30, padding: 18, alignItems: 'center', marginTop: 30 },
-  boutonLoading: { backgroundColor: '#AA4400' },
-  boutonInscriptionTexte: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
-  connexionTexte: { color: '#AAAAAA', textAlign: 'center', marginTop: 20, fontSize: 14 },
-  connexionLien: { color: '#FF6B2B', fontWeight: 'bold' },
+  photoPreview: { width: 90, height: 90, borderRadius: 14 },
+  supprimerPhoto: { position: 'absolute', top: -8, right: -8, backgroundColor: '#E8000D', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  supprimerTexte: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  ajouterPhoto: { width: 90, height: 90, borderRadius: 14, backgroundColor: '#FAF7F2', borderWidth: 2, borderColor: '#0070F3', alignItems: 'center', justifyContent: 'center' },
+  ajouterIcon: { color: '#0070F3', fontSize: 30, fontWeight: '700' },
+  ajouterTexte: { color: '#0070F3', fontSize: 12, marginTop: 2 },
+
+  selfieContainer: { alignItems: 'center', marginBottom: 14 },
+  selfiePreview: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#1DB954' },
+  selfieOk: { color: '#1DB954', fontWeight: '800', marginTop: 8, fontSize: 14 },
+  selfieBtn: { backgroundColor: '#E8000D', borderRadius: 14, padding: 14, alignItems: 'center' },
+  selfieBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '800' },
+
+  bouton: { backgroundColor: '#E8000D', borderRadius: 20, padding: 18, alignItems: 'center', marginTop: 28 },
+  boutonLoading: { backgroundColor: '#AAA' },
+  boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+  lienTexte: { color: '#AAA', textAlign: 'center', marginTop: 20, fontSize: 14 },
+  lien: { color: '#E8000D', fontWeight: '800' },
 });
