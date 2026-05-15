@@ -172,7 +172,6 @@ export default function ProfilScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* HERO HEADER */}
       <View style={styles.hero}>
         <Text style={styles.logo}>WyytU</Text>
         <View style={styles.avatarWrapper}>
@@ -206,7 +205,6 @@ export default function ProfilScreen() {
         ) : null}
       </View>
 
-      {/* STATS */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statNombre}>0</Text>
@@ -224,7 +222,6 @@ export default function ProfilScreen() {
         </View>
       </View>
 
-      {/* INFOS */}
       <View style={styles.infoCard}>
         <View style={styles.infoRow}>
           <Text style={styles.infoIcon}>✉️</Text>
@@ -237,7 +234,6 @@ export default function ProfilScreen() {
         </View>
       </View>
 
-      {/* PHOTOS */}
       <View style={styles.section}>
         <Text style={styles.sectionTitre}>Mes photos 📸</Text>
         <View style={styles.albumGrid}>
@@ -262,7 +258,6 @@ export default function ProfilScreen() {
         </View>
       </View>
 
-      {/* BADGES */}
       <View style={styles.section}>
         <Text style={styles.sectionTitre}>Mes badges 🏆</Text>
         <View style={styles.badgesGrid}>
@@ -274,6 +269,13 @@ export default function ProfilScreen() {
           ))}
         </View>
       </View>
+
+      {/* BOUTON MES PLANS */}
+      <TouchableOpacity
+        style={styles.boutonMesPlans}
+        onPress={() => router.push('/mes-activites' as any)}>
+        <Text style={styles.boutonMesPlansTexte}>📋 Mes plans</Text>
+      </TouchableOpacity>
 
       {/* DECONNEXION */}
       <TouchableOpacity style={styles.boutonDeconnexion} onPress={deconnecter}>
@@ -289,40 +291,31 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
   loadingContainer: { flex: 1, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center' },
   loadingTexte: { color: '#AAA', fontSize: 16 },
-
   hero: { alignItems: 'center', paddingTop: 60, paddingBottom: 28, paddingHorizontal: 20, backgroundColor: '#FAF7F2' },
   logo: { fontSize: 26, fontWeight: '800', color: '#1A1A1A', letterSpacing: 1, marginBottom: 24 },
-
   avatarWrapper: { position: 'relative', marginBottom: 16 },
   avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#EEE8DE' },
   avatarPlaceholder: { width: 110, height: 110, borderRadius: 55, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#EEE8DE' },
   avatarTexte: { color: '#fff', fontSize: 44, fontWeight: '800' },
   editAvatarBtn: { position: 'absolute', bottom: 0, right: 0, width: 34, height: 34, borderRadius: 17, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FAF7F2' },
   editAvatarIcon: { fontSize: 16 },
-
   nom: { fontSize: 24, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5, marginBottom: 4 },
   ville: { fontSize: 14, color: '#AAA', marginBottom: 12 },
-
   badgeVerifie: { backgroundColor: '#EEF7EE', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 14, borderWidth: 1, borderColor: '#1DB954', marginBottom: 12 },
   badgeVerifieTexte: { color: '#1DB954', fontSize: 12, fontWeight: '700' },
-
   bioBox: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 14, marginTop: 4, borderWidth: 1, borderColor: '#DDD4C4', width: '100%' },
   bioTexte: { color: '#555', fontSize: 14, lineHeight: 20, textAlign: 'center' },
-
   statsRow: { flexDirection: 'row', marginHorizontal: 20, gap: 10, marginBottom: 16 },
   statCard: { flex: 1, backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
   statNombre: { fontSize: 22, fontWeight: '800', color: '#1A1A1A' },
   statLabel: { color: '#AAA', fontSize: 11, marginTop: 4, fontWeight: '600' },
-
   infoCard: { marginHorizontal: 20, backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#DDD4C4' },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   infoIcon: { fontSize: 16 },
   infoTexte: { fontSize: 14, color: '#555', flex: 1 },
   separator: { height: 1, backgroundColor: '#DDD4C4', marginVertical: 8 },
-
   section: { paddingHorizontal: 20, marginBottom: 24 },
   sectionTitre: { fontSize: 17, fontWeight: '800', color: '#1A1A1A', marginBottom: 14, letterSpacing: -0.3 },
-
   albumGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoWrapper: { position: 'relative' },
   photoAlbum: { width: 100, height: 100, borderRadius: 14 },
@@ -331,12 +324,12 @@ const styles = StyleSheet.create({
   ajouterPhoto: { width: 100, height: 100, borderRadius: 14, backgroundColor: '#EEE8DE', borderWidth: 2, borderColor: '#DDD4C4', alignItems: 'center', justifyContent: 'center' },
   ajouterIcon: { color: '#AAA', fontSize: 28, fontWeight: '700' },
   ajouterTexte: { color: '#AAA', fontSize: 11, marginTop: 2 },
-
   badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badgeCard: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 14, alignItems: 'center', width: '30%', borderWidth: 2 },
   badgeIcon: { fontSize: 26 },
   badgeNom: { fontSize: 10, marginTop: 6, textAlign: 'center', fontWeight: '700' },
-
+  boutonMesPlans: { backgroundColor: '#1A1A1A', borderRadius: 16, padding: 16, alignItems: 'center', marginHorizontal: 20, marginBottom: 10 },
+  boutonMesPlansTexte: { color: '#fff', fontWeight: '800', fontSize: 15 },
   boutonDeconnexion: { backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, alignItems: 'center', marginHorizontal: 20, marginBottom: 10, borderWidth: 1.5, borderColor: '#E8000D' },
   boutonDeconnexionTexte: { color: '#E8000D', fontWeight: '800', fontSize: 15 },
 });
