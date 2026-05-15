@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -23,6 +24,8 @@ type Activite = {
   participants_count: number;
   createur_prenom: string;
   createur_id: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 const CATEGORIES = [
@@ -44,6 +47,21 @@ const getCouleurs = (categorie: string) => {
   return cat ? { c1: cat.couleur1, c2: cat.couleur2, emoji: cat.emoji } : { c1: '#1A1A1A', c2: '#3A3A3A', emoji: '✦' };
 };
 
+const calculerDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const formatDistance = (km: number) => {
+  if (km < 1) return `${Math.round(km * 1000)}m`;
+  return `${Math.round(km)}km`;
+};
+
 export default function ExploreScreen() {
   const router = useRouter();
   const [activites, setActivites] = useState<Activite[]>([]);
@@ -51,10 +69,35 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [recherche, setRecherche] = useState('');
   const [categorieActive, setCategorieActive] = useState('Tout');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [villeUser, setVilleUser] = useState('');
+  const [triProximite, setTriProximite] = useState(false);
 
   useEffect(() => {
     chargerActivites();
+    demanderLocalisation();
   }, []);
+
+  const demanderLocalisation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+
+      const [adresse] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (adresse) {
+        setVilleUser(adresse.city || adresse.subregion || adresse.region || '');
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   const chargerActivites = async () => {
     try {
@@ -76,13 +119,25 @@ export default function ExploreScreen() {
     chargerActivites();
   };
 
-  const activitesFiltrees = activites.filter((a) => {
-    const matchCat = categorieActive === 'Tout' || a.categorie === categorieActive;
-    const matchSearch =
-      a.titre?.toLowerCase().includes(recherche.toLowerCase()) ||
-      a.ville?.toLowerCase().includes(recherche.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const getDistance = (a: Activite) => {
+    if (!userLocation || !a.latitude || !a.longitude) return null;
+    return calculerDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude);
+  };
+
+  const activitesFiltrees = activites
+    .filter((a) => {
+      const matchCat = categorieActive === 'Tout' || a.categorie === categorieActive;
+      const matchSearch =
+        a.titre?.toLowerCase().includes(recherche.toLowerCase()) ||
+        a.ville?.toLowerCase().includes(recherche.toLowerCase());
+      return matchCat && matchSearch;
+    })
+    .sort((a, b) => {
+      if (!triProximite || !userLocation) return 0;
+      const distA = getDistance(a) ?? 99999;
+      const distB = getDistance(b) ?? 99999;
+      return distA - distB;
+    });
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -104,12 +159,29 @@ export default function ExploreScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.titre}>Explorer 🗺️</Text>
-          <Text style={styles.sousTitre}>Casablanca · {activitesFiltrees.length} plans actifs</Text>
+          <Text style={styles.sousTitre}>
+            {villeUser ? `📍 ${villeUser}` : 'Casablanca'} · {activitesFiltrees.length} plans actifs
+          </Text>
         </View>
-        <View style={styles.notifBtn}>
-          <Text style={styles.notifIcon}>🔔</Text>
+        <View style={styles.headerRight}>
+          {userLocation && (
+            <TouchableOpacity
+              style={[styles.proxBtn, triProximite && styles.proxBtnActive]}
+              onPress={() => setTriProximite(!triProximite)}>
+              <Text style={styles.proxIcon}>📍</Text>
+            </TouchableOpacity>
+          )}
+          <View style={styles.notifBtn}>
+            <Text style={styles.notifIcon}>🔔</Text>
+          </View>
         </View>
       </View>
+
+      {triProximite && userLocation && (
+        <View style={styles.proxBadge}>
+          <Text style={styles.proxBadgeTexte}>✅ Tri par proximité activé</Text>
+        </View>
+      )}
 
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>⌕</Text>
@@ -172,6 +244,7 @@ export default function ExploreScreen() {
                     contentContainerStyle={styles.featuredContent}>
                     {featured.map((a) => {
                       const { c1, c2, emoji } = getCouleurs(a.categorie);
+                      const dist = getDistance(a);
                       return (
                         <TouchableOpacity
                           key={a.id}
@@ -181,7 +254,7 @@ export default function ExploreScreen() {
                           <View style={styles.featuredContent2}>
                             <View style={styles.featuredTag}>
                               <Text style={styles.featuredTagTexte}>
-                                {a.categorie?.toUpperCase()} · {formatDate(a.date).toUpperCase()}
+                                {a.categorie?.toUpperCase()} {dist ? `· ${formatDistance(dist)}` : ''}
                               </Text>
                             </View>
                             <View>
@@ -203,10 +276,13 @@ export default function ExploreScreen() {
                 </>
               )}
 
-              <Text style={styles.sectionTitre}>📍 Près de toi</Text>
+              <Text style={styles.sectionTitre}>
+                {triProximite ? '📍 Près de toi' : '📍 Tous les plans'}
+              </Text>
               <View style={styles.cardsContainer}>
                 {reste.map((a) => {
                   const { c1, c2, emoji } = getCouleurs(a.categorie);
+                  const dist = getDistance(a);
                   return (
                     <TouchableOpacity
                       key={a.id}
@@ -226,7 +302,9 @@ export default function ExploreScreen() {
                         <View style={styles.cardBottom}>
                           <View style={styles.cardMeta}>
                             <Text style={styles.cardMetaTexte}>🗓 {formatDate(a.date)}</Text>
-                            <Text style={styles.cardMetaTexte}>📍 {a.ville}</Text>
+                            <Text style={styles.cardMetaTexte}>
+                              📍 {a.ville}{dist ? ` · ${formatDistance(dist)}` : ''}
+                            </Text>
                           </View>
                           <View style={styles.avatars}>
                             <View style={[styles.av, { backgroundColor: '#FF6A00' }]}>
@@ -265,6 +343,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 8 },
   titre: { fontSize: 26, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
   sousTitre: { fontSize: 13, color: '#AAA', marginTop: 2 },
+  headerRight: { flexDirection: 'row', gap: 8 },
+  proxBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
+  proxBtnActive: { backgroundColor: '#1DB954', borderColor: '#1DB954' },
+  proxIcon: { fontSize: 18 },
+  proxBadge: { marginHorizontal: 20, marginBottom: 8, backgroundColor: '#EEF7EE', borderRadius: 10, padding: 8, borderWidth: 1, borderColor: '#1DB954' },
+  proxBadgeTexte: { color: '#1DB954', fontSize: 12, fontWeight: '700', textAlign: 'center' },
   notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
   notifIcon: { fontSize: 18 },
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEE8DE', marginHorizontal: 20, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: '#DDD4C4', marginBottom: 4 },

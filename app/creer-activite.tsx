@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -33,10 +34,41 @@ export default function CreerActiviteScreen() {
   const [maxParticipants, setMaxParticipants] = useState('');
   const [categorieActive, setCategorieActive] = useState('');
   const [loading, setLoading] = useState(false);
+  const [locLoading, setLocLoading] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const getCouleur = () => {
     const cat = CATEGORIES.find((c) => c.label === categorieActive);
     return cat ? cat.couleur1 : '#1A1A1A';
+  };
+
+  const detecterVille = async () => {
+    setLocLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Active la localisation pour détecter ta ville.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setCoords({ lat: location.coords.latitude, lng: location.coords.longitude });
+
+      const [adresse] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (adresse) {
+        const villeDetectee = adresse.city || adresse.subregion || adresse.region || 'Ville inconnue';
+        const quartier = adresse.district || adresse.street || '';
+        setVille(quartier ? `${quartier}, ${villeDetectee}` : villeDetectee);
+      }
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible de détecter ta position.');
+    } finally {
+      setLocLoading(false);
+    }
   };
 
   const creerActivite = async () => {
@@ -69,6 +101,8 @@ export default function CreerActiviteScreen() {
         participants_count: 0,
         createur_id: user.id,
         createur_prenom: profil?.prenom || user.email?.split('@')[0],
+        latitude: coords?.lat || null,
+        longitude: coords?.lng || null,
       });
 
       if (error) {
@@ -87,7 +121,6 @@ export default function CreerActiviteScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
@@ -98,7 +131,6 @@ export default function CreerActiviteScreen() {
 
       <View style={styles.formulaire}>
 
-        {/* TITRE */}
         <Text style={styles.label}>Titre du plan *</Text>
         <TextInput
           style={styles.input}
@@ -108,7 +140,6 @@ export default function CreerActiviteScreen() {
           onChangeText={setTitre}
         />
 
-        {/* CATEGORIE */}
         <Text style={styles.label}>Catégorie *</Text>
         <View style={styles.catsGrid}>
           {CATEGORIES.map((cat) => {
@@ -116,10 +147,7 @@ export default function CreerActiviteScreen() {
             return (
               <TouchableOpacity
                 key={cat.label}
-                style={[
-                  styles.catBtn,
-                  { backgroundColor: active ? cat.couleur1 : '#EEE8DE' },
-                ]}
+                style={[styles.catBtn, { backgroundColor: active ? cat.couleur1 : '#EEE8DE' }]}
                 onPress={() => setCategorieActive(cat.label)}>
                 <Text style={styles.catEmoji}>{cat.emoji}</Text>
                 <Text style={[styles.catLabel, { color: active ? '#fff' : '#888' }]}>
@@ -130,7 +158,6 @@ export default function CreerActiviteScreen() {
           })}
         </View>
 
-        {/* DESCRIPTION */}
         <Text style={styles.label}>Description *</Text>
         <TextInput
           style={[styles.input, styles.inputMultiline]}
@@ -142,17 +169,30 @@ export default function CreerActiviteScreen() {
           onChangeText={setDescription}
         />
 
-        {/* VILLE */}
         <Text style={styles.label}>Ville / Quartier *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: Casablanca, Hay Hassani, Maarif..."
-          placeholderTextColor="#BBB"
-          value={ville}
-          onChangeText={setVille}
-        />
+        <View style={styles.villeRow}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Ex: Casablanca, Hay Hassani..."
+            placeholderTextColor="#BBB"
+            value={ville}
+            onChangeText={setVille}
+          />
+          <TouchableOpacity
+            style={[styles.locBtn, locLoading && styles.locBtnLoading]}
+            onPress={detecterVille}
+            disabled={locLoading}>
+            <Text style={styles.locIcon}>{locLoading ? '⏳' : '📍'}</Text>
+          </TouchableOpacity>
+        </View>
+        {coords && (
+          <View style={styles.coordsBadge}>
+            <Text style={styles.coordsTexte}>
+              ✅ Position GPS enregistrée
+            </Text>
+          </View>
+        )}
 
-        {/* DATE */}
         <Text style={styles.label}>Date et heure</Text>
         <TextInput
           style={styles.input}
@@ -162,7 +202,6 @@ export default function CreerActiviteScreen() {
           onChangeText={setDate}
         />
 
-        {/* MAX PARTICIPANTS */}
         <Text style={styles.label}>Nombre max de participants</Text>
         <TextInput
           style={styles.input}
@@ -173,7 +212,6 @@ export default function CreerActiviteScreen() {
           onChangeText={setMaxParticipants}
         />
 
-        {/* PREVIEW */}
         {titre || categorieActive ? (
           <View style={styles.previewSection}>
             <Text style={styles.label}>Aperçu</Text>
@@ -192,13 +230,8 @@ export default function CreerActiviteScreen() {
           </View>
         ) : null}
 
-        {/* BOUTON */}
         <TouchableOpacity
-          style={[
-            styles.boutonCreer,
-            { backgroundColor: getCouleur() },
-            loading && styles.boutonLoading,
-          ]}
+          style={[styles.boutonCreer, { backgroundColor: getCouleur() }, loading && styles.boutonLoading]}
           onPress={creerActivite}
           disabled={loading}>
           <Text style={styles.boutonTexte}>
@@ -214,77 +247,33 @@ export default function CreerActiviteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEE8DE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD4C4',
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
   backIcon: { fontSize: 20, color: '#1A1A1A' },
   headerTitre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
   formulaire: { paddingHorizontal: 20 },
-  label: {
-    color: '#1A1A1A',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 8,
-    marginTop: 20,
-  },
-  input: {
-    backgroundColor: '#EEE8DE',
-    borderRadius: 14,
-    padding: 14,
-    color: '#1A1A1A',
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: '#DDD4C4',
-  },
+  label: { color: '#1A1A1A', fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 20 },
+  input: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 14, color: '#1A1A1A', fontSize: 15, borderWidth: 1, borderColor: '#DDD4C4' },
   inputMultiline: { height: 100, textAlignVertical: 'top' },
-  catsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  catBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
+  catsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  catBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20 },
   catEmoji: { fontSize: 16 },
   catLabel: { fontSize: 13, fontWeight: '700' },
+  villeRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  locBtn: { width: 50, height: 50, borderRadius: 14, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
+  locBtnLoading: { backgroundColor: '#AAA' },
+  locIcon: { fontSize: 22 },
+  coordsBadge: { backgroundColor: '#EEF7EE', borderRadius: 10, padding: 8, marginTop: 6, borderWidth: 1, borderColor: '#1DB954' },
+  coordsTexte: { color: '#1DB954', fontSize: 12, fontWeight: '700' },
   previewSection: { marginTop: 20 },
-  previewCard: {
-    borderRadius: 20,
-    padding: 18,
-    marginTop: 8,
-  },
+  previewCard: { borderRadius: 20, padding: 18, marginTop: 8 },
   previewTitre: { color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 6 },
   previewDesc: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 18, marginBottom: 12 },
   previewFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   previewMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 12 },
   previewTag: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   previewTagTexte: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  boutonCreer: {
-    borderRadius: 20,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 28,
-  },
+  boutonCreer: { borderRadius: 20, padding: 18, alignItems: 'center', marginTop: 28 },
   boutonLoading: { opacity: 0.6 },
   boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
