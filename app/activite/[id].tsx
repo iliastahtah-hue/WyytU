@@ -211,18 +211,11 @@ export default function ActiviteDetailScreen() {
 
         {!estCreateur && (
           <TouchableOpacity
-            style={[
-              styles.boutonRejoindre,
-              { backgroundColor: dejaRejoint ? '#888' : c1 },
-            ]}
+            style={[styles.boutonRejoindre, { backgroundColor: dejaRejoint ? '#888' : c1 }]}
             onPress={rejoindre}
             disabled={rejoindreLoading || dejaRejoint}>
             <Text style={styles.boutonTexte}>
-              {rejoindreLoading
-                ? 'En cours...'
-                : dejaRejoint
-                ? '✅ Plan rejoint !'
-                : `${emoji} Rejoindre ce plan`}
+              {rejoindreLoading ? 'En cours...' : dejaRejoint ? '✅ Plan rejoint !' : `${emoji} Rejoindre ce plan`}
             </Text>
           </TouchableOpacity>
         )}
@@ -233,6 +226,12 @@ export default function ActiviteDetailScreen() {
           <Text style={[styles.boutonChatTexte, { color: c1 }]}>
             💬 Ouvrir le chat du plan
           </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.boutonNoter}
+          onPress={() => router.push(`/noter/${id}` as any)}>
+          <Text style={styles.boutonNoterTexte}>⭐ Noter les participants</Text>
         </TouchableOpacity>
 
         {estCreateur && (
@@ -280,6 +279,8 @@ const styles = StyleSheet.create({
   boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
   boutonChat: { borderRadius: 20, padding: 18, alignItems: 'center', marginBottom: 16, borderWidth: 2, backgroundColor: 'transparent' },
   boutonChatTexte: { fontSize: 16, fontWeight: '800' },
+  boutonNoter: { borderRadius: 20, padding: 18, alignItems: 'center', marginBottom: 16, backgroundColor: '#FF9500' },
+  boutonNoterTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
   createurBadge: { borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 16 },
   createurBadgeTexte: { fontSize: 14, fontWeight: '700' },
 });
