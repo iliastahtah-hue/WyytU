@@ -1,24 +1,78 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function TabIcon({ icon }: { icon: string }) {
+  return <Text style={{ fontSize: 22 }}>{icon}</Text>;
+}
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
+export default function Layout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#243660',
+          borderTopColor: '#FF6B2B',
+          borderTopWidth: 2,
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: '#FF6B2B',
+        tabBarInactiveTintColor: '#888888',
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: 'bold',
+        },
+      }}>
+
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Accueil',
+          tabBarIcon: () => <TabIcon icon="🏠" />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="groupe"
+        options={{
+          title: 'Créer',
+          tabBarIcon: () => <TabIcon icon="➕" />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="profils"
+        options={{
+          title: 'Découvrir',
+          tabBarIcon: () => <TabIcon icon="👥" />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarIcon: () => <TabIcon icon="💬" />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="profil"
+        options={{
+          title: 'Mon profil',
+          tabBarIcon: () => <TabIcon icon="👤" />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="inscription"
+        options={{
+          href: null,
+        }}
+      />
+
+    </Tabs>
   );
 }
