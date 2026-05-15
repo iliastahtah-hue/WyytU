@@ -95,20 +95,12 @@ export default function ProfilScreen() {
       const image = result.assets[0];
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       const filePath = `${user.id}/avatar.jpg`;
-
       const { error } = await supabase.storage
         .from('photos-wyytu')
-        .upload(filePath, decode(image.base64 ?? ''), {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-
+        .upload(filePath, decode(image.base64 ?? ''), { contentType: 'image/jpeg', upsert: true });
       if (!error) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('photos-wyytu')
-          .getPublicUrl(filePath);
+        const { data: { publicUrl } } = supabase.storage.from('photos-wyytu').getPublicUrl(filePath);
         setPhotoProfile(publicUrl + '?t=' + Date.now());
       } else {
         Alert.alert('Erreur', "Impossible d'uploader la photo.");
@@ -118,7 +110,6 @@ export default function ProfilScreen() {
 
   const ajouterPhotoAlbum = async () => {
     if (photos.length >= 6) return;
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -126,26 +117,17 @@ export default function ProfilScreen() {
       quality: 0.8,
       base64: true,
     });
-
     if (!result.canceled) {
       const image = result.assets[0];
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       const fileName = `album_${Date.now()}.jpg`;
       const filePath = `${user.id}/${fileName}`;
-
       const { error } = await supabase.storage
         .from('photos-wyytu')
-        .upload(filePath, decode(image.base64 ?? ''), {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
+        .upload(filePath, decode(image.base64 ?? ''), { contentType: 'image/jpeg', upsert: false });
       if (!error) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('photos-wyytu')
-          .getPublicUrl(filePath);
+        const { data: { publicUrl } } = supabase.storage.from('photos-wyytu').getPublicUrl(filePath);
         setPhotos([...photos, { url: publicUrl, nom: fileName }]);
       } else {
         Alert.alert('Erreur', "Impossible d'uploader la photo.");
@@ -157,13 +139,7 @@ export default function ProfilScreen() {
     const photo = photos[index];
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    const filePath = `${user.id}/${photo.nom}`;
-
-    const { error } = await supabase.storage
-      .from('photos-wyytu')
-      .remove([filePath]);
-
+    const { error } = await supabase.storage.from('photos-wyytu').remove([`${user.id}/${photo.nom}`]);
     if (!error) {
       setPhotos(photos.filter((_, i) => i !== index));
     } else {
@@ -177,12 +153,12 @@ export default function ProfilScreen() {
   };
 
   const badges = [
-    { icon: '🟢', nom: 'Jamais annulé', couleur: '#27AE60' },
-    { icon: '⭐', nom: 'Top ponctualité', couleur: '#F39C12' },
-    { icon: '👑', nom: 'Organisateur', couleur: '#9B59B6' },
-    { icon: '🔥', nom: 'En feu', couleur: '#FF4444' },
-    { icon: '🌍', nom: 'Explorateur', couleur: '#00BCD4' },
-    { icon: '💎', nom: 'Premium', couleur: '#3498DB' },
+    { icon: '🟢', nom: 'Jamais annulé', couleur: '#1DB954' },
+    { icon: '⭐', nom: 'Top ponctualité', couleur: '#FF9500' },
+    { icon: '👑', nom: 'Organisateur', couleur: '#7B2FBE' },
+    { icon: '🔥', nom: 'En feu', couleur: '#E8000D' },
+    { icon: '🌍', nom: 'Explorateur', couleur: '#00B4D8' },
+    { icon: '💎', nom: 'Premium', couleur: '#0070F3' },
   ];
 
   if (loading) {
@@ -194,36 +170,34 @@ export default function ProfilScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.logo}>WyytU</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-        <View style={styles.avatarContainer}>
+      {/* HERO HEADER */}
+      <View style={styles.hero}>
+        <Text style={styles.logo}>WyytU</Text>
+        <View style={styles.avatarWrapper}>
           <TouchableOpacity onPress={modifierPhoto}>
             {photoProfile ? (
               <Image source={{ uri: photoProfile }} style={styles.avatar} />
             ) : (
-              <View style={styles.avatar}>
+              <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarTexte}>
                   {utilisateur?.prenom?.[0]?.toUpperCase() || '?'}
                 </Text>
               </View>
             )}
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.modifierPhotoBtn} onPress={modifierPhoto}>
-            <Text style={styles.modifierPhotoBtnTexte}>📷 Modifier ma photo</Text>
+          <TouchableOpacity style={styles.editAvatarBtn} onPress={modifierPhoto}>
+            <Text style={styles.editAvatarIcon}>📷</Text>
           </TouchableOpacity>
-
-          <View style={styles.badgeVerifie}>
-            <Text style={styles.badgeVerifieTexte}>✅ Vérifié</Text>
-          </View>
         </View>
 
         <Text style={styles.nom}>{utilisateur?.prenom || 'Utilisateur'}</Text>
         <Text style={styles.ville}>📍 {utilisateur?.ville || 'Non renseigné'}</Text>
-        <Text style={styles.email}>✉️ {utilisateur?.email}</Text>
-        <Text style={styles.note}>⭐ {utilisateur?.note_moyenne || '0'} / 5</Text>
+
+        <View style={styles.badgeVerifie}>
+          <Text style={styles.badgeVerifieTexte}>✅ Profil vérifié</Text>
+        </View>
 
         {utilisateur?.bio ? (
           <View style={styles.bioBox}>
@@ -232,104 +206,137 @@ export default function ProfilScreen() {
         ) : null}
       </View>
 
+      {/* STATS */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statNombre}>0</Text>
-          <Text style={styles.statLabel}>Activités</Text>
+          <Text style={styles.statLabel}>Plans</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNombre}>0</Text>
-          <Text style={styles.statLabel}>Groupes créés</Text>
+          <Text style={styles.statLabel}>Organisés</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNombre}>{utilisateur?.note_moyenne || '0'}</Text>
+          <Text style={[styles.statNombre, { color: '#FF9500' }]}>
+            ⭐ {utilisateur?.note_moyenne || '0'}
+          </Text>
           <Text style={styles.statLabel}>Note</Text>
         </View>
       </View>
 
+      {/* INFOS */}
+      <View style={styles.infoCard}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoIcon}>✉️</Text>
+          <Text style={styles.infoTexte}>{utilisateur?.email}</Text>
+        </View>
+        <View style={styles.separator} />
+        <View style={styles.infoRow}>
+          <Text style={styles.infoIcon}>📍</Text>
+          <Text style={styles.infoTexte}>{utilisateur?.ville || 'Non renseigné'}</Text>
+        </View>
+      </View>
+
+      {/* PHOTOS */}
       <View style={styles.section}>
         <Text style={styles.sectionTitre}>Mes photos 📸</Text>
         <View style={styles.albumGrid}>
           {photos.map((photo, index) => (
-            <View key={index} style={styles.photoAlbumWrapper}>
+            <View key={index} style={styles.photoWrapper}>
               <Image source={{ uri: photo.url }} style={styles.photoAlbum} />
               <TouchableOpacity
-                style={styles.supprimerPhotoAlbum}
+                style={styles.supprimerBtn}
                 onPress={() => supprimerPhotoAlbum(index)}>
                 <Text style={styles.supprimerTexte}>✕</Text>
               </TouchableOpacity>
             </View>
           ))}
-          {photos.length < 6 ? (
-            <TouchableOpacity style={styles.ajouterPhotoAlbum} onPress={ajouterPhotoAlbum}>
-              <Text style={styles.ajouterPhotoIcon}>+</Text>
-              <Text style={styles.ajouterPhotoTexte}>
+          {photos.length < 6 && (
+            <TouchableOpacity style={styles.ajouterPhoto} onPress={ajouterPhotoAlbum}>
+              <Text style={styles.ajouterIcon}>+</Text>
+              <Text style={styles.ajouterTexte}>
                 {photos.length > 0 ? `${photos.length}/6` : 'Ajouter'}
               </Text>
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
       </View>
 
+      {/* BADGES */}
       <View style={styles.section}>
         <Text style={styles.sectionTitre}>Mes badges 🏆</Text>
         <View style={styles.badgesGrid}>
           {badges.map((badge, index) => (
             <View key={index} style={[styles.badgeCard, { borderColor: badge.couleur }]}>
               <Text style={styles.badgeIcon}>{badge.icon}</Text>
-              <Text style={styles.badgeNom}>{badge.nom}</Text>
+              <Text style={[styles.badgeNom, { color: badge.couleur }]}>{badge.nom}</Text>
             </View>
           ))}
         </View>
       </View>
 
+      {/* DECONNEXION */}
       <TouchableOpacity style={styles.boutonDeconnexion} onPress={deconnecter}>
         <Text style={styles.boutonDeconnexionTexte}>🚪 Se déconnecter</Text>
       </TouchableOpacity>
 
-      <View style={styles.espaceBottom} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1A2E5A' },
-  loadingContainer: { flex: 1, backgroundColor: '#1A2E5A', alignItems: 'center', justifyContent: 'center' },
-  loadingTexte: { color: '#FFFFFF', fontSize: 18 },
-  header: { alignItems: 'center', paddingTop: 60, paddingBottom: 20 },
-  logo: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', letterSpacing: 2, marginBottom: 20 },
-  avatarContainer: { alignItems: 'center', marginBottom: 12 },
-  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#FF6B2B', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF' },
-  avatarTexte: { color: '#FFFFFF', fontSize: 40, fontWeight: 'bold' },
-  modifierPhotoBtn: { backgroundColor: '#FF6B2B', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14, marginTop: 8, marginBottom: 8 },
-  modifierPhotoBtnTexte: { color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' },
-  badgeVerifie: { backgroundColor: '#1A3A2A', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 12, borderWidth: 1, borderColor: '#27AE60' },
-  badgeVerifieTexte: { color: '#27AE60', fontSize: 12, fontWeight: 'bold' },
-  nom: { color: '#FFFFFF', fontSize: 26, fontWeight: 'bold', marginTop: 8 },
-  ville: { color: '#AAAAAA', fontSize: 14, marginTop: 4 },
-  email: { color: '#AAAAAA', fontSize: 12, marginTop: 4 },
-  note: { color: '#F39C12', fontSize: 18, fontWeight: 'bold', marginTop: 6 },
-  bioBox: { backgroundColor: '#243660', borderRadius: 12, padding: 14, marginTop: 12, marginHorizontal: 20, borderWidth: 1, borderColor: '#2B4C9B' },
-  bioTexte: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  statsRow: { flexDirection: 'row', marginHorizontal: 20, gap: 10, marginBottom: 10 },
-  statCard: { flex: 1, backgroundColor: '#243660', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#2B4C9B' },
-  statNombre: { color: '#FF6B2B', fontSize: 24, fontWeight: 'bold' },
-  statLabel: { color: '#AAAAAA', fontSize: 11, marginTop: 4 },
-  section: { paddingHorizontal: 20, marginTop: 20 },
-  sectionTitre: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: '#FAF7F2' },
+  loadingContainer: { flex: 1, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center' },
+  loadingTexte: { color: '#AAA', fontSize: 16 },
+
+  hero: { alignItems: 'center', paddingTop: 60, paddingBottom: 28, paddingHorizontal: 20, backgroundColor: '#FAF7F2' },
+  logo: { fontSize: 26, fontWeight: '800', color: '#1A1A1A', letterSpacing: 1, marginBottom: 24 },
+
+  avatarWrapper: { position: 'relative', marginBottom: 16 },
+  avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#EEE8DE' },
+  avatarPlaceholder: { width: 110, height: 110, borderRadius: 55, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#EEE8DE' },
+  avatarTexte: { color: '#fff', fontSize: 44, fontWeight: '800' },
+  editAvatarBtn: { position: 'absolute', bottom: 0, right: 0, width: 34, height: 34, borderRadius: 17, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FAF7F2' },
+  editAvatarIcon: { fontSize: 16 },
+
+  nom: { fontSize: 24, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5, marginBottom: 4 },
+  ville: { fontSize: 14, color: '#AAA', marginBottom: 12 },
+
+  badgeVerifie: { backgroundColor: '#EEF7EE', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 14, borderWidth: 1, borderColor: '#1DB954', marginBottom: 12 },
+  badgeVerifieTexte: { color: '#1DB954', fontSize: 12, fontWeight: '700' },
+
+  bioBox: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 14, marginTop: 4, borderWidth: 1, borderColor: '#DDD4C4', width: '100%' },
+  bioTexte: { color: '#555', fontSize: 14, lineHeight: 20, textAlign: 'center' },
+
+  statsRow: { flexDirection: 'row', marginHorizontal: 20, gap: 10, marginBottom: 16 },
+  statCard: { flex: 1, backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
+  statNombre: { fontSize: 22, fontWeight: '800', color: '#1A1A1A' },
+  statLabel: { color: '#AAA', fontSize: 11, marginTop: 4, fontWeight: '600' },
+
+  infoCard: { marginHorizontal: 20, backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#DDD4C4' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  infoIcon: { fontSize: 16 },
+  infoTexte: { fontSize: 14, color: '#555', flex: 1 },
+  separator: { height: 1, backgroundColor: '#DDD4C4', marginVertical: 8 },
+
+  section: { paddingHorizontal: 20, marginBottom: 24 },
+  sectionTitre: { fontSize: 17, fontWeight: '800', color: '#1A1A1A', marginBottom: 14, letterSpacing: -0.3 },
+
   albumGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  photoAlbumWrapper: { position: 'relative' },
-  photoAlbum: { width: 100, height: 100, borderRadius: 12 },
-  supprimerPhotoAlbum: { position: 'absolute', top: -6, right: -6, backgroundColor: '#FF4444', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  supprimerTexte: { color: '#FFFFFF', fontSize: 11, fontWeight: 'bold' },
-  ajouterPhotoAlbum: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#243660', borderWidth: 2, borderColor: '#FF6B2B', alignItems: 'center', justifyContent: 'center' },
-  ajouterPhotoIcon: { color: '#FF6B2B', fontSize: 28, fontWeight: 'bold' },
-  ajouterPhotoTexte: { color: '#FF6B2B', fontSize: 11, marginTop: 2 },
+  photoWrapper: { position: 'relative' },
+  photoAlbum: { width: 100, height: 100, borderRadius: 14 },
+  supprimerBtn: { position: 'absolute', top: -6, right: -6, backgroundColor: '#E8000D', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  supprimerTexte: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  ajouterPhoto: { width: 100, height: 100, borderRadius: 14, backgroundColor: '#EEE8DE', borderWidth: 2, borderColor: '#DDD4C4', alignItems: 'center', justifyContent: 'center' },
+  ajouterIcon: { color: '#AAA', fontSize: 28, fontWeight: '700' },
+  ajouterTexte: { color: '#AAA', fontSize: 11, marginTop: 2 },
+
   badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  badgeCard: { backgroundColor: '#243660', borderRadius: 12, padding: 12, alignItems: 'center', width: '30%', borderWidth: 2 },
-  badgeIcon: { fontSize: 28 },
-  badgeNom: { color: '#FFFFFF', fontSize: 10, marginTop: 6, textAlign: 'center' },
-  boutonDeconnexion: { backgroundColor: '#3A1A1A', borderRadius: 12, padding: 16, alignItems: 'center', marginHorizontal: 20, marginTop: 20, borderWidth: 1, borderColor: '#FF4444' },
-  boutonDeconnexionTexte: { color: '#FF4444', fontWeight: 'bold', fontSize: 16 },
-  espaceBottom: { height: 40 },
+  badgeCard: { backgroundColor: '#EEE8DE', borderRadius: 14, padding: 14, alignItems: 'center', width: '30%', borderWidth: 2 },
+  badgeIcon: { fontSize: 26 },
+  badgeNom: { fontSize: 10, marginTop: 6, textAlign: 'center', fontWeight: '700' },
+
+  boutonDeconnexion: { backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, alignItems: 'center', marginHorizontal: 20, marginBottom: 10, borderWidth: 1.5, borderColor: '#E8000D' },
+  boutonDeconnexionTexte: { color: '#E8000D', fontWeight: '800', fontSize: 15 },
 });
