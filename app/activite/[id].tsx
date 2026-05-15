@@ -151,7 +151,6 @@ export default function ActiviteDetailScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* HERO */}
       <View style={[styles.hero, { backgroundColor: c1 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
@@ -169,7 +168,6 @@ export default function ActiviteDetailScreen() {
 
       <View style={styles.contenu}>
 
-        {/* STATS */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { borderColor: c1 }]}>
             <Text style={[styles.statNombre, { color: c1 }]}>
@@ -191,13 +189,11 @@ export default function ActiviteDetailScreen() {
           </View>
         </View>
 
-        {/* DESCRIPTION */}
         <View style={styles.section}>
           <Text style={styles.sectionTitre}>À propos</Text>
           <Text style={styles.description}>{activite.description}</Text>
         </View>
 
-        {/* ORGANISATEUR */}
         <View style={styles.section}>
           <Text style={styles.sectionTitre}>Organisateur</Text>
           <View style={styles.createurCard}>
@@ -213,7 +209,6 @@ export default function ActiviteDetailScreen() {
           </View>
         </View>
 
-        {/* BOUTON REJOINDRE */}
         {!estCreateur && (
           <TouchableOpacity
             style={[
@@ -231,6 +226,14 @@ export default function ActiviteDetailScreen() {
             </Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          style={[styles.boutonChat, { borderColor: c1 }]}
+          onPress={() => router.push(`/chat/${id}` as any)}>
+          <Text style={[styles.boutonChatTexte, { color: c1 }]}>
+            💬 Ouvrir le chat du plan
+          </Text>
+        </TouchableOpacity>
 
         {estCreateur && (
           <View style={[styles.createurBadge, { backgroundColor: c1 + '22' }]}>
@@ -275,6 +278,8 @@ const styles = StyleSheet.create({
   createurSub: { fontSize: 12, color: '#AAA', marginTop: 2 },
   boutonRejoindre: { borderRadius: 20, padding: 18, alignItems: 'center', marginBottom: 16 },
   boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  boutonChat: { borderRadius: 20, padding: 18, alignItems: 'center', marginBottom: 16, borderWidth: 2, backgroundColor: 'transparent' },
+  boutonChatTexte: { fontSize: 16, fontWeight: '800' },
   createurBadge: { borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 16 },
   createurBadgeTexte: { fontSize: 14, fontWeight: '700' },
 });
