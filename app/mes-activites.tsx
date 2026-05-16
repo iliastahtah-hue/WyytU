@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import TabBar from '../components/TabBar';
 import { supabase } from '../lib/supabase';
 
 type Activite = {
@@ -47,38 +48,29 @@ export default function MesActivitesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [onglet, setOnglet] = useState<'crees' | 'rejointes'>('crees');
 
-  useEffect(() => {
-    chargerActivites();
-  }, []);
+  useEffect(() => { chargerActivites(); }, []);
 
   const chargerActivites = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Plans créés
       const { data: crees } = await supabase
-        .from('activites')
-        .select('*')
+        .from('activites').select('*')
         .eq('createur_id', user.id)
         .order('created_at', { ascending: false });
-
       if (crees) setActivitesCrees(crees);
 
-      // Plans rejoints
       const { data: participations } = await supabase
-        .from('participations')
-        .select('activite_id')
+        .from('participations').select('activite_id')
         .eq('user_id', user.id);
 
       if (participations && participations.length > 0) {
         const ids = participations.map((p) => p.activite_id);
         const { data: rejointes } = await supabase
-          .from('activites')
-          .select('*')
+          .from('activites').select('*')
           .in('id', ids)
           .order('created_at', { ascending: false });
-
         if (rejointes) setActivitesRejointes(rejointes);
       }
     } catch (err) {
@@ -89,20 +81,13 @@ export default function MesActivitesScreen() {
     }
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    chargerActivites();
-  };
+  const onRefresh = () => { setRefreshing(true); chargerActivites(); };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Date à confirmer';
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+      weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   };
 
@@ -110,8 +95,6 @@ export default function MesActivitesScreen() {
 
   const ActiviteCard = ({ activite }: { activite: Activite }) => {
     const cat = getCat(activite.categorie);
-    const placesRestantes = (activite.max_participants || 0) - (activite.participants_count || 0);
-
     return (
       <TouchableOpacity
         style={[styles.card, { backgroundColor: cat.couleur1 }]}
@@ -128,26 +111,18 @@ export default function MesActivitesScreen() {
             <Text style={styles.cardTagTexte}>{activite.categorie}</Text>
           </View>
         </View>
-
         <Text style={styles.cardDesc} numberOfLines={2}>{activite.description}</Text>
-
         <View style={styles.cardFooter}>
           <View style={styles.cardMeta}>
             <Text style={styles.cardMetaTexte}>🗓 {formatDate(activite.date)}</Text>
-            <Text style={styles.cardMetaTexte}>
-              👥 {activite.participants_count || 0}/{activite.max_participants || '∞'}
-            </Text>
+            <Text style={styles.cardMetaTexte}>👥 {activite.participants_count || 0}/{activite.max_participants || '∞'}</Text>
           </View>
           {onglet === 'crees' && (
             <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={styles.chatBtn}
-                onPress={() => router.push(`/chat/${activite.id}` as any)}>
+              <TouchableOpacity style={styles.chatBtn} onPress={() => router.push(`/chat/${activite.id}` as any)}>
                 <Text style={styles.chatBtnTexte}>💬</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.noterBtn}
-                onPress={() => router.push(`/noter/${activite.id}` as any)}>
+              <TouchableOpacity style={styles.noterBtn} onPress={() => router.push(`/noter/${activite.id}` as any)}>
                 <Text style={styles.noterBtnTexte}>⭐</Text>
               </TouchableOpacity>
             </View>
@@ -159,8 +134,6 @@ export default function MesActivitesScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
@@ -169,7 +142,6 @@ export default function MesActivitesScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* STATS */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statNombre}>{activitesCrees.length}</Text>
@@ -185,7 +157,6 @@ export default function MesActivitesScreen() {
         </View>
       </View>
 
-      {/* ONGLETS */}
       <View style={styles.onglets}>
         <TouchableOpacity
           style={[styles.onglet, onglet === 'crees' && styles.ongletActive]}
@@ -203,7 +174,6 @@ export default function MesActivitesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* LISTE */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#E8000D" />
@@ -212,66 +182,54 @@ export default function MesActivitesScreen() {
         <ScrollView
           style={styles.liste}
           contentContainerStyle={styles.listeContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E8000D" />
-          }>
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E8000D" />}>
           {activitesActuelles.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>{onglet === 'crees' ? '📋' : '🎯'}</Text>
-              <Text style={styles.emptyTexte}>
-                {onglet === 'crees' ? 'Aucun plan créé' : 'Aucun plan rejoint'}
-              </Text>
+              <Text style={styles.emptyTexte}>{onglet === 'crees' ? 'Aucun plan créé' : 'Aucun plan rejoint'}</Text>
               <Text style={styles.emptySub}>
-                {onglet === 'crees'
-                  ? 'Crée ton premier plan depuis Explorer !'
-                  : 'Rejoins un plan depuis Explorer !'}
+                {onglet === 'crees' ? 'Crée ton premier plan depuis Explorer !' : 'Rejoins un plan depuis Explorer !'}
               </Text>
-              <TouchableOpacity
-                style={styles.emptyBtn}
-                onPress={() => router.push('/(tabs)/explore' as any)}>
+              <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/(tabs)/explore' as any)}>
                 <Text style={styles.emptyBtnTexte}>Explorer les plans →</Text>
               </TouchableOpacity>
             </View>
           ) : (
             activitesActuelles.map((a) => <ActiviteCard key={a.id} activite={a} />)
           )}
-          <View style={{ height: 100 }} />
+          <View style={{ height: 20 }} />
         </ScrollView>
       )}
+
+      <TabBar />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
-
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
   backIcon: { fontSize: 20, color: '#1A1A1A' },
   headerTitre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
-
   statsRow: { flexDirection: 'row', marginHorizontal: 20, gap: 10, marginBottom: 16 },
   statCard: { flex: 1, backgroundColor: '#EEE8DE', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
   statNombre: { fontSize: 24, fontWeight: '800', color: '#1A1A1A' },
   statLabel: { fontSize: 11, color: '#AAA', marginTop: 4, fontWeight: '600' },
-
   onglets: { flexDirection: 'row', marginHorizontal: 20, backgroundColor: '#EEE8DE', borderRadius: 14, padding: 4, marginBottom: 16, borderWidth: 1, borderColor: '#DDD4C4' },
   onglet: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   ongletActive: { backgroundColor: '#1A1A1A' },
   ongletTexte: { fontSize: 12, fontWeight: '700', color: '#AAA' },
   ongletTexteActive: { color: '#fff' },
-
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
   liste: { flex: 1 },
   listeContent: { paddingHorizontal: 20, gap: 12 },
-
   emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 10 },
   emptyIcon: { fontSize: 52 },
   emptyTexte: { fontSize: 18, fontWeight: '800', color: '#1A1A1A' },
   emptySub: { fontSize: 14, color: '#AAA', textAlign: 'center' },
   emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 12, marginTop: 8 },
   emptyBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
   card: { borderRadius: 20, padding: 16, gap: 10 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cardIconWrapper: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
