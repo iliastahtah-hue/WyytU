@@ -1,270 +1,212 @@
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { supabase } from '../../lib/supabase';
 
-export default function ChatScreen() {
+type Conversation = {
+  id: string;
+  titre: string;
+  categorie: string;
+  dernierMessage?: string;
+  dernierMessageDate?: string;
+  participants_count: number;
+};
 
-  const groupe = {
-    nom: '🏋️ Sport ce soir',
-    membres: ['Ilias', 'Sarah', 'Karim', 'Léa'],
-    activite: 'Sport',
-    heure: '18h00',
-    lieu: 'Salle Basic-Fit Bruxelles',
+const CATEGORIES: Record<string, { couleur: string; emoji: string }> = {
+  Sport: { couleur: '#E8000D', emoji: '⚡' },
+  Resto: { couleur: '#FF6A00', emoji: '🍕' },
+  Ciné: { couleur: '#CC0000', emoji: '🎬' },
+  Soirée: { couleur: '#7B2FBE', emoji: '🎉' },
+  Gaming: { couleur: '#0070F3', emoji: '🎮' },
+  Voyage: { couleur: '#00B4D8', emoji: '✈️' },
+  Musique: { couleur: '#1DB954', emoji: '🎵' },
+  'Bien-être': { couleur: '#00897B', emoji: '🏃' },
+  Social: { couleur: '#FF4B7D', emoji: '👥' },
+  Art: { couleur: '#FFD600', emoji: '🎨' },
+};
+
+export default function ChatListScreen() {
+  const router = useRouter();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    chargerConversations();
+  }, []);
+
+  const chargerConversations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+
+      // Plans créés par l'user
+      const { data: crees } = await supabase
+        .from('activites')
+        .select('id, titre, categorie, participants_count')
+        .eq('createur_id', user.id)
+        .order('created_at', { ascending: false });
+
+      // Plans rejoints par l'user
+      const { data: participations } = await supabase
+        .from('participations')
+        .select('activite_id')
+        .eq('user_id', user.id);
+
+      let rejointes: Conversation[] = [];
+      if (participations && participations.length > 0) {
+        const ids = participations.map((p) => p.activite_id);
+        const { data } = await supabase
+          .from('activites')
+          .select('id, titre, categorie, participants_count')
+          .in('id', ids)
+          .order('created_at', { ascending: false });
+        if (data) rejointes = data;
+      }
+
+      // Fusionner sans doublons
+      const tousIds = new Set();
+      const toutes: Conversation[] = [];
+      for (const a of [...(crees || []), ...rejointes]) {
+        if (!tousIds.has(a.id)) {
+          tousIds.add(a.id);
+          toutes.push(a);
+        }
+      }
+
+      // Charger le dernier message de chaque conversation
+      const avecMessages = await Promise.all(
+        toutes.map(async (conv) => {
+          const { data: msgs } = await supabase
+            .from('messages')
+            .select('contenu, created_at, prenom')
+            .eq('activite_id', conv.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          return {
+            ...conv,
+            dernierMessage: msgs?.[0] ? `${msgs[0].prenom}: ${msgs[0].contenu}` : 'Aucun message',
+            dernierMessageDate: msgs?.[0]?.created_at || null,
+          };
+        })
+      );
+
+      setConversations(avecMessages);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const messages = [
-    { auteur: 'Sarah', texte: 'Salut tout le monde ! Hâte de faire la séance 💪', heure: '14:32', moi: false },
-    { auteur: 'Karim', texte: 'Pareil ! Je serai là à 17h45 pour s\'échauffer', heure: '14:35', moi: false },
-    { auteur: 'Moi', texte: 'Super ! On se retrouve à l\'entrée ?', heure: '14:38', moi: true },
-    { auteur: 'Léa', texte: 'Oui parfait 😊 Je viens aussi un peu en avance', heure: '14:40', moi: false },
-    { auteur: 'Sarah', texte: 'Quelqu\'un a besoin de matériel ? J\'ai des élastiques en plus', heure: '14:45', moi: false },
-    { auteur: 'Karim', texte: 'Non merci Sarah ! À tout à l\'heure 🔥', heure: '14:50', moi: false },
-    { auteur: 'Moi', texte: 'On est une super équipe ! À ce soir 💪🔥', heure: '14:52', moi: true },
-  ];
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  };
 
   return (
     <View style={styles.container}>
 
+      {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.headerInfo}>
-          <Text style={styles.logo}>WyytU</Text>
-          <Text style={styles.groupeNom}>{groupe.nom}</Text>
-          <Text style={styles.groupeMembres}>
-            {groupe.membres.join(' • ')}
-          </Text>
+        <Text style={styles.titre}>Messages 💬</Text>
+        <Text style={styles.sousTitre}>{conversations.length} conversations actives</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E8000D" />
         </View>
-
-        <View style={styles.appelsRow}>
-          <TouchableOpacity style={styles.boutonAppel}>
-            <Text style={styles.boutonAppelIcon}>📞</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.boutonVideo}>
-            <Text style={styles.boutonVideoIcon}>📹</Text>
+      ) : conversations.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>💬</Text>
+          <Text style={styles.emptyTexte}>Aucune conversation</Text>
+          <Text style={styles.emptySub}>Rejoins un plan pour commencer à chatter !</Text>
+          <TouchableOpacity
+            style={styles.emptyBtn}
+            onPress={() => router.push('/(tabs)/explore' as any)}>
+            <Text style={styles.emptyBtnTexte}>Explorer les plans →</Text>
           </TouchableOpacity>
         </View>
-      </View>
-
-      <View style={styles.infoGroupe}>
-        <Text style={styles.infoTexte}>
-          📍 {groupe.lieu}
-        </Text>
-        <Text style={styles.infoTexte}>
-          🕐 {groupe.heure}
-        </Text>
-      </View>
-
-      <ScrollView style={styles.messagesContainer}>
-        {messages.map((message, index) => (
-          <View
-            key={index}
-            style={[
-              styles.messageWrapper,
-              message.moi ? styles.messageWrapperMoi : styles.messageWrapperAutre
-            ]}>
-
-            {!message.moi && (
-              <View style={styles.avatarPetit}>
-                <Text style={styles.avatarPetitTexte}>
-                  {message.auteur[0]}
-                </Text>
-              </View>
-            )}
-
-            <View style={[
-              styles.messageBulle,
-              message.moi ? styles.messageBulleMoi : styles.messageBulleAutre
-            ]}>
-              {!message.moi && (
-                <Text style={styles.messageAuteur}>{message.auteur}</Text>
-              )}
-              <Text style={styles.messageTexte}>{message.texte}</Text>
-              <Text style={styles.messageHeure}>{message.heure}</Text>
-            </View>
-
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Écris un message..."
-          placeholderTextColor="#888"
-          multiline
-        />
-        <TouchableOpacity style={styles.boutonEnvoyer}>
-          <Text style={styles.boutonEnvoyerTexte}>🚀</Text>
-        </TouchableOpacity>
-      </View>
-
+      ) : (
+        <ScrollView style={styles.liste} showsVerticalScrollIndicator={false}>
+          {conversations.map((conv) => {
+            const cat = CATEGORIES[conv.categorie] || { couleur: '#1A1A1A', emoji: '💬' };
+            return (
+              <TouchableOpacity
+                key={conv.id}
+                style={styles.convCard}
+                onPress={() => router.push(`/chat/${conv.id}` as any)}>
+                <View style={[styles.convIcon, { backgroundColor: cat.couleur }]}>
+                  <Text style={styles.convEmoji}>{cat.emoji}</Text>
+                </View>
+                <View style={styles.convInfo}>
+                  <View style={styles.convTop}>
+                    <Text style={styles.convTitre} numberOfLines={1}>{conv.titre}</Text>
+                    <Text style={styles.convDate}>{formatDate(conv.dernierMessageDate)}</Text>
+                  </View>
+                  <View style={styles.convBottom}>
+                    <Text style={styles.convDernierMsg} numberOfLines={1}>
+                      {conv.dernierMessage}
+                    </Text>
+                    <View style={[styles.convTag, { backgroundColor: cat.couleur + '22' }]}>
+                      <Text style={[styles.convTagTexte, { color: cat.couleur }]}>
+                        {conv.participants_count || 0} 👥
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A2E5A',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#243660',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2B4C9B',
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  logo: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FF6B2B',
-    letterSpacing: 2,
-  },
-  groupeNom: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  groupeMembres: {
-    color: '#AAAAAA',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  appelsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  boutonAppel: {
-    backgroundColor: '#27AE60',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  boutonAppelIcon: {
-    fontSize: 20,
-  },
-  boutonVideo: {
-    backgroundColor: '#3498DB',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  boutonVideoIcon: {
-    fontSize: 20,
-  },
-  infoGroupe: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#1E3A6E',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2B4C9B',
-  },
-  infoTexte: {
-    color: '#FF6B2B',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  messagesContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  messageWrapper: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    alignItems: 'flex-end',
-  },
-  messageWrapperMoi: {
-    justifyContent: 'flex-end',
-  },
-  messageWrapperAutre: {
-    justifyContent: 'flex-start',
-  },
-  avatarPetit: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FF6B2B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  avatarPetitTexte: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  messageBulle: {
-    maxWidth: '70%',
-    borderRadius: 16,
-    padding: 12,
-  },
-  messageBulleMoi: {
-    backgroundColor: '#FF6B2B',
-    borderBottomRightRadius: 4,
-  },
-  messageBulleAutre: {
-    backgroundColor: '#243660',
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#2B4C9B',
-  },
-  messageAuteur: {
-    color: '#FF6B2B',
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  messageTexte: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  messageHeure: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#243660',
-    borderTopWidth: 1,
-    borderTopColor: '#2B4C9B',
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#1A2E5A',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    color: '#FFFFFF',
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#2B4C9B',
-    maxHeight: 100,
-  },
-  boutonEnvoyer: {
-    backgroundColor: '#FF6B2B',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  boutonEnvoyerTexte: {
-    fontSize: 20,
-  },
+  container: { flex: 1, backgroundColor: '#FAF7F2' },
+
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  titre: { fontSize: 28, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
+  sousTitre: { fontSize: 13, color: '#AAA', marginTop: 4 },
+
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
+  emptyIcon: { fontSize: 60 },
+  emptyTexte: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
+  emptySub: { fontSize: 14, color: '#AAA', textAlign: 'center' },
+  emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
+  emptyBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  liste: { flex: 1, paddingHorizontal: 20 },
+
+  convCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EEE8DE' },
+  convIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  convEmoji: { fontSize: 24 },
+  convInfo: { flex: 1 },
+  convTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  convTitre: { fontSize: 15, fontWeight: '800', color: '#1A1A1A', flex: 1, marginRight: 8 },
+  convDate: { fontSize: 11, color: '#AAA', fontWeight: '600' },
+  convBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  convDernierMsg: { fontSize: 13, color: '#AAA', flex: 1, marginRight: 8 },
+  convTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  convTagTexte: { fontSize: 11, fontWeight: '700' },
 });

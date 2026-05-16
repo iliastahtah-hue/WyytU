@@ -82,15 +82,12 @@ export default function ExploreScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
-
       const [adresse] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-
       if (adresse) {
         setVilleUser(adresse.city || adresse.subregion || adresse.region || '');
       }
@@ -164,6 +161,11 @@ export default function ExploreScreen() {
           </Text>
         </View>
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.matchingBtn}
+            onPress={() => router.push('/matching' as any)}>
+            <Text style={styles.matchingIcon}>🎯</Text>
+          </TouchableOpacity>
           {userLocation && (
             <TouchableOpacity
               style={[styles.proxBtn, triProximite && styles.proxBtnActive]}
@@ -344,6 +346,8 @@ const styles = StyleSheet.create({
   titre: { fontSize: 26, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
   sousTitre: { fontSize: 13, color: '#AAA', marginTop: 2 },
   headerRight: { flexDirection: 'row', gap: 8 },
+  matchingBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
+  matchingIcon: { fontSize: 18 },
   proxBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
   proxBtnActive: { backgroundColor: '#1DB954', borderColor: '#1DB954' },
   proxIcon: { fontSize: 18 },
