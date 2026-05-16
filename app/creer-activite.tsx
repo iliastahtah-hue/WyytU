@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import TabBar from '../components/TabBar';
 import { supabase } from '../lib/supabase';
 
 const CATEGORIES = [
@@ -50,15 +51,12 @@ export default function CreerActiviteScreen() {
         Alert.alert('Permission refusée', 'Active la localisation pour détecter ta ville.');
         return;
       }
-
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setCoords({ lat: location.coords.latitude, lng: location.coords.longitude });
-
       const [adresse] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-
       if (adresse) {
         const villeDetectee = adresse.city || adresse.subregion || adresse.region || 'Ville inconnue';
         const quartier = adresse.district || adresse.street || '';
@@ -76,25 +74,13 @@ export default function CreerActiviteScreen() {
       Alert.alert('Erreur', 'Remplis tous les champs obligatoires !');
       return;
     }
-
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Erreur', 'Tu dois être connecté !');
-        return;
-      }
-
-      const { data: profil } = await supabase
-        .from('utilisateurs')
-        .select('prenom')
-        .eq('email', user.email)
-        .single();
-
+      if (!user) { Alert.alert('Erreur', 'Tu dois être connecté !'); return; }
+      const { data: profil } = await supabase.from('utilisateurs').select('prenom').eq('email', user.email).single();
       const { error } = await supabase.from('activites').insert({
-        titre,
-        description,
-        ville,
+        titre, description, ville,
         categorie: categorieActive,
         date: date || null,
         max_participants: maxParticipants ? parseInt(maxParticipants) : null,
@@ -104,7 +90,6 @@ export default function CreerActiviteScreen() {
         latitude: coords?.lat || null,
         longitude: coords?.lng || null,
       });
-
       if (error) {
         Alert.alert('Erreur', error.message);
       } else {
@@ -120,128 +105,123 @@ export default function CreerActiviteScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitre}>Nouveau plan ✦</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <View style={styles.formulaire}>
-
-        <Text style={styles.label}>Titre du plan *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: Foot à 5 ce soir, Brunch Medina..."
-          placeholderTextColor="#BBB"
-          value={titre}
-          onChangeText={setTitre}
-        />
-
-        <Text style={styles.label}>Catégorie *</Text>
-        <View style={styles.catsGrid}>
-          {CATEGORIES.map((cat) => {
-            const active = categorieActive === cat.label;
-            return (
-              <TouchableOpacity
-                key={cat.label}
-                style={[styles.catBtn, { backgroundColor: active ? cat.couleur1 : '#EEE8DE' }]}
-                onPress={() => setCategorieActive(cat.label)}>
-                <Text style={styles.catEmoji}>{cat.emoji}</Text>
-                <Text style={[styles.catLabel, { color: active ? '#fff' : '#888' }]}>
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <Text style={styles.label}>Description *</Text>
-        <TextInput
-          style={[styles.input, styles.inputMultiline]}
-          placeholder="Décris ton plan, ce que tu cherches..."
-          placeholderTextColor="#BBB"
-          multiline
-          numberOfLines={4}
-          value={description}
-          onChangeText={setDescription}
-        />
-
-        <Text style={styles.label}>Ville / Quartier *</Text>
-        <View style={styles.villeRow}>
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            placeholder="Ex: Casablanca, Hay Hassani..."
-            placeholderTextColor="#BBB"
-            value={ville}
-            onChangeText={setVille}
-          />
-          <TouchableOpacity
-            style={[styles.locBtn, locLoading && styles.locBtnLoading]}
-            onPress={detecterVille}
-            disabled={locLoading}>
-            <Text style={styles.locIcon}>{locLoading ? '⏳' : '📍'}</Text>
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
+          <Text style={styles.headerTitre}>Nouveau plan ✦</Text>
+          <View style={{ width: 40 }} />
         </View>
-        {coords && (
-          <View style={styles.coordsBadge}>
-            <Text style={styles.coordsTexte}>
-              ✅ Position GPS enregistrée
-            </Text>
+
+        <View style={styles.formulaire}>
+          <Text style={styles.label}>Titre du plan *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: Foot à 5 ce soir, Brunch Medina..."
+            placeholderTextColor="#BBB"
+            value={titre}
+            onChangeText={setTitre}
+          />
+
+          <Text style={styles.label}>Catégorie *</Text>
+          <View style={styles.catsGrid}>
+            {CATEGORIES.map((cat) => {
+              const active = categorieActive === cat.label;
+              return (
+                <TouchableOpacity
+                  key={cat.label}
+                  style={[styles.catBtn, { backgroundColor: active ? cat.couleur1 : '#EEE8DE' }]}
+                  onPress={() => setCategorieActive(cat.label)}>
+                  <Text style={styles.catEmoji}>{cat.emoji}</Text>
+                  <Text style={[styles.catLabel, { color: active ? '#fff' : '#888' }]}>{cat.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        )}
 
-        <Text style={styles.label}>Date et heure</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 2024-12-25 19:00"
-          placeholderTextColor="#BBB"
-          value={date}
-          onChangeText={setDate}
-        />
+          <Text style={styles.label}>Description *</Text>
+          <TextInput
+            style={[styles.input, styles.inputMultiline]}
+            placeholder="Décris ton plan, ce que tu cherches..."
+            placeholderTextColor="#BBB"
+            multiline
+            numberOfLines={4}
+            value={description}
+            onChangeText={setDescription}
+          />
 
-        <Text style={styles.label}>Nombre max de participants</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 5, 10, 20..."
-          placeholderTextColor="#BBB"
-          keyboardType="numeric"
-          value={maxParticipants}
-          onChangeText={setMaxParticipants}
-        />
+          <Text style={styles.label}>Ville / Quartier *</Text>
+          <View style={styles.villeRow}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="Ex: Casablanca, Hay Hassani..."
+              placeholderTextColor="#BBB"
+              value={ville}
+              onChangeText={setVille}
+            />
+            <TouchableOpacity
+              style={[styles.locBtn, locLoading && styles.locBtnLoading]}
+              onPress={detecterVille}
+              disabled={locLoading}>
+              <Text style={styles.locIcon}>{locLoading ? '⏳' : '📍'}</Text>
+            </TouchableOpacity>
+          </View>
+          {coords && (
+            <View style={styles.coordsBadge}>
+              <Text style={styles.coordsTexte}>✅ Position GPS enregistrée</Text>
+            </View>
+          )}
 
-        {titre || categorieActive ? (
-          <View style={styles.previewSection}>
-            <Text style={styles.label}>Aperçu</Text>
-            <View style={[styles.previewCard, { backgroundColor: getCouleur() }]}>
-              <Text style={styles.previewTitre}>{titre || 'Titre du plan'}</Text>
-              <Text style={styles.previewDesc} numberOfLines={2}>
-                {description || 'Description...'}
-              </Text>
-              <View style={styles.previewFooter}>
-                <Text style={styles.previewMeta}>📍 {ville || 'Ville'}</Text>
-                <View style={styles.previewTag}>
-                  <Text style={styles.previewTagTexte}>{categorieActive || 'Catégorie'}</Text>
+          <Text style={styles.label}>Date et heure</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: 2024-12-25 19:00"
+            placeholderTextColor="#BBB"
+            value={date}
+            onChangeText={setDate}
+          />
+
+          <Text style={styles.label}>Nombre max de participants</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: 5, 10, 20..."
+            placeholderTextColor="#BBB"
+            keyboardType="numeric"
+            value={maxParticipants}
+            onChangeText={setMaxParticipants}
+          />
+
+          {titre || categorieActive ? (
+            <View style={styles.previewSection}>
+              <Text style={styles.label}>Aperçu</Text>
+              <View style={[styles.previewCard, { backgroundColor: getCouleur() }]}>
+                <Text style={styles.previewTitre}>{titre || 'Titre du plan'}</Text>
+                <Text style={styles.previewDesc} numberOfLines={2}>{description || 'Description...'}</Text>
+                <View style={styles.previewFooter}>
+                  <Text style={styles.previewMeta}>📍 {ville || 'Ville'}</Text>
+                  <View style={styles.previewTag}>
+                    <Text style={styles.previewTagTexte}>{categorieActive || 'Catégorie'}</Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        <TouchableOpacity
-          style={[styles.boutonCreer, { backgroundColor: getCouleur() }, loading && styles.boutonLoading]}
-          onPress={creerActivite}
-          disabled={loading}>
-          <Text style={styles.boutonTexte}>
-            {loading ? 'Création en cours...' : '✦ Publier le plan'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.boutonCreer, { backgroundColor: getCouleur() }, loading && styles.boutonLoading]}
+            onPress={creerActivite}
+            disabled={loading}>
+            <Text style={styles.boutonTexte}>
+              {loading ? 'Création en cours...' : '✦ Publier le plan'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
-        <View style={{ height: 40 }} />
-      </View>
-    </ScrollView>
+      <TabBar />
+    </View>
   );
 }
 
@@ -273,7 +253,7 @@ const styles = StyleSheet.create({
   previewMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 12 },
   previewTag: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   previewTagTexte: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  boutonCreer: { borderRadius: 20, padding: 18, alignItems: 'center', marginTop: 28 },
+  boutonCreer: { borderRadius: 20, padding: 18, alignItems: 'center', marginTop: 28, marginBottom: 20 },
   boutonLoading: { opacity: 0.6 },
   boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

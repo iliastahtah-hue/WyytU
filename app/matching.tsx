@@ -3,12 +3,9 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator, Alert, Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+    ScrollView, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
+import TabBar from '../components/TabBar';
 import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
@@ -49,13 +46,8 @@ export default function MatchingScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    init();
-  }, []);
-
-  useEffect(() => {
-    chargerActivites();
-  }, [categorieActive]);
+  useEffect(() => { init(); }, []);
+  useEffect(() => { chargerActivites(); }, [categorieActive]);
 
   async function init() {
     const { data } = await supabase.auth.getUser();
@@ -70,10 +62,7 @@ export default function MatchingScreen() {
 
   async function chargerActivites() {
     setLoading(true);
-    let query = supabase
-      .from('activites')
-      .select('*')
-      .order('date', { ascending: true });
+    let query = supabase.from('activites').select('*').order('date', { ascending: true });
     if (categorieActive) query = query.eq('categorie', categorieActive);
     const { data } = await query;
     setActivites(data || []);
@@ -110,6 +99,7 @@ export default function MatchingScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
@@ -118,21 +108,17 @@ export default function MatchingScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* Filtres */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filtresScroll}
-        contentContainerStyle={styles.filtresContent}
-      >
+        contentContainerStyle={styles.filtresContent}>
         {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.label}
-            style={[
-              styles.filtreBtn,
-              categorieActive === cat.value && { backgroundColor: cat.color, borderColor: cat.color },
-            ]}
-            onPress={() => setCategorieActive(cat.value)}
-          >
+            style={[styles.filtreBtn, categorieActive === cat.value && { backgroundColor: cat.color, borderColor: cat.color }]}
+            onPress={() => setCategorieActive(cat.value)}>
             <Text style={[styles.filtreText, categorieActive === cat.value && { color: '#fff' }]}>
               {cat.label}
             </Text>
@@ -140,8 +126,9 @@ export default function MatchingScreen() {
         ))}
       </ScrollView>
 
+      {/* Contenu */}
       {loading ? (
-        <ActivityIndicator size="large" color="#1A1A1A" style={{ marginTop: 60 }} />
+        <ActivityIndicator size="large" color="#1A1A1A" style={{ marginTop: 60, flex: 1 }} />
       ) : !activite ? (
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>🎉</Text>
@@ -178,7 +165,6 @@ export default function MatchingScreen() {
             </View>
             <Text style={styles.compteur}>{index + 1} / {activites.length}</Text>
           </View>
-
           <View style={styles.boutons}>
             <TouchableOpacity style={styles.btnPasser} onPress={passer}>
               <Text style={styles.btnPasserText}>✕ Passer</Text>
@@ -189,6 +175,8 @@ export default function MatchingScreen() {
           </View>
         </View>
       )}
+
+      <TabBar />
     </View>
   );
 }
@@ -197,8 +185,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: '#FAF7F2',
+    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#FAF7F2',
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   backText: { fontSize: 24, color: '#1A1A1A' },
@@ -210,7 +197,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#DDD4C4', backgroundColor: '#EEE8DE',
   },
   filtreText: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
-  cardWrapper: { flex: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+  cardWrapper: { flex: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
   card: {
     backgroundColor: '#fff', borderRadius: 20, padding: 24,
     borderTopWidth: 6, shadowColor: '#000',
@@ -233,17 +220,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEE8DE', alignItems: 'center',
   },
   btnPasserText: { fontWeight: '700', fontSize: 16, color: '#1A1A1A' },
-  btnRejoindre: {
-    flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: 'center',
-  },
+  btnRejoindre: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
   btnRejoindreText: { fontWeight: '700', fontSize: 16, color: '#fff' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyEmoji: { fontSize: 60, marginBottom: 16 },
   emptyTitre: { fontSize: 22, fontWeight: '800', color: '#1A1A1A', marginBottom: 8 },
   emptyText: { fontSize: 15, color: '#AAA', textAlign: 'center', marginBottom: 24 },
-  resetBtn: {
-    backgroundColor: '#1A1A1A', paddingHorizontal: 24,
-    paddingVertical: 12, borderRadius: 14,
-  },
+  resetBtn: { backgroundColor: '#1A1A1A', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14 },
   resetText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
