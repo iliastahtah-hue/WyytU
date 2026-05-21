@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import TabBar from '../../components/TabBar';
 import { supabase } from '../../lib/supabase';
 
 type Activite = {
@@ -39,9 +40,7 @@ const CATEGORIES = [
 
 const getCouleurs = (categorie: string) => {
   const cat = CATEGORIES.find((c) => c.label === categorie);
-  return cat
-    ? { c1: cat.couleur1, c2: cat.couleur2, emoji: cat.emoji }
-    : { c1: '#1A1A1A', c2: '#3A3A3A', emoji: '✦' };
+  return cat ? { c1: cat.couleur1, c2: cat.couleur2, emoji: cat.emoji } : { c1: '#1A1A1A', c2: '#3A3A3A', emoji: '✦' };
 };
 
 export default function ActiviteDetailScreen() {
@@ -53,10 +52,7 @@ export default function ActiviteDetailScreen() {
   const [dejaRejoint, setDejaRejoint] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    chargerActivite();
-    checkUser();
-  }, []);
+  useEffect(() => { chargerActivite(); checkUser(); }, []);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -65,11 +61,7 @@ export default function ActiviteDetailScreen() {
 
   const chargerActivite = async () => {
     try {
-      const { data, error } = await supabase
-        .from('activites')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data, error } = await supabase.from('activites').select('*').eq('id', id).single();
       if (!error && data) setActivite(data);
     } catch (err) {
       console.log(err);
@@ -79,31 +71,15 @@ export default function ActiviteDetailScreen() {
   };
 
   const rejoindre = async () => {
-    if (!userId) {
-      Alert.alert('Erreur', 'Tu dois être connecté !');
-      return;
-    }
-    if (dejaRejoint) {
-      Alert.alert('Info', 'Tu as déjà rejoint ce plan !');
-      return;
-    }
-
+    if (!userId) { Alert.alert('Erreur', 'Tu dois être connecté !'); return; }
+    if (dejaRejoint) { Alert.alert('Info', 'Tu as déjà rejoint ce plan !'); return; }
     setRejoindreLoading(true);
     try {
-      const { error } = await supabase
-        .from('participations')
-        .insert({ activite_id: id, user_id: userId });
-
+      const { error } = await supabase.from('participations').insert({ activite_id: id, user_id: userId });
       if (!error) {
-        await supabase
-          .from('activites')
-          .update({ participants_count: (activite?.participants_count || 0) + 1 })
-          .eq('id', id);
-
+        await supabase.from('activites').update({ participants_count: (activite?.participants_count || 0) + 1 }).eq('id', id);
         setDejaRejoint(true);
-        setActivite((prev) =>
-          prev ? { ...prev, participants_count: (prev.participants_count || 0) + 1 } : prev
-        );
+        setActivite((prev) => prev ? { ...prev, participants_count: (prev.participants_count || 0) + 1 } : prev);
         Alert.alert('🎉 Bravo !', 'Tu as rejoint le plan !');
       }
     } catch (err) {
@@ -116,30 +92,18 @@ export default function ActiviteDetailScreen() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Date à confirmer';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E8000D" />
-      </View>
-    );
+    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#E8000D" /></View>;
   }
 
   if (!activite) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.errorTexte}>Plan introuvable 😔</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.retourTexte}>← Retour</Text>
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()}><Text style={styles.retourTexte}>← Retour</Text></TouchableOpacity>
       </View>
     );
   }
@@ -149,102 +113,86 @@ export default function ActiviteDetailScreen() {
   const estCreateur = userId === activite.createur_id;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-
-      <View style={[styles.hero, { backgroundColor: c1 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.heroEmoji}>{emoji}</Text>
-        <View style={[styles.heroTag, { backgroundColor: c2 }]}>
-          <Text style={styles.heroTagTexte}>{activite.categorie}</Text>
-        </View>
-        <Text style={styles.heroTitre}>{activite.titre}</Text>
-        <View style={styles.heroMeta}>
-          <Text style={styles.heroMetaTexte}>📍 {activite.ville}</Text>
-          <Text style={styles.heroMetaTexte}>🗓 {formatDate(activite.date)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.contenu}>
-
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderColor: c1 }]}>
-            <Text style={[styles.statNombre, { color: c1 }]}>
-              {activite.participants_count || 0}
-            </Text>
-            <Text style={styles.statLabel}>Participants</Text>
-          </View>
-          <View style={[styles.statCard, { borderColor: c1 }]}>
-            <Text style={[styles.statNombre, { color: c1 }]}>
-              {activite.max_participants || '∞'}
-            </Text>
-            <Text style={styles.statLabel}>Places max</Text>
-          </View>
-          <View style={[styles.statCard, { borderColor: c1 }]}>
-            <Text style={[styles.statNombre, { color: c1 }]}>
-              {placesRestantes > 0 ? placesRestantes : '0'}
-            </Text>
-            <Text style={styles.statLabel}>Restantes</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitre}>À propos</Text>
-          <Text style={styles.description}>{activite.description}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitre}>Organisateur</Text>
-          <View style={styles.createurCard}>
-            <View style={[styles.createurAvatar, { backgroundColor: c1 }]}>
-              <Text style={styles.createurAvatarTexte}>
-                {activite.createur_prenom?.[0]?.toUpperCase() || '?'}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.createurNom}>{activite.createur_prenom}</Text>
-              <Text style={styles.createurSub}>Organisateur du plan</Text>
-            </View>
-          </View>
-        </View>
-
-        {!estCreateur && (
-          <TouchableOpacity
-            style={[styles.boutonRejoindre, { backgroundColor: dejaRejoint ? '#888' : c1 }]}
-            onPress={rejoindre}
-            disabled={rejoindreLoading || dejaRejoint}>
-            <Text style={styles.boutonTexte}>
-              {rejoindreLoading ? 'En cours...' : dejaRejoint ? '✅ Plan rejoint !' : `${emoji} Rejoindre ce plan`}
-            </Text>
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <View style={[styles.hero, { backgroundColor: c1 }]}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={[styles.boutonChat, { borderColor: c1 }]}
-          onPress={() => router.push(`/chat/${id}` as any)}>
-          <Text style={[styles.boutonChatTexte, { color: c1 }]}>
-            💬 Ouvrir le chat du plan
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.boutonNoter}
-          onPress={() => router.push(`/noter/${id}` as any)}>
-          <Text style={styles.boutonNoterTexte}>⭐ Noter les participants</Text>
-        </TouchableOpacity>
-
-        {estCreateur && (
-          <View style={[styles.createurBadge, { backgroundColor: c1 + '22' }]}>
-            <Text style={[styles.createurBadgeTexte, { color: c1 }]}>
-              ✦ Tu es l'organisateur de ce plan
-            </Text>
+          <Text style={styles.heroEmoji}>{emoji}</Text>
+          <View style={[styles.heroTag, { backgroundColor: c2 }]}>
+            <Text style={styles.heroTagTexte}>{activite.categorie}</Text>
           </View>
-        )}
+          <Text style={styles.heroTitre}>{activite.titre}</Text>
+          <View style={styles.heroMeta}>
+            <Text style={styles.heroMetaTexte}>📍 {activite.ville}</Text>
+            <Text style={styles.heroMetaTexte}>🗓 {formatDate(activite.date)}</Text>
+          </View>
+        </View>
 
-        <View style={{ height: 40 }} />
-      </View>
-    </ScrollView>
+        <View style={styles.contenu}>
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, { borderColor: c1 }]}>
+              <Text style={[styles.statNombre, { color: c1 }]}>{activite.participants_count || 0}</Text>
+              <Text style={styles.statLabel}>Participants</Text>
+            </View>
+            <View style={[styles.statCard, { borderColor: c1 }]}>
+              <Text style={[styles.statNombre, { color: c1 }]}>{activite.max_participants || '∞'}</Text>
+              <Text style={styles.statLabel}>Places max</Text>
+            </View>
+            <View style={[styles.statCard, { borderColor: c1 }]}>
+              <Text style={[styles.statNombre, { color: c1 }]}>{placesRestantes > 0 ? placesRestantes : '0'}</Text>
+              <Text style={styles.statLabel}>Restantes</Text>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitre}>À propos</Text>
+            <Text style={styles.description}>{activite.description}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitre}>Organisateur</Text>
+            <View style={styles.createurCard}>
+              <View style={[styles.createurAvatar, { backgroundColor: c1 }]}>
+                <Text style={styles.createurAvatarTexte}>{activite.createur_prenom?.[0]?.toUpperCase() || '?'}</Text>
+              </View>
+              <View>
+                <Text style={styles.createurNom}>{activite.createur_prenom}</Text>
+                <Text style={styles.createurSub}>Organisateur du plan</Text>
+              </View>
+            </View>
+          </View>
+
+          {!estCreateur && (
+            <TouchableOpacity
+              style={[styles.boutonRejoindre, { backgroundColor: dejaRejoint ? '#888' : c1 }]}
+              onPress={rejoindre}
+              disabled={rejoindreLoading || dejaRejoint}>
+              <Text style={styles.boutonTexte}>
+                {rejoindreLoading ? 'En cours...' : dejaRejoint ? '✅ Plan rejoint !' : `${emoji} Rejoindre ce plan`}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={[styles.boutonChat, { borderColor: c1 }]} onPress={() => router.push(`/chat/${id}` as any)}>
+            <Text style={[styles.boutonChatTexte, { color: c1 }]}>💬 Ouvrir le chat du plan</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.boutonNoter} onPress={() => router.push(`/noter/${id}` as any)}>
+            <Text style={styles.boutonNoterTexte}>⭐ Noter les participants</Text>
+          </TouchableOpacity>
+
+          {estCreateur && (
+            <View style={[styles.createurBadge, { backgroundColor: c1 + '22' }]}>
+              <Text style={[styles.createurBadgeTexte, { color: c1 }]}>✦ Tu es l'organisateur de ce plan</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <TabBar />
+    </View>
   );
 }
 

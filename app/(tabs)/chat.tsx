@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import TabBar from '../../components/TabBar';
 import { supabase } from '../../lib/supabase';
 
 type Conversation = {
@@ -38,9 +39,7 @@ export default function ChatListScreen() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    chargerConversations();
-  }, []);
+  useEffect(() => { chargerConversations(); }, []);
 
   const chargerConversations = async () => {
     try {
@@ -48,14 +47,12 @@ export default function ChatListScreen() {
       if (!user) return;
       setUserId(user.id);
 
-      // Plans créés par l'user
       const { data: crees } = await supabase
         .from('activites')
         .select('id, titre, categorie, participants_count')
         .eq('createur_id', user.id)
         .order('created_at', { ascending: false });
 
-      // Plans rejoints par l'user
       const { data: participations } = await supabase
         .from('participations')
         .select('activite_id')
@@ -72,17 +69,12 @@ export default function ChatListScreen() {
         if (data) rejointes = data;
       }
 
-      // Fusionner sans doublons
       const tousIds = new Set();
       const toutes: Conversation[] = [];
       for (const a of [...(crees || []), ...rejointes]) {
-        if (!tousIds.has(a.id)) {
-          tousIds.add(a.id);
-          toutes.push(a);
-        }
+        if (!tousIds.has(a.id)) { tousIds.add(a.id); toutes.push(a); }
       }
 
-      // Charger le dernier message de chaque conversation
       const avecMessages = await Promise.all(
         toutes.map(async (conv) => {
           const { data: msgs } = await supabase
@@ -91,7 +83,6 @@ export default function ChatListScreen() {
             .eq('activite_id', conv.id)
             .order('created_at', { ascending: false })
             .limit(1);
-
           return {
             ...conv,
             dernierMessage: msgs?.[0] ? `${msgs[0].prenom}: ${msgs[0].contenu}` : 'Aucun message',
@@ -120,8 +111,6 @@ export default function ChatListScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.titre}>Messages 💬</Text>
         <Text style={styles.sousTitre}>{conversations.length} conversations actives</Text>
@@ -136,9 +125,7 @@ export default function ChatListScreen() {
           <Text style={styles.emptyIcon}>💬</Text>
           <Text style={styles.emptyTexte}>Aucune conversation</Text>
           <Text style={styles.emptySub}>Rejoins un plan pour commencer à chatter !</Text>
-          <TouchableOpacity
-            style={styles.emptyBtn}
-            onPress={() => router.push('/(tabs)/explore' as any)}>
+          <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/(tabs)/explore' as any)}>
             <Text style={styles.emptyBtnTexte}>Explorer les plans →</Text>
           </TouchableOpacity>
         </View>
@@ -160,44 +147,37 @@ export default function ChatListScreen() {
                     <Text style={styles.convDate}>{formatDate(conv.dernierMessageDate)}</Text>
                   </View>
                   <View style={styles.convBottom}>
-                    <Text style={styles.convDernierMsg} numberOfLines={1}>
-                      {conv.dernierMessage}
-                    </Text>
+                    <Text style={styles.convDernierMsg} numberOfLines={1}>{conv.dernierMessage}</Text>
                     <View style={[styles.convTag, { backgroundColor: cat.couleur + '22' }]}>
-                      <Text style={[styles.convTagTexte, { color: cat.couleur }]}>
-                        {conv.participants_count || 0} 👥
-                      </Text>
+                      <Text style={[styles.convTagTexte, { color: cat.couleur }]}>{conv.participants_count || 0} 👥</Text>
                     </View>
                   </View>
                 </View>
               </TouchableOpacity>
             );
           })}
-          <View style={{ height: 100 }} />
+          <View style={{ height: 20 }} />
         </ScrollView>
       )}
+
+      <TabBar />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
-
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
   titre: { fontSize: 28, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
   sousTitre: { fontSize: 13, color: '#AAA', marginTop: 4 },
-
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
   emptyIcon: { fontSize: 60 },
   emptyTexte: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
   emptySub: { fontSize: 14, color: '#AAA', textAlign: 'center' },
   emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
   emptyBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
   liste: { flex: 1, paddingHorizontal: 20 },
-
   convCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EEE8DE' },
   convIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   convEmoji: { fontSize: 24 },
