@@ -1,53 +1,94 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
-import TabBar from '../../components/TabBar';
 import { supabase } from '../../lib/supabase';
 
-type Participant = {
-  user_id: string;
-  prenom: string;
+type Conversation = {
+  id: string;
+  titre: string;
+  categorie: string;
+  dernierMessage?: string;
+  dernierMessageDate?: string;
+  participants_count: number;
 };
 
-export default function NoterScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+const CATEGORIES: Record<string, { couleur: string; emoji: string }> = {
+  Sport: { couleur: '#E8000D', emoji: '⚡' },
+  Resto: { couleur: '#FF6A00', emoji: '🍕' },
+  Ciné: { couleur: '#CC0000', emoji: '🎬' },
+  Soirée: { couleur: '#7B2FBE', emoji: '🎉' },
+  Gaming: { couleur: '#0070F3', emoji: '🎮' },
+  Voyage: { couleur: '#00B4D8', emoji: '✈️' },
+  Musique: { couleur: '#1DB954', emoji: '🎵' },
+  'Bien-être': { couleur: '#00897B', emoji: '🏃' },
+  Social: { couleur: '#FF4B7D', emoji: '👥' },
+  Art: { couleur: '#FFD600', emoji: '🎨' },
+};
+
+export default function ChatListScreen() {
   const router = useRouter();
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [notes, setNotes] = useState<Record<string, number>>({});
-  const [commentaires, setCommentaires] = useState<Record<string, string>>({});
-  const [userId, setUserId] = useState<string | null>(null);
-  const [titreActivite, setTitreActivite] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [envoyé, setEnvoyé] = useState(false);
 
-  useEffect(() => { chargerDonnees(); }, []);
+  useEffect(() => { chargerConversations(); }, []);
 
-  const chargerDonnees = async () => {
+  const chargerConversations = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const { data: activite } = await supabase.from('activites').select('titre').eq('id', id).single();
-        if (activite) setTitreActivite(activite.titre);
-        const { data: parts } = await supabase.from('participations').select('user_id').eq('activite_id', id);
-        if (parts) {
-          const autresIds = parts.map((p) => p.user_id).filter((uid) => uid !== user.id);
-          const participantsList: Participant[] = [];
-          for (const uid of autresIds) {
-            const { data: u } = await supabase.from('utilisateurs').select('prenom').eq('id', uid).single();
-            if (u) participantsList.push({ user_id: uid, prenom: u.prenom });
-          }
-          setParticipants(participantsList);
-        }
+      if (!user) return;
+
+      const { data: crees } = await supabase
+        .from('activites')
+        .select('id, titre, categorie, participants_count')
+        .eq('createur_id', user.id)
+        .order('created_at', { ascending: false });
+
+      const { data: participations } = await supabase
+        .from('participations')
+        .select('activite_id')
+        .eq('user_id', user.id);
+
+      let rejointes: Conversation[] = [];
+      if (participations && participations.length > 0) {
+        const ids = participations.map((p) => p.activite_id);
+        const { data } = await supabase
+          .from('activites')
+          .select('id, titre, categorie, participants_count')
+          .in('id', ids)
+          .order('created_at', { ascending: false });
+        if (data) rejointes = data;
       }
+
+      const tousIds = new Set();
+      const toutes: Conversation[] = [];
+      for (const a of [...(crees || []), ...rejointes]) {
+        if (!tousIds.has(a.id)) { tousIds.add(a.id); toutes.push(a); }
+      }
+
+      const avecMessages = await Promise.all(
+        toutes.map(async (conv) => {
+          const { data: msgs } = await supabase
+            .from('messages')
+            .select('contenu, created_at, prenom')
+            .eq('activite_id', conv.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          return {
+            ...conv,
+            dernierMessage: msgs?.[0] ? `${msgs[0].prenom}: ${msgs[0].contenu}` : 'Aucun message',
+            dernierMessageDate: msgs?.[0]?.created_at || null,
+          };
+        })
+      );
+
+      setConversations(avecMessages);
     } catch (err) {
       console.log(err);
     } finally {
@@ -55,135 +96,92 @@ export default function NoterScreen() {
     }
   };
 
-  const setNote = (uid: string, note: number) => setNotes((prev) => ({ ...prev, [uid]: note }));
-  const setCommentaire = (uid: string, texte: string) => setCommentaires((prev) => ({ ...prev, [uid]: texte }));
-
-  const envoyerNotes = async () => {
-    if (!userId) return;
-    const notesAEnvoyer = participants.filter((p) => notes[p.user_id]);
-    if (notesAEnvoyer.length === 0) { Alert.alert('Info', 'Note au moins un participant !'); return; }
-    try {
-      for (const p of notesAEnvoyer) {
-        await supabase.from('notations').insert({
-          activite_id: id, noteur_id: userId, note_cible_id: p.user_id,
-          note: notes[p.user_id], commentaire: commentaires[p.user_id] || null,
-        });
-        const { data: toutesNotes } = await supabase.from('notations').select('note').eq('note_cible_id', p.user_id);
-        if (toutesNotes) {
-          const moyenne = toutesNotes.reduce((acc, n) => acc + n.note, 0) / toutesNotes.length;
-          await supabase.from('utilisateurs').update({ note_moyenne: Math.round(moyenne * 10) / 10 }).eq('id', p.user_id);
-        }
-      }
-      setEnvoyé(true);
-      Alert.alert('🎉 Merci !', 'Tes notes ont été envoyées !', [{ text: 'OK', onPress: () => router.back() }]);
-    } catch (err) {
-      Alert.alert('Erreur', 'Une erreur est survenue.');
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     }
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   };
-
-  const EtoilesNote = ({ userId: uid, note }: { userId: string; note: number }) => (
-    <View style={styles.etoilesRow}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <TouchableOpacity key={star} onPress={() => setNote(uid, star)}>
-          <Text style={[styles.etoile, note >= star && styles.etoileActive]}>★</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
-  if (loading) {
-    return <View style={styles.loadingContainer}><Text style={styles.loadingTexte}>Chargement... 🔄</Text></View>;
-  }
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>←</Text>
+      <View style={styles.header}>
+        <Text style={styles.titre}>Messages 💬</Text>
+        <Text style={styles.sousTitre}>{conversations.length} conversations actives</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E8000D" />
+        </View>
+      ) : conversations.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>💬</Text>
+          <Text style={styles.emptyTexte}>Aucune conversation</Text>
+          <Text style={styles.emptySub}>Rejoins un plan pour commencer à chatter !</Text>
+          <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/(tabs)/explore' as any)}>
+            <Text style={styles.emptyBtnTexte}>Explorer les plans →</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitre}>Noter les participants</Text>
-          <View style={{ width: 40 }} />
         </View>
-
-        <View style={styles.intro}>
-          <Text style={styles.introEmoji}>⭐</Text>
-          <Text style={styles.introTitre}>Comment s'est passé le plan ?</Text>
-          <Text style={styles.introSub} numberOfLines={2}>{titreActivite}</Text>
-        </View>
-
-        {participants.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>😔</Text>
-            <Text style={styles.emptyTexte}>Aucun participant à noter</Text>
-          </View>
-        ) : (
-          <View style={styles.participantsList}>
-            {participants.map((p) => (
-              <View key={p.user_id} style={styles.participantCard}>
-                <View style={styles.participantHeader}>
-                  <View style={styles.participantAvatar}>
-                    <Text style={styles.participantAvatarTexte}>{p.prenom?.[0]?.toUpperCase() || '?'}</Text>
+      ) : (
+        <ScrollView style={styles.liste} showsVerticalScrollIndicator={false}>
+          {conversations.map((conv) => {
+            const cat = CATEGORIES[conv.categorie] || { couleur: '#1A1A1A', emoji: '💬' };
+            return (
+              <TouchableOpacity
+                key={conv.id}
+                style={styles.convCard}
+                onPress={() => router.push(`/chat/${conv.id}` as any)}>
+                <View style={[styles.convIcon, { backgroundColor: cat.couleur }]}>
+                  <Text style={styles.convEmoji}>{cat.emoji}</Text>
+                </View>
+                <View style={styles.convInfo}>
+                  <View style={styles.convTop}>
+                    <Text style={styles.convTitre} numberOfLines={1}>{conv.titre}</Text>
+                    <Text style={styles.convDate}>{formatDate(conv.dernierMessageDate)}</Text>
                   </View>
-                  <View style={styles.participantInfo}>
-                    <Text style={styles.participantNom}>{p.prenom}</Text>
-                    <Text style={styles.participantSub}>{notes[p.user_id] ? `${notes[p.user_id]}/5 ⭐` : 'Pas encore noté'}</Text>
+                  <View style={styles.convBottom}>
+                    <Text style={styles.convDernierMsg} numberOfLines={1}>{conv.dernierMessage}</Text>
+                    <View style={[styles.convTag, { backgroundColor: cat.couleur + '22' }]}>
+                      <Text style={[styles.convTagTexte, { color: cat.couleur }]}>{conv.participants_count || 0} 👥</Text>
+                    </View>
                   </View>
                 </View>
-                <EtoilesNote userId={p.user_id} note={notes[p.user_id] || 0} />
-                <TextInput
-                  style={styles.commentaireInput}
-                  placeholder="Un commentaire ? (optionnel)"
-                  placeholderTextColor="#BBB"
-                  value={commentaires[p.user_id] || ''}
-                  onChangeText={(t) => setCommentaire(p.user_id, t)}
-                  multiline
-                />
-              </View>
-            ))}
-          </View>
-        )}
-
-        {participants.length > 0 && (
-          <TouchableOpacity style={[styles.bouton, envoyé && styles.boutonDisabled]} onPress={envoyerNotes} disabled={envoyé}>
-            <Text style={styles.boutonTexte}>{envoyé ? '✅ Notes envoyées !' : '⭐ Envoyer mes notes'}</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
-
-      <TabBar />
+              </TouchableOpacity>
+            );
+          })}
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
-  loadingContainer: { flex: 1, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center' },
-  loadingTexte: { color: '#AAA', fontSize: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 8 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDD4C4' },
-  backIcon: { fontSize: 20, color: '#1A1A1A' },
-  headerTitre: { fontSize: 17, fontWeight: '800', color: '#1A1A1A' },
-  intro: { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20 },
-  introEmoji: { fontSize: 52, marginBottom: 12 },
-  introTitre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A', marginBottom: 6, textAlign: 'center' },
-  introSub: { fontSize: 14, color: '#AAA', textAlign: 'center' },
-  emptyContainer: { alignItems: 'center', paddingTop: 40, gap: 10 },
-  emptyIcon: { fontSize: 48 },
-  emptyTexte: { fontSize: 16, color: '#AAA', fontWeight: '600' },
-  participantsList: { paddingHorizontal: 20, gap: 14 },
-  participantCard: { backgroundColor: '#EEE8DE', borderRadius: 20, padding: 18, borderWidth: 1, borderColor: '#DDD4C4' },
-  participantHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  participantAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center' },
-  participantAvatarTexte: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  participantInfo: { flex: 1 },
-  participantNom: { fontSize: 16, fontWeight: '800', color: '#1A1A1A' },
-  participantSub: { fontSize: 12, color: '#AAA', marginTop: 2 },
-  etoilesRow: { flexDirection: 'row', gap: 8, marginBottom: 14, justifyContent: 'center' },
-  etoile: { fontSize: 36, color: '#DDD4C4' },
-  etoileActive: { color: '#FF9500' },
-  commentaireInput: { backgroundColor: '#FAF7F2', borderRadius: 12, padding: 12, color: '#1A1A1A', fontSize: 14, borderWidth: 1, borderColor: '#DDD4C4', minHeight: 60, textAlignVertical: 'top' },
-  bouton: { backgroundColor: '#FF9500', borderRadius: 20, padding: 18, alignItems: 'center', marginHorizontal: 20, marginTop: 24 },
-  boutonDisabled: { backgroundColor: '#AAA' },
-  boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  titre: { fontSize: 28, fontWeight: '800', color: '#1A1A1A', letterSpacing: -0.5 },
+  sousTitre: { fontSize: 13, color: '#AAA', marginTop: 4 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
+  emptyIcon: { fontSize: 60 },
+  emptyTexte: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
+  emptySub: { fontSize: 14, color: '#AAA', textAlign: 'center' },
+  emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
+  emptyBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  liste: { flex: 1, paddingHorizontal: 20 },
+  convCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EEE8DE' },
+  convIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  convEmoji: { fontSize: 24 },
+  convInfo: { flex: 1 },
+  convTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  convTitre: { fontSize: 15, fontWeight: '800', color: '#1A1A1A', flex: 1, marginRight: 8 },
+  convDate: { fontSize: 11, color: '#AAA', fontWeight: '600' },
+  convBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  convDernierMsg: { fontSize: 13, color: '#AAA', flex: 1, marginRight: 8 },
+  convTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  convTagTexte: { fontSize: 11, fontWeight: '700' },
 });

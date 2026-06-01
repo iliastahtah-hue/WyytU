@@ -8,7 +8,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import TabBar from '../../components/TabBar';
 import { supabase } from '../../lib/supabase';
 
 type Conversation = {
@@ -37,7 +36,6 @@ export default function ChatListScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => { chargerConversations(); }, []);
 
@@ -45,7 +43,6 @@ export default function ChatListScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      setUserId(user.id);
 
       const { data: crees } = await supabase
         .from('activites')
@@ -159,8 +156,6 @@ export default function ChatListScreen() {
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
-
-      <TabBar />
     </View>
   );
 }
