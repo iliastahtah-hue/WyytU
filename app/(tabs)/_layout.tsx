@@ -9,6 +9,8 @@ export default function TabLayout() {
         tabBarStyle: styles.tabBar,
         tabBarItemStyle: styles.tabItem,
       }}>
+
+      {/* EXPLORER */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -16,7 +18,7 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.itemWrapper}>
               <View style={[styles.bulle, focused && styles.bulleActive]}>
-                <Text style={{ fontSize: 20 }}>🗺️</Text>
+                <Text style={{ fontSize: 20 }}>🏠</Text>
               </View>
               <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
                 Explorer
@@ -26,6 +28,45 @@ export default function TabLayout() {
           tabBarLabel: () => null,
         }}
       />
+
+      {/* CARTE */}
+      <Tabs.Screen
+        name="groupe"
+        options={{
+          title: '',
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.itemWrapper}>
+              <View style={[styles.bulle, focused && styles.bulleActive]}>
+                <Text style={{ fontSize: 20 }}>🗺️</Text>
+              </View>
+              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
+                Carte
+              </Text>
+            </View>
+          ),
+          tabBarLabel: () => null,
+        }}
+      />
+
+      {/* CRÉER — BOUTON CENTRAL */}
+      <Tabs.Screen
+        name="sos"
+        options={{
+          title: '',
+          tabBarIcon: () => (
+            <TouchableOpacity
+              style={styles.plusWrapper}
+              onPress={() => router.push('/creer-activite' as any)}>
+              <View style={styles.plusBtn}>
+                <Text style={styles.plusIcon}>+</Text>
+              </View>
+            </TouchableOpacity>
+          ),
+          tabBarLabel: () => null,
+        }}
+      />
+
+      {/* CHAT */}
       <Tabs.Screen
         name="chat"
         options={{
@@ -43,22 +84,8 @@ export default function TabLayout() {
           tabBarLabel: () => null,
         }}
       />
-      <Tabs.Screen
-        name="groupe"
-        options={{
-          title: '',
-          tabBarIcon: () => (
-            <TouchableOpacity
-              style={styles.plusWrapper}
-              onPress={() => router.push('/creer-activite' as any)}>
-              <View style={styles.plusBtn}>
-                <Text style={styles.plusIcon}>+</Text>
-              </View>
-            </TouchableOpacity>
-          ),
-          tabBarLabel: () => null,
-        }}
-      />
+
+      {/* PROFIL */}
       <Tabs.Screen
         name="profil"
         options={{
@@ -76,23 +103,8 @@ export default function TabLayout() {
           tabBarLabel: () => null,
         }}
       />
-      <Tabs.Screen
-        name="sos"
-        options={{
-          title: '',
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.itemWrapper}>
-              <View style={[styles.bulle, focused && styles.bulleActive]}>
-                <Text style={{ fontSize: 20 }}>🛡️</Text>
-              </View>
-              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
-                SOS
-              </Text>
-            </View>
-          ),
-          tabBarLabel: () => null,
-        }}
-      />
+
+      {/* PAGES CACHÉES */}
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="profils" options={{ href: null }} />
       <Tabs.Screen name="notation" options={{ href: null }} />
