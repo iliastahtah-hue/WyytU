@@ -1,25 +1,31 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
-type Conversation = {
+type Message = {
+  id: string;
+  contenu: string;
+  prenom: string;
+  user_id: string;
+  created_at: string;
+};
+
+type Activite = {
   id: string;
   titre: string;
   categorie: string;
-  dernierMessage?: string;
-  dernierMessageDate?: string;
   participants_count: number;
-  nonLu?: boolean;
 };
 
 const CATEGORIES: Record<string, { couleur: string; emoji: string }> = {
@@ -35,280 +41,298 @@ const CATEGORIES: Record<string, { couleur: string; emoji: string }> = {
   Art: { couleur: '#FFD600', emoji: '🎨' },
 };
 
-export default function ChatListScreen() {
+const REACTIONS = ['❤️', '😂', '👍', '🔥', '😮', '👏'];
+
+export default function ChatScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activite, setActivite] = useState<Activite | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [recherche, setRecherche] = useState('');
+  const [texte, setTexte] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [prenom, setPrenom] = useState('');
+  const [msgSelectionne, setMsgSelectionne] = useState<string | null>(null);
 
-  useEffect(() => { chargerConversations(); }, []);
+  useEffect(() => { init(); }, []);
 
-  const chargerConversations = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  useEffect(() => {
+    const channel = supabase
+      .channel(`chat-${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `activite_id=eq.${id}` },
+        (payload) => { setMessages((prev) => [...prev, payload.new as Message]); scrollToBottom(); }
+      ).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
 
-      const { data: crees } = await supabase
-        .from('activites')
-        .select('id, titre, categorie, participants_count')
-        .eq('createur_id', user.id)
-        .order('created_at', { ascending: false });
-
-      const { data: participations } = await supabase
-        .from('participations')
-        .select('activite_id')
-        .eq('user_id', user.id);
-
-      let rejointes: Conversation[] = [];
-      if (participations && participations.length > 0) {
-        const ids = participations.map((p) => p.activite_id);
-        const { data } = await supabase
-          .from('activites')
-          .select('id, titre, categorie, participants_count')
-          .in('id', ids)
-          .order('created_at', { ascending: false });
-        if (data) rejointes = data;
-      }
-
-      const tousIds = new Set();
-      const toutes: Conversation[] = [];
-      for (const a of [...(crees || []), ...rejointes]) {
-        if (!tousIds.has(a.id)) { tousIds.add(a.id); toutes.push(a); }
-      }
-
-      const avecMessages = await Promise.all(
-        toutes.map(async (conv) => {
-          const { data: msgs } = await supabase
-            .from('messages')
-            .select('contenu, created_at, prenom')
-            .eq('activite_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-          return {
-            ...conv,
-            dernierMessage: msgs?.[0] ? `${msgs[0].prenom}: ${msgs[0].contenu}` : 'Commencer la conversation...',
-            dernierMessageDate: msgs?.[0]?.created_at || null,
-            nonLu: Math.random() > 0.5, // demo
-          };
-        })
-      );
-
-      // Trier par date du dernier message
-      avecMessages.sort((a, b) => {
-        if (!a.dernierMessageDate) return 1;
-        if (!b.dernierMessageDate) return -1;
-        return new Date(b.dernierMessageDate).getTime() - new Date(a.dernierMessageDate).getTime();
-      });
-
-      setConversations(avecMessages);
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  const init = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserId(user.id);
+      const { data: profil } = await supabase.from('utilisateurs').select('prenom').eq('email', user.email).single();
+      setPrenom(profil?.prenom || user.email?.split('@')[0] || 'Moi');
     }
+    const { data: act } = await supabase.from('activites').select('*').eq('id', id).single();
+    if (act) setActivite(act);
+    const { data: msgs } = await supabase.from('messages').select('*').eq('activite_id', id).order('created_at', { ascending: true });
+    if (msgs) setMessages(msgs);
+    setLoading(false);
+    setTimeout(scrollToBottom, 300);
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
+  const scrollToBottom = () => scrollRef.current?.scrollToEnd({ animated: true });
+
+  const envoyer = async () => {
+    if (!texte.trim() || envoi) return;
+    setEnvoi(true);
+    const msg = texte.trim();
+    setTexte('');
+    await supabase.from('messages').insert({
+      activite_id: id, user_id: userId, prenom, contenu: msg,
+    });
+    setEnvoi(false);
+    scrollToBottom();
+  };
+
+  const formatHeure = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatJour = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
-    const diff = today.getTime() - date.getTime();
-    const hours = diff / 3600000;
-    if (hours < 1) return `${Math.floor(diff / 60000)}min`;
-    if (date.toDateString() === today.toDateString()) {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    }
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return "Aujourd'hui";
     if (date.toDateString() === yesterday.toDateString()) return 'Hier';
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  const convsFiltrees = conversations.filter((c) =>
-    c.titre.toLowerCase().includes(recherche.toLowerCase())
-  );
+  const messagesParJour: { jour: string; msgs: Message[] }[] = [];
+  messages.forEach((msg) => {
+    const jour = formatJour(msg.created_at);
+    const existing = messagesParJour.find((g) => g.jour === jour);
+    if (existing) existing.msgs.push(msg);
+    else messagesParJour.push({ jour, msgs: [msg] });
+  });
 
-  const nonLusCount = conversations.filter((c) => c.nonLu).length;
+  const cat = CATEGORIES[activite?.categorie || ''] || { couleur: '#1A1A1A', emoji: '💬' };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#E8000D" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-      {/* HEADER STYLE MESSENGER */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.titre}>Messages</Text>
-          {nonLusCount > 0 && (
-            <Text style={styles.sousTitre}>{nonLusCount} non lu{nonLusCount > 1 ? 's' : ''}</Text>
-          )}
+      {/* HEADER */}
+      <View style={[styles.header, { borderBottomColor: cat.couleur + '30' }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+
+        <View style={[styles.headerAvatar, { backgroundColor: cat.couleur }]}>
+          <Text style={styles.headerAvatarEmoji}>{cat.emoji}</Text>
+          <View style={styles.headerOnline} />
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerBtn}>
-            <Text style={styles.headerBtnIcon}>✏️</Text>
+
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitre} numberOfLines={1}>{activite?.titre || 'Chat'}</Text>
+          <Text style={styles.headerSub}>
+            {cat.emoji} {activite?.categorie} · {activite?.participants_count || 0} membres
+          </Text>
+        </View>
+
+        {/* BOUTONS APPEL */}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.headerMenuBtn}
+            onPress={() => router.push(`/appel/${id}?type=audio` as any)}>
+            <Text style={styles.headerMenuIcon}>📞</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerMenuBtn}
+            onPress={() => router.push(`/appel/${id}?type=video` as any)}>
+            <Text style={styles.headerMenuIcon}>📹</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* RECHERCHE */}
-      <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Rechercher..."
-          placeholderTextColor="#BBB"
-          value={recherche}
-          onChangeText={setRecherche}
-        />
-        {recherche.length > 0 && (
-          <TouchableOpacity onPress={() => setRecherche('')}>
-            <Text style={styles.searchClear}>✕</Text>
-          </TouchableOpacity>
+      {/* MESSAGES */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.messagesList}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={scrollToBottom}>
+
+        {messages.length === 0 && (
+          <View style={styles.emptyChat}>
+            <Text style={styles.emptyChatEmoji}>{cat.emoji}</Text>
+            <Text style={styles.emptyChatTitre}>Commencez à chatter !</Text>
+            <Text style={styles.emptyChatSub}>Soyez le premier à envoyer un message</Text>
+          </View>
         )}
-      </View>
 
-      {/* FILTRES RAPIDES */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtresContent} style={styles.filtresScroll}>
-        {['Tous', 'Non lus', 'Groupes'].map((f) => (
-          <TouchableOpacity key={f} style={[styles.filtreChip, f === 'Tous' && styles.filtreChipActive]}>
-            <Text style={[styles.filtreChipTexte, f === 'Tous' && styles.filtreChipTexteActive]}>{f}</Text>
-          </TouchableOpacity>
+        {messagesParJour.map(({ jour, msgs }) => (
+          <View key={jour}>
+            <View style={styles.jourSeparateur}>
+              <View style={styles.jourLine} />
+              <Text style={styles.jourTexte}>{jour}</Text>
+              <View style={styles.jourLine} />
+            </View>
+
+            {msgs.map((msg, i) => {
+              const isMe = msg.user_id === userId;
+              const isSameSender = i > 0 && msgs[i - 1].user_id === msg.user_id;
+
+              return (
+                <TouchableOpacity
+                  key={msg.id}
+                  activeOpacity={0.85}
+                  onLongPress={() => setMsgSelectionne(msgSelectionne === msg.id ? null : msg.id)}
+                  style={[styles.msgWrapper, isMe && styles.msgWrapperMe, !isSameSender && styles.msgWrapperFirst]}>
+
+                  {!isMe && !isSameSender && (
+                    <View style={[styles.msgAvatar, { backgroundColor: cat.couleur }]}>
+                      <Text style={styles.msgAvatarTexte}>{msg.prenom?.[0]?.toUpperCase()}</Text>
+                    </View>
+                  )}
+                  {!isMe && isSameSender && <View style={styles.msgAvatarSpacer} />}
+
+                  <View style={styles.msgBubbleWrapper}>
+                    {!isMe && !isSameSender && (
+                      <Text style={[styles.msgPrenom, { color: cat.couleur }]}>{msg.prenom}</Text>
+                    )}
+
+                    <View style={[
+                      styles.msgBulle,
+                      isMe ? [styles.msgBulleMe, { backgroundColor: cat.couleur }] : styles.msgBulleAutre,
+                      isSameSender && isMe && styles.msgBulleMeSame,
+                      isSameSender && !isMe && styles.msgBulleAutreSame,
+                    ]}>
+                      <Text style={[styles.msgTexte, isMe && styles.msgTexteMe]}>{msg.contenu}</Text>
+                    </View>
+
+                    <View style={[styles.msgMeta, isMe && styles.msgMetaMe]}>
+                      <Text style={styles.msgHeure}>{formatHeure(msg.created_at)}</Text>
+                      {isMe && <Text style={styles.msgLu}>✓✓</Text>}
+                    </View>
+
+                    {msgSelectionne === msg.id && (
+                      <View style={[styles.reactionsPanel, isMe && styles.reactionsPanelMe]}>
+                        {REACTIONS.map((r) => (
+                          <TouchableOpacity key={r} style={styles.reactionBtn} onPress={() => setMsgSelectionne(null)}>
+                            <Text style={styles.reactionEmoji}>{r}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         ))}
       </ScrollView>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#E8000D" />
+      {/* INPUT */}
+      <View style={styles.inputBar}>
+        <TouchableOpacity style={styles.inputExtra}>
+          <Text style={styles.inputExtraIcon}>+</Text>
+        </TouchableOpacity>
+
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Message..."
+            placeholderTextColor="#BBB"
+            value={texte}
+            onChangeText={setTexte}
+            multiline
+            maxLength={500}
+            onSubmitEditing={envoyer}
+          />
+          <TouchableOpacity style={styles.emojiBtn}>
+            <Text style={styles.emojiBtnIcon}>😊</Text>
+          </TouchableOpacity>
         </View>
-      ) : convsFiltrees.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>💬</Text>
-          <Text style={styles.emptyTexte}>
-            {recherche ? 'Aucun résultat' : 'Aucune conversation'}
+
+        <TouchableOpacity
+          style={[styles.sendBtn, { backgroundColor: texte.trim() ? cat.couleur : '#EEE8DE' }]}
+          onPress={envoyer}
+          disabled={!texte.trim() || envoi}>
+          <Text style={[styles.sendIcon, !texte.trim() && styles.sendIconDisabled]}>
+            {envoi ? '⏳' : '↑'}
           </Text>
-          <Text style={styles.emptySub}>
-            {recherche ? 'Essaie un autre terme' : 'Rejoins un plan pour chatter !'}
-          </Text>
-          {!recherche && (
-            <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/(tabs)/explore' as any)}>
-              <Text style={styles.emptyBtnTexte}>Explorer les plans →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.liste}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); chargerConversations(); }} tintColor="#E8000D" />}>
+        </TouchableOpacity>
+      </View>
 
-          {convsFiltrees.map((conv) => {
-            const cat = CATEGORIES[conv.categorie] || { couleur: '#1A1A1A', emoji: '💬' };
-            return (
-              <TouchableOpacity
-                key={conv.id}
-                style={styles.convCard}
-                onPress={() => router.push(`/chat/${conv.id}` as any)}
-                activeOpacity={0.7}>
-
-                {/* ICÔNE GROUPE */}
-                <View style={styles.iconWrapper}>
-                  <View style={[styles.convIcon, { backgroundColor: cat.couleur }]}>
-                    <Text style={styles.convEmoji}>{cat.emoji}</Text>
-                  </View>
-                  {/* INDICATEUR EN LIGNE */}
-                  <View style={styles.onlineIndicator} />
-                </View>
-
-                {/* INFOS */}
-                <View style={styles.convInfo}>
-                  <View style={styles.convTop}>
-                    <Text style={[styles.convTitre, conv.nonLu && styles.convTitreNonLu]} numberOfLines={1}>
-                      {conv.titre}
-                    </Text>
-                    <Text style={[styles.convDate, conv.nonLu && styles.convDateNonLu]}>
-                      {formatDate(conv.dernierMessageDate)}
-                    </Text>
-                  </View>
-                  <View style={styles.convBottom}>
-                    <Text style={[styles.convDernierMsg, conv.nonLu && styles.convDernierMsgNonLu]} numberOfLines={1}>
-                      {conv.dernierMessage}
-                    </Text>
-                    <View style={styles.convMeta}>
-                      {conv.nonLu && <View style={styles.nonLuBadge}><Text style={styles.nonLuTexte}>1</Text></View>}
-                      <View style={[styles.convTag, { backgroundColor: cat.couleur + '22' }]}>
-                        <Text style={[styles.convTagTexte, { color: cat.couleur }]}>
-                          {conv.participants_count || 0} 👥
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-
-          <View style={{ height: 20 }} />
-        </ScrollView>
-      )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
-
-  // HEADER
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 12 },
-  titre: { fontSize: 30, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5 },
-  sousTitre: { fontSize: 13, color: '#E8000D', fontWeight: '700', marginTop: 2 },
-  headerRight: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center' },
-  headerBtnIcon: { fontSize: 18 },
-
-  // RECHERCHE
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEE8DE', marginHorizontal: 20, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 10, marginBottom: 8 },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, fontSize: 15, color: '#1A1A1A', fontWeight: '500' },
-  searchClear: { fontSize: 16, color: '#AAA' },
-
-  // FILTRES
-  filtresScroll: { maxHeight: 46 },
-  filtresContent: { paddingHorizontal: 20, gap: 8, paddingBottom: 8, alignItems: 'center' },
-  filtreChip: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, backgroundColor: '#EEE8DE' },
-  filtreChipActive: { backgroundColor: '#1A1A1A' },
-  filtreChipTexte: { fontSize: 13, fontWeight: '700', color: '#AAA' },
-  filtreChipTexteActive: { color: '#fff' },
-
-  // LOADING / EMPTY
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
-  emptyIcon: { fontSize: 64 },
-  emptyTexte: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
-  emptySub: { fontSize: 14, color: '#AAA', textAlign: 'center' },
-  emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
-  emptyBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
-  // LISTE
-  liste: { flex: 1 },
-
-  // CONV CARD
-  convCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, paddingHorizontal: 20 },
-  iconWrapper: { position: 'relative' },
-  convIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  convEmoji: { fontSize: 26 },
-  onlineIndicator: { position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: '#1DB954', borderWidth: 2, borderColor: '#FAF7F2' },
-  convInfo: { flex: 1, borderBottomWidth: 1, borderBottomColor: '#F0EDE8', paddingBottom: 10 },
-  convTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  convTitre: { fontSize: 15, fontWeight: '600', color: '#1A1A1A', flex: 1, marginRight: 8 },
-  convTitreNonLu: { fontWeight: '900' },
-  convDate: { fontSize: 12, color: '#AAA', fontWeight: '500' },
-  convDateNonLu: { color: '#E8000D', fontWeight: '700' },
-  convBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  convDernierMsg: { fontSize: 13, color: '#AAA', flex: 1, marginRight: 8 },
-  convDernierMsgNonLu: { color: '#1A1A1A', fontWeight: '700' },
-  convMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  nonLuBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center' },
-  nonLuTexte: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  convTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  convTagTexte: { fontSize: 11, fontWeight: '700' },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF7F2' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingBottom: 14, paddingHorizontal: 16, backgroundColor: '#fff', borderBottomWidth: 1, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center' },
+  backIcon: { fontSize: 20, color: '#1A1A1A' },
+  headerAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  headerAvatarEmoji: { fontSize: 20 },
+  headerOnline: { position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, borderRadius: 6, backgroundColor: '#1DB954', borderWidth: 2, borderColor: '#fff' },
+  headerInfo: { flex: 1 },
+  headerTitre: { fontSize: 15, fontWeight: '800', color: '#1A1A1A' },
+  headerSub: { fontSize: 11, color: '#AAA', marginTop: 1 },
+  headerMenuBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center' },
+  headerMenuIcon: { fontSize: 18 },
+  messagesList: { flex: 1 },
+  messagesContent: { paddingVertical: 16, paddingHorizontal: 12 },
+  emptyChat: { alignItems: 'center', paddingTop: 80, gap: 10 },
+  emptyChatEmoji: { fontSize: 60 },
+  emptyChatTitre: { fontSize: 18, fontWeight: '800', color: '#1A1A1A' },
+  emptyChatSub: { fontSize: 14, color: '#AAA' },
+  jourSeparateur: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 16 },
+  jourLine: { flex: 1, height: 1, backgroundColor: '#EEE8DE' },
+  jourTexte: { fontSize: 11, color: '#AAA', fontWeight: '600', paddingHorizontal: 8 },
+  msgWrapper: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 3 },
+  msgWrapperMe: { flexDirection: 'row-reverse' },
+  msgWrapperFirst: { marginTop: 10 },
+  msgAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  msgAvatarTexte: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  msgAvatarSpacer: { width: 32 },
+  msgBubbleWrapper: { maxWidth: '75%' },
+  msgPrenom: { fontSize: 11, fontWeight: '700', marginBottom: 3, marginLeft: 4 },
+  msgBulle: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10 },
+  msgBulleMe: { borderBottomRightRadius: 6 },
+  msgBulleAutre: { backgroundColor: '#fff', borderBottomLeftRadius: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
+  msgBulleMeSame: { borderBottomRightRadius: 20, borderTopRightRadius: 6 },
+  msgBulleAutreSame: { borderBottomLeftRadius: 20, borderTopLeftRadius: 6 },
+  msgTexte: { fontSize: 15, color: '#1A1A1A', lineHeight: 21 },
+  msgTexteMe: { color: '#fff' },
+  msgMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, marginLeft: 4 },
+  msgMetaMe: { flexDirection: 'row-reverse', marginRight: 4 },
+  msgHeure: { fontSize: 10, color: '#BBB', fontWeight: '500' },
+  msgLu: { fontSize: 10, color: '#1DB954', fontWeight: '700' },
+  reactionsPanel: { flexDirection: 'row', gap: 4, backgroundColor: '#fff', borderRadius: 24, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, marginTop: 6 },
+  reactionsPanelMe: { alignSelf: 'flex-end' },
+  reactionBtn: { padding: 4 },
+  reactionEmoji: { fontSize: 22 },
+  inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 10, paddingBottom: Platform.OS === 'ios' ? 30 : 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F0EDE8' },
+  inputExtra: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  inputExtraIcon: { fontSize: 22, color: '#AAA', fontWeight: '300' },
+  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#F5F3EF', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1.5, borderColor: '#EEE8DE' },
+  input: { flex: 1, fontSize: 15, color: '#1A1A1A', maxHeight: 100, lineHeight: 20 },
+  emojiBtn: { paddingLeft: 8, paddingBottom: 2 },
+  emojiBtnIcon: { fontSize: 20 },
+  sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  sendIcon: { fontSize: 18, color: '#fff', fontWeight: '800' },
+  sendIconDisabled: { color: '#AAA' },
 });
