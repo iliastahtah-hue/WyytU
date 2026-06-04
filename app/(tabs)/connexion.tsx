@@ -1,226 +1,216 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { supabase } from '../../lib/supabase';
 
-export default function ConnexionScreen() {
+const AGORA_APP_ID = 'e5454f77f09e4266b02bb96e4f2b5996';
+
+export default function AppelScreen() {
+  const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [motDePasse, setMotDePasse] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [erreur, setErreur] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const isVideo = type === 'video';
 
-  const connecter = async () => {
-    if (!email || !motDePasse) { setErreur('Remplis tous les champs !'); return; }
-    setLoading(true); setErreur(''); setMessage('');
+  const [joined, setJoined] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [videoOff, setVideoOff] = useState(false);
+  const [duree, setDuree] = useState(0);
+  const [engine, setEngine] = useState<any>(null);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Sur web on simule juste l'UI
+    if (Platform.OS === 'web') {
+      setTimeout(() => setJoined(true), 1500);
+      return;
+    }
+    initAgora();
+    return () => { cleanup(); };
+  }, []);
+
+  useEffect(() => {
+    if (joined) {
+      timerRef.current = setInterval(() => setDuree((d) => d + 1), 1000);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [joined]);
+
+  const initAgora = async () => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: motDePasse });
-      if (error) { setErreur('Email ou mot de passe incorrect !'); }
-      else { setMessage('🎉 Connexion réussie !'); setTimeout(() => router.push('/'), 1500); }
-    } catch { setErreur('Une erreur est survenue !'); }
-    finally { setLoading(false); }
+      const { createAgoraRtcEngine, ChannelProfileType, ClientRoleType } = await import('react-native-agora');
+      const rtcEngine = createAgoraRtcEngine();
+      rtcEngine.initialize({ appId: AGORA_APP_ID });
+      rtcEngine.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
+      rtcEngine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
+      if (isVideo) {
+        rtcEngine.enableVideo();
+        rtcEngine.startPreview();
+      } else {
+        rtcEngine.enableAudio();
+      }
+      rtcEngine.addListener('onJoinChannelSuccess', () => setJoined(true));
+      await rtcEngine.joinChannel('', `wyytu-${id}`, 0, {});
+      setEngine(rtcEngine);
+    } catch (err) {
+      console.log('Agora error:', err);
+      setTimeout(() => setJoined(true), 1000);
+    }
+  };
+
+  const cleanup = async () => {
+    clearInterval(timerRef.current);
+    if (engine) {
+      await engine.leaveChannel();
+      engine.release();
+    }
+  };
+
+  const raccrocher = async () => {
+    if (Platform.OS !== 'web') await cleanup();
+    router.back();
+  };
+
+  const toggleMute = () => {
+    setMuted(!muted);
+    if (Platform.OS !== 'web') engine?.muteLocalAudioStream(!muted);
+  };
+
+  const toggleVideo = () => {
+    setVideoOff(!videoOff);
+    if (Platform.OS !== 'web') engine?.muteLocalVideoStream(!videoOff);
+  };
+
+  const formatDuree = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <View style={styles.bgGradient} />
+      <View style={styles.bgCircle1} />
+      <View style={styles.bgCircle2} />
 
-        {/* BG DÉCO */}
-        <View style={styles.bgCircle1} />
-        <View style={styles.bgCircle2} />
+      {/* HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.minimiseBtn} onPress={() => router.back()}>
+          <Text style={styles.minimiseIcon}>↓</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitre}>{isVideo ? 'Appel vidéo 📹' : 'Appel audio 📞'}</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-        {/* HERO */}
-        <View style={styles.hero}>
-          <View style={styles.logoWrapper}>
-            <Text style={styles.logoTexte}>W</Text>
+      {/* CENTRAL */}
+      <View style={styles.central}>
+        <View style={styles.avatarOuter}>
+          <View style={styles.avatarInner}>
+            <Text style={styles.avatarEmoji}>{isVideo ? '📹' : '📞'}</Text>
           </View>
-          <Text style={styles.logo}>WyytU</Text>
-          <Text style={styles.tagline}>Trouve ton prochain plan 🎯</Text>
+          {joined && <View style={styles.avatarPulse} />}
         </View>
 
-        {/* CARD */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitre}>Content de te revoir 👋</Text>
-          <Text style={styles.cardSub}>Connecte-toi pour continuer</Text>
+        <Text style={styles.groupNom}>Groupe WyytU</Text>
+        <View style={styles.statusRow}>
+          <View style={[styles.statusDot, { backgroundColor: joined ? '#1DB954' : '#FF9500' }]} />
+          <Text style={styles.statusTexte}>
+            {joined ? formatDuree(duree) : 'Connexion...'}
+          </Text>
+        </View>
 
-          {erreur ? (
-            <View style={styles.erreurBox}>
-              <Text style={styles.erreurTexte}>❌ {erreur}</Text>
+        <View style={styles.participantsRow}>
+          {['Y', 'M', 'A', 'K'].map((l, i) => (
+            <View key={i} style={[styles.participantAvatar, {
+              backgroundColor: ['#E8000D', '#7B2FBE', '#0070F3', '#1DB954'][i],
+              marginLeft: i > 0 ? -12 : 0,
+            }]}>
+              <Text style={styles.participantLettre}>{l}</Text>
             </View>
-          ) : null}
-
-          {message ? (
-            <View style={styles.successBox}>
-              <Text style={styles.successTexte}>{message}</Text>
-            </View>
-          ) : null}
-
-          {/* EMAIL */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>✉️</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="ton@email.com"
-              placeholderTextColor="#BBB"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={(t) => { setEmail(t); setErreur(''); }}
-              autoCapitalize="none"
-            />
+          ))}
+          <View style={styles.participantCount}>
+            <Text style={styles.participantCountTexte}>+3</Text>
           </View>
+        </View>
+        <Text style={styles.participantsLabel}>7 participants</Text>
+      </View>
 
-          {/* MOT DE PASSE */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>🔒</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              placeholderTextColor="#BBB"
-              secureTextEntry={!showPassword}
-              value={motDePasse}
-              onChangeText={(t) => { setMotDePasse(t); setErreur(''); }}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+      {/* CONTRÔLES */}
+      <View style={styles.controls}>
+        <View style={styles.controlsRow}>
+          <TouchableOpacity style={styles.ctrlBtnSmall}>
+            <Text style={styles.ctrlBtnSmallIcon}>🔊</Text>
+            <Text style={styles.ctrlBtnSmallLabel}>Haut-parleur</Text>
+          </TouchableOpacity>
+          {isVideo && (
+            <TouchableOpacity style={[styles.ctrlBtnSmall, videoOff && styles.ctrlBtnSmallOff]} onPress={toggleVideo}>
+              <Text style={styles.ctrlBtnSmallIcon}>{videoOff ? '📵' : '📹'}</Text>
+              <Text style={styles.ctrlBtnSmallLabel}>{videoOff ? 'Caméra off' : 'Caméra'}</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* MOT DE PASSE OUBLIÉ */}
-          <TouchableOpacity style={styles.forgotBtn}>
-            <Text style={styles.forgotTexte}>Mot de passe oublié ?</Text>
+          )}
+          <TouchableOpacity style={styles.ctrlBtnSmall}>
+            <Text style={styles.ctrlBtnSmallIcon}>👥</Text>
+            <Text style={styles.ctrlBtnSmallLabel}>Participants</Text>
           </TouchableOpacity>
-
-          {/* BOUTON CONNEXION */}
-          <TouchableOpacity
-            style={[styles.bouton, loading && styles.boutonLoading]}
-            onPress={connecter}
-            disabled={loading}>
-            <Text style={styles.boutonTexte}>
-              {loading ? '⏳ Connexion...' : 'Se connecter →'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* DIVIDER */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerTexte}>ou</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* SOCIAL BUTTONS */}
-          <TouchableOpacity style={styles.socialBtn}>
-            <Text style={styles.socialIcon}>🌐</Text>
-            <Text style={styles.socialTexte}>Continuer avec Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.socialBtn, styles.socialBtnApple]}>
-            <Text style={styles.socialIcon}>🍎</Text>
-            <Text style={[styles.socialTexte, { color: '#fff' }]}>Continuer avec Apple</Text>
-          </TouchableOpacity>
-
-          {/* INSCRIPTION */}
-          <TouchableOpacity onPress={() => router.push('/inscription' as any)} style={styles.inscriptionBtn}>
-            <Text style={styles.inscriptionTexte}>
-              Pas encore de compte ?{'  '}
-              <Text style={styles.inscriptionLien}>Inscris-toi gratuitement</Text>
-            </Text>
+          <TouchableOpacity style={styles.ctrlBtnSmall}>
+            <Text style={styles.ctrlBtnSmallIcon}>💬</Text>
+            <Text style={styles.ctrlBtnSmallLabel}>Chat</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <View style={styles.controlsMainRow}>
+          <TouchableOpacity style={[styles.ctrlBtn, muted && styles.ctrlBtnOff]} onPress={toggleMute}>
+            <Text style={styles.ctrlBtnIcon}>{muted ? '🔇' : '🎤'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.raccrocherBtn} onPress={raccrocher}>
+            <Text style={styles.raccrocherIcon}>📵</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.ctrlBtn}>
+            <Text style={styles.ctrlBtnIcon}>{isVideo ? '🔄' : '🔊'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F2' },
-  scroll: { flexGrow: 1, paddingBottom: 40 },
-
-  // BG DÉCO
-  bgCircle1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: '#E8000D', opacity: 0.06, top: -80, right: -80 },
-  bgCircle2: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: '#FF6A00', opacity: 0.05, top: 100, left: -60 },
-
-  // HERO
-  hero: { alignItems: 'center', paddingTop: 80, paddingBottom: 32 },
-  logoWrapper: {
-    width: 80, height: 80, borderRadius: 28,
-    backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16, shadowColor: '#E8000D',
-    shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 8,
-  },
-  logoTexte: { color: '#fff', fontSize: 40, fontWeight: '900' },
-  logo: { fontSize: 36, fontWeight: '900', color: '#1A1A1A', letterSpacing: -1, marginBottom: 6 },
-  tagline: { fontSize: 15, color: '#AAA', fontWeight: '500' },
-
-  // CARD
-  card: {
-    marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 28,
-    padding: 24, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 6,
-  },
-  cardTitre: { fontSize: 22, fontWeight: '800', color: '#1A1A1A', marginBottom: 4 },
-  cardSub: { fontSize: 14, color: '#AAA', marginBottom: 24 },
-
-  // ALERTS
-  erreurBox: { backgroundColor: '#FFF0F0', borderRadius: 14, padding: 12, marginBottom: 16, borderWidth: 1.5, borderColor: '#E8000D' },
-  erreurTexte: { color: '#E8000D', fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  successBox: { backgroundColor: '#EEF7EE', borderRadius: 14, padding: 12, marginBottom: 16, borderWidth: 1.5, borderColor: '#1DB954' },
-  successTexte: { color: '#1DB954', fontSize: 13, fontWeight: '700', textAlign: 'center' },
-
-  // INPUTS
-  inputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F8F6F2', borderRadius: 16,
-    paddingHorizontal: 16, marginBottom: 12,
-    borderWidth: 1.5, borderColor: '#EEE8DE',
-  },
-  inputIcon: { fontSize: 18, marginRight: 10 },
-  input: { flex: 1, color: '#1A1A1A', fontSize: 15, paddingVertical: 16 },
-  eyeBtn: { padding: 4 },
-  eyeIcon: { fontSize: 18 },
-
-  // FORGOT
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: 20 },
-  forgotTexte: { color: '#E8000D', fontSize: 13, fontWeight: '700' },
-
-  // BOUTON
-  bouton: {
-    backgroundColor: '#E8000D', borderRadius: 18, padding: 18,
-    alignItems: 'center', shadowColor: '#E8000D',
-    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
-  },
-  boutonLoading: { backgroundColor: '#AAA', shadowOpacity: 0 },
-  boutonTexte: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
-
-  // DIVIDER
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#EEE8DE' },
-  dividerTexte: { color: '#AAA', fontSize: 13, fontWeight: '600', marginHorizontal: 12 },
-
-  // SOCIAL
-  socialBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1.5, borderColor: '#EEE8DE', backgroundColor: '#fff',
-  },
-  socialBtnApple: { backgroundColor: '#1A1A1A', borderColor: '#1A1A1A' },
-  socialIcon: { fontSize: 20 },
-  socialTexte: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
-
-  // INSCRIPTION
-  inscriptionBtn: { marginTop: 8, alignItems: 'center' },
-  inscriptionTexte: { color: '#AAA', fontSize: 14, textAlign: 'center' },
-  inscriptionLien: { color: '#E8000D', fontWeight: '800' },
+  container: { flex: 1, backgroundColor: '#0D0D0D' },
+  bgGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#1A1A2E' },
+  bgCircle1: { position: 'absolute', width: 400, height: 400, borderRadius: 200, backgroundColor: '#E8000D', opacity: 0.08, top: -100, right: -100 },
+  bgCircle2: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: '#0070F3', opacity: 0.06, bottom: 100, left: -80 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
+  minimiseBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  minimiseIcon: { fontSize: 20, color: '#fff' },
+  headerTitre: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  central: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  avatarOuter: { position: 'relative', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  avatarInner: { width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)' },
+  avatarEmoji: { fontSize: 60 },
+  avatarPulse: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: '#1DB954', opacity: 0.15 },
+  groupNom: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusTexte: { fontSize: 16, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+  participantsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  participantAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1A1A2E' },
+  participantLettre: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  participantCount: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginLeft: -12, borderWidth: 2, borderColor: '#1A1A2E' },
+  participantCountTexte: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  participantsLabel: { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  controls: { paddingHorizontal: 24, paddingBottom: 50, gap: 24 },
+  controlsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  ctrlBtnSmall: { alignItems: 'center', gap: 6 },
+  ctrlBtnSmallOff: { opacity: 0.4 },
+  ctrlBtnSmallIcon: { fontSize: 26 },
+  ctrlBtnSmallLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  controlsMainRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 24 },
+  ctrlBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  ctrlBtnOff: { backgroundColor: 'rgba(255,255,255,0.05)', opacity: 0.5 },
+  ctrlBtnIcon: { fontSize: 28 },
+  raccrocherBtn: { width: 76, height: 76, borderRadius: 38, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center', shadowColor: '#E8000D', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 8 },
+  raccrocherIcon: { fontSize: 32 },
 });

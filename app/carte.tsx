@@ -2,13 +2,14 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import TabBar from '../components/TabBar';
 import { supabase } from '../lib/supabase';
 
@@ -78,15 +79,46 @@ export default function CarteScreen() {
     return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
-  const ouvrirMaps = (activite: Activite) => {
-    if (!activite.latitude || !activite.longitude) return;
-    const url = `https://www.openstreetmap.org/?mlat=${activite.latitude}&mlon=${activite.longitude}#map=15/${activite.latitude}/${activite.longitude}`;
-    window.open(url, '_blank');
-  };
-
   const centerLat = userLocation?.latitude ?? 33.5731;
   const centerLng = userLocation?.longitude ?? -7.5898;
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${centerLng - 0.15},${centerLat - 0.15},${centerLng + 0.15},${centerLat + 0.15}&layer=mapnik`;
+
+  // Générer les marqueurs pour la carte
+  const marqueurs = activitesFiltrees
+    .filter((a) => a.latitude && a.longitude)
+    .map((a) => {
+      const cat = CATEGORIES[a.categorie] || { couleur: '#1A1A1A', emoji: '✦' };
+      return `L.marker([${a.latitude}, ${a.longitude}])
+        .addTo(map)
+        .bindPopup('<b>${a.titre}</b><br>${a.ville}');`;
+    }).join('\n');
+
+  const mapHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100vw; height: 100vh; }
+      </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        var map = L.map('map').setView([${centerLat}, ${centerLng}], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+        ${userLocation ? `L.circleMarker([${centerLat}, ${centerLng}], {
+          color: '#E8000D', fillColor: '#E8000D', fillOpacity: 0.8, radius: 8
+        }).addTo(map).bindPopup('Vous êtes ici');` : ''}
+        ${marqueurs}
+      </script>
+    </body>
+    </html>
+  `;
 
   if (loading) {
     return (
@@ -123,10 +155,14 @@ export default function CarteScreen() {
         ))}
       </ScrollView>
 
-      {/* CARTE OPENSTREETMAP */}
+      {/* CARTE WEBVIEW */}
       <View style={styles.mapContainer}>
-        {/* @ts-ignore */}
-        <iframe src={mapUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Carte" />
+        <WebView
+          source={{ html: mapHtml }}
+          style={styles.webview}
+          scrollEnabled={false}
+          javaScriptEnabled={true}
+        />
         <View style={styles.compteurBadge}>
           <Text style={styles.compteurTexte}>{activitesFiltrees.length} plans</Text>
         </View>
@@ -155,11 +191,6 @@ export default function CarteScreen() {
                   <Text style={styles.miniCardTitre} numberOfLines={1}>{activite.titre}</Text>
                   <Text style={styles.miniCardVille}>📍 {activite.ville}</Text>
                   <Text style={styles.miniCardDate}>{formatDate(activite.date)}</Text>
-                  {activite.latitude && (
-                    <TouchableOpacity style={[styles.miniCardMaps, { backgroundColor: cat.couleur + '20' }]} onPress={() => ouvrirMaps(activite)}>
-                      <Text style={[styles.miniCardMapsTexte, { color: cat.couleur }]}>🗺️ Maps</Text>
-                    </TouchableOpacity>
-                  )}
                   <View style={[styles.miniCardBtn, { backgroundColor: cat.couleur }]}>
                     <Text style={styles.miniCardBtnTexte}>Voir →</Text>
                   </View>
@@ -189,6 +220,7 @@ const styles = StyleSheet.create({
   filtreBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#DDD4C4', backgroundColor: '#EEE8DE' },
   filtreTexte: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
   mapContainer: { flex: 1, position: 'relative' },
+  webview: { flex: 1 },
   compteurBadge: { position: 'absolute', top: 12, left: 12, backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   compteurTexte: { color: '#fff', fontSize: 12, fontWeight: '700' },
   listeContainer: { backgroundColor: '#FAF7F2', paddingTop: 14, paddingBottom: 8 },
@@ -203,8 +235,6 @@ const styles = StyleSheet.create({
   miniCardTitre: { fontSize: 13, fontWeight: '800', color: '#1A1A1A' },
   miniCardVille: { fontSize: 11, color: '#AAA' },
   miniCardDate: { fontSize: 11, color: '#BBB' },
-  miniCardMaps: { borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8, alignSelf: 'flex-start' },
-  miniCardMapsTexte: { fontSize: 11, fontWeight: '700' },
   miniCardBtn: { borderRadius: 10, paddingVertical: 6, alignItems: 'center', marginTop: 2 },
   miniCardBtnTexte: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });

@@ -1,30 +1,20 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-
-const AGORA_APP_ID = 'e5454f77f09e4266b02bb96e4f2b5996';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AppelScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
   const isVideo = type === 'video';
-
   const [joined, setJoined] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [duree, setDuree] = useState(0);
-  const [engine, setEngine] = useState<any>(null);
   const timerRef = useRef<any>(null);
 
   useEffect(() => {
-    initAgora();
-    return () => { cleanup(); };
+    setTimeout(() => setJoined(true), 1500);
+    return () => clearInterval(timerRef.current);
   }, []);
 
   useEffect(() => {
@@ -34,56 +24,6 @@ export default function AppelScreen() {
     return () => clearInterval(timerRef.current);
   }, [joined]);
 
-  const initAgora = async () => {
-    if (Platform.OS === 'web') {
-      // Sur web, on simule juste l'UI
-      setTimeout(() => setJoined(true), 1500);
-      return;
-    }
-    try {
-      const { createAgoraRtcEngine, ChannelProfileType, ClientRoleType } = await import('react-native-agora');
-      const rtcEngine = createAgoraRtcEngine();
-      rtcEngine.initialize({ appId: AGORA_APP_ID });
-      rtcEngine.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
-      rtcEngine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
-      if (isVideo) {
-        rtcEngine.enableVideo();
-        rtcEngine.startPreview();
-      } else {
-        rtcEngine.enableAudio();
-      }
-      rtcEngine.addListener('onJoinChannelSuccess', () => setJoined(true));
-      await rtcEngine.joinChannel('', `wyytu-${id}`, 0, {});
-      setEngine(rtcEngine);
-    } catch (err) {
-      console.log('Agora error:', err);
-      setTimeout(() => setJoined(true), 1000);
-    }
-  };
-
-  const cleanup = async () => {
-    clearInterval(timerRef.current);
-    if (engine) {
-      await engine.leaveChannel();
-      engine.release();
-    }
-  };
-
-  const raccrocher = async () => {
-    await cleanup();
-    router.back();
-  };
-
-  const toggleMute = () => {
-    setMuted(!muted);
-    engine?.muteLocalAudioStream(!muted);
-  };
-
-  const toggleVideo = () => {
-    setVideoOff(!videoOff);
-    engine?.muteLocalVideoStream(!videoOff);
-  };
-
   const formatDuree = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -92,22 +32,18 @@ export default function AppelScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* BG DÉCO */}
       <View style={styles.bgGradient} />
       <View style={styles.bgCircle1} />
       <View style={styles.bgCircle2} />
 
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.minimiseBtn} onPress={() => router.back()}>
           <Text style={styles.minimiseIcon}>↓</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitre}>{isVideo ? 'Appel vidéo' : 'Appel audio'}</Text>
+        <Text style={styles.headerTitre}>{isVideo ? 'Appel vidéo 📹' : 'Appel audio 📞'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* AVATAR CENTRAL */}
       <View style={styles.central}>
         <View style={styles.avatarOuter}>
           <View style={styles.avatarInner}>
@@ -119,15 +55,15 @@ export default function AppelScreen() {
         <Text style={styles.groupNom}>Groupe WyytU</Text>
         <View style={styles.statusRow}>
           <View style={[styles.statusDot, { backgroundColor: joined ? '#1DB954' : '#FF9500' }]} />
-          <Text style={styles.statusTexte}>
-            {joined ? formatDuree(duree) : 'Connexion...'}
-          </Text>
+          <Text style={styles.statusTexte}>{joined ? formatDuree(duree) : 'Connexion...'}</Text>
         </View>
 
-        {/* PARTICIPANTS FICTIFS POUR DÉMO */}
         <View style={styles.participantsRow}>
           {['Y', 'M', 'A', 'K'].map((l, i) => (
-            <View key={i} style={[styles.participantAvatar, { backgroundColor: ['#E8000D', '#7B2FBE', '#0070F3', '#1DB954'][i], marginLeft: i > 0 ? -12 : 0 }]}>
+            <View key={i} style={[styles.participantAvatar, {
+              backgroundColor: ['#E8000D', '#7B2FBE', '#0070F3', '#1DB954'][i],
+              marginLeft: i > 0 ? -12 : 0,
+            }]}>
               <Text style={styles.participantLettre}>{l}</Text>
             </View>
           ))}
@@ -138,53 +74,40 @@ export default function AppelScreen() {
         <Text style={styles.participantsLabel}>7 participants</Text>
       </View>
 
-      {/* CONTRÔLES */}
       <View style={styles.controls}>
-
-        {/* LIGNE 1 — contrôles secondaires */}
         <View style={styles.controlsRow}>
           <TouchableOpacity style={styles.ctrlBtnSmall}>
             <Text style={styles.ctrlBtnSmallIcon}>🔊</Text>
             <Text style={styles.ctrlBtnSmallLabel}>Haut-parleur</Text>
           </TouchableOpacity>
-
           {isVideo && (
-            <TouchableOpacity style={[styles.ctrlBtnSmall, videoOff && styles.ctrlBtnSmallOff]} onPress={toggleVideo}>
+            <TouchableOpacity style={[styles.ctrlBtnSmall, videoOff && styles.ctrlBtnSmallOff]} onPress={() => setVideoOff(!videoOff)}>
               <Text style={styles.ctrlBtnSmallIcon}>{videoOff ? '📵' : '📹'}</Text>
               <Text style={styles.ctrlBtnSmallLabel}>{videoOff ? 'Caméra off' : 'Caméra'}</Text>
             </TouchableOpacity>
           )}
-
           <TouchableOpacity style={styles.ctrlBtnSmall}>
             <Text style={styles.ctrlBtnSmallIcon}>👥</Text>
             <Text style={styles.ctrlBtnSmallLabel}>Participants</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.ctrlBtnSmall}>
             <Text style={styles.ctrlBtnSmallIcon}>💬</Text>
             <Text style={styles.ctrlBtnSmallLabel}>Chat</Text>
           </TouchableOpacity>
         </View>
 
-        {/* LIGNE 2 — contrôles principaux */}
         <View style={styles.controlsMainRow}>
-          {/* MUTE */}
-          <TouchableOpacity style={[styles.ctrlBtn, muted && styles.ctrlBtnOff]} onPress={toggleMute}>
+          <TouchableOpacity style={[styles.ctrlBtn, muted && styles.ctrlBtnOff]} onPress={() => setMuted(!muted)}>
             <Text style={styles.ctrlBtnIcon}>{muted ? '🔇' : '🎤'}</Text>
           </TouchableOpacity>
-
-          {/* RACCROCHER */}
-          <TouchableOpacity style={styles.raccrocherBtn} onPress={raccrocher}>
+          <TouchableOpacity style={styles.raccrocherBtn} onPress={() => router.back()}>
             <Text style={styles.raccrocherIcon}>📵</Text>
           </TouchableOpacity>
-
-          {/* FLIP CAMÉRA (vidéo) / HAUT-PARLEUR (audio) */}
           <TouchableOpacity style={styles.ctrlBtn}>
             <Text style={styles.ctrlBtnIcon}>{isVideo ? '🔄' : '🔊'}</Text>
           </TouchableOpacity>
         </View>
       </View>
-
     </View>
   );
 }
@@ -194,14 +117,10 @@ const styles = StyleSheet.create({
   bgGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#1A1A2E' },
   bgCircle1: { position: 'absolute', width: 400, height: 400, borderRadius: 200, backgroundColor: '#E8000D', opacity: 0.08, top: -100, right: -100 },
   bgCircle2: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: '#0070F3', opacity: 0.06, bottom: 100, left: -80 },
-
-  // HEADER
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
   minimiseBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   minimiseIcon: { fontSize: 20, color: '#fff' },
   headerTitre: { fontSize: 16, fontWeight: '700', color: '#fff' },
-
-  // CENTRAL
   central: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
   avatarOuter: { position: 'relative', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   avatarInner: { width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)' },
@@ -210,17 +129,13 @@ const styles = StyleSheet.create({
   groupNom: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusTexte: { fontSize: 16, color: 'rgba(255,255,255,0.7)', fontWeight: '600', fontVariant: ['tabular-nums'] },
-
-  // PARTICIPANTS
+  statusTexte: { fontSize: 16, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
   participantsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   participantAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1A1A2E' },
   participantLettre: { color: '#fff', fontSize: 16, fontWeight: '800' },
   participantCount: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginLeft: -12, borderWidth: 2, borderColor: '#1A1A2E' },
   participantCountTexte: { color: '#fff', fontSize: 12, fontWeight: '700' },
   participantsLabel: { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
-
-  // CONTRÔLES
   controls: { paddingHorizontal: 24, paddingBottom: 50, gap: 24 },
   controlsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   ctrlBtnSmall: { alignItems: 'center', gap: 6 },
