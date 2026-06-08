@@ -10,7 +10,6 @@ export default function TabLayout() {
         tabBarItemStyle: styles.tabItem,
       }}>
 
-      {/* EXPLORER */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -20,16 +19,13 @@ export default function TabLayout() {
               <View style={[styles.bulle, focused && styles.bulleActive]}>
                 <Text style={{ fontSize: 20 }}>🏠</Text>
               </View>
-              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
-                Explorer
-              </Text>
+              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>Explorer</Text>
             </View>
           ),
           tabBarLabel: () => null,
         }}
       />
 
-      {/* CARTE */}
       <Tabs.Screen
         name="groupe"
         options={{
@@ -39,18 +35,15 @@ export default function TabLayout() {
               <View style={[styles.bulle, focused && styles.bulleActive]}>
                 <Text style={{ fontSize: 20 }}>🗺️</Text>
               </View>
-              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
-                Carte
-              </Text>
+              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>Carte</Text>
             </View>
           ),
           tabBarLabel: () => null,
         }}
       />
 
-      {/* CRÉER — BOUTON CENTRAL */}
       <Tabs.Screen
-        name="sos"
+        name="creer"
         options={{
           title: '',
           tabBarIcon: () => (
@@ -66,7 +59,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* CHAT */}
       <Tabs.Screen
         name="chat"
         options={{
@@ -76,16 +68,13 @@ export default function TabLayout() {
               <View style={[styles.bulle, focused && styles.bulleActive]}>
                 <Text style={{ fontSize: 20 }}>💬</Text>
               </View>
-              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
-                Chat
-              </Text>
+              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>Chat</Text>
             </View>
           ),
           tabBarLabel: () => null,
         }}
       />
 
-      {/* PROFIL */}
       <Tabs.Screen
         name="profil"
         options={{
@@ -95,9 +84,7 @@ export default function TabLayout() {
               <View style={[styles.bulle, focused && styles.bulleActive]}>
                 <Text style={{ fontSize: 20 }}>👤</Text>
               </View>
-              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>
-                Profil
-              </Text>
+              <Text style={[styles.label, { color: focused ? '#fff' : 'rgba(255,255,255,0.35)' }]}>Profil</Text>
             </View>
           ),
           tabBarLabel: () => null,
@@ -106,10 +93,7 @@ export default function TabLayout() {
 
       {/* PAGES CACHÉES */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="profils" options={{ href: null }} />
-      <Tabs.Screen name="notation" options={{ href: null }} />
       <Tabs.Screen name="connexion" options={{ href: null }} />
-      <Tabs.Screen name="partenariats" options={{ href: null }} />
     </Tabs>
   );
 }

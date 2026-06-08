@@ -1,78 +1,19 @@
-import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Stack } from 'expo-router';
 
-function TabIcon({ icon }: { icon: string }) {
-  return <Text style={{ fontSize: 22 }}>{icon}</Text>;
-}
-
-export default function Layout() {
+export default function RootLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#243660',
-          borderTopColor: '#FF6B2B',
-          borderTopWidth: 2,
-          height: 70,
-          paddingBottom: 10,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: '#FF6B2B',
-        tabBarInactiveTintColor: '#888888',
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: 'bold',
-        },
-      }}>
-
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Accueil',
-          tabBarIcon: () => <TabIcon icon="🏠" />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="groupe"
-        options={{
-          title: 'Créer',
-          tabBarIcon: () => <TabIcon icon="➕" />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="profils"
-        options={{
-          title: 'Découvrir',
-          tabBarIcon: () => <TabIcon icon="👥" />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: () => <TabIcon icon="💬" />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="profil"
-        options={{
-          title: 'Mon profil',
-          tabBarIcon: () => <TabIcon icon="👤" />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="inscription"
-        options={{
-          href: null,
-        }}
-      />
-
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="inscription" options={{ headerShown: false }} />
+      <Stack.Screen name="connexion" options={{ headerShown: false }} />
+      <Stack.Screen name="matching" options={{ headerShown: false }} />
+      <Stack.Screen name="creer-activite" options={{ headerShown: false }} />
+      <Stack.Screen name="carte" options={{ headerShown: false }} />
+      <Stack.Screen name="activite/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="appel/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="mes-activites" options={{ headerShown: false }} />
+      <Stack.Screen name="profils/[id]" options={{ headerShown: false }} />
+    </Stack>
   );
 }
