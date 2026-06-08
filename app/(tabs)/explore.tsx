@@ -1,8 +1,11 @@
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,6 +15,8 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
+
+const { width } = Dimensions.get('window');
 
 type Activite = {
   id: string;
@@ -97,23 +102,27 @@ export default function ExploreScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [villeUser, setVilleUser] = useState('');
   const [triProximite, setTriProximite] = useState(false);
-
-  // DISPO MAINTENANT
   const [isDispo, setIsDispo] = useState(false);
   const [dispoActivite, setDispoActivite] = useState('');
   const [showDispoModal, setShowDispoModal] = useState(false);
   const [usersDispos, setUsersDispos] = useState<UserDispo[]>([]);
   const [dispoLoading, setDispoLoading] = useState(false);
   const [dispoTempsRestant, setDispoTempsRestant] = useState('');
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     chargerActivites();
     demanderLocalisation();
     chargerUsersDispos();
     verifierDispoUser();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
-  // Countdown timer pour la dispo
   useEffect(() => {
     if (!isDispo) return;
     const interval = setInterval(async () => {
@@ -164,16 +173,11 @@ export default function ExploreScreen() {
       if (!user) return;
       const jusqu_a = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
       await supabase.from('utilisateurs').update({
-        dispo_jusqu_a: jusqu_a,
-        dispo_activite: activite,
-        dispo_latitude: userLocation?.lat || null,
-        dispo_longitude: userLocation?.lng || null,
+        dispo_jusqu_a: jusqu_a, dispo_activite: activite,
+        dispo_latitude: userLocation?.lat || null, dispo_longitude: userLocation?.lng || null,
       }).eq('id', user.id);
-      setIsDispo(true);
-      setDispoActivite(activite);
-      setDispoTempsRestant('2h00min');
-      setShowDispoModal(false);
-      chargerUsersDispos();
+      setIsDispo(true); setDispoActivite(activite); setDispoTempsRestant('2h00min');
+      setShowDispoModal(false); chargerUsersDispos();
     } catch (err) { console.log(err); }
     finally { setDispoLoading(false); }
   };
@@ -181,14 +185,8 @@ export default function ExploreScreen() {
   const desactiverDispo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from('utilisateurs').update({
-      dispo_jusqu_a: null, dispo_activite: null,
-      dispo_latitude: null, dispo_longitude: null,
-    }).eq('id', user.id);
-    setIsDispo(false);
-    setDispoActivite('');
-    setDispoTempsRestant('');
-    chargerUsersDispos();
+    await supabase.from('utilisateurs').update({ dispo_jusqu_a: null, dispo_activite: null, dispo_latitude: null, dispo_longitude: null }).eq('id', user.id);
+    setIsDispo(false); setDispoActivite(''); setDispoTempsRestant(''); chargerUsersDispos();
   };
 
   const demanderLocalisation = async () => {
@@ -256,13 +254,13 @@ export default function ExploreScreen() {
         </View>
       </View>
 
-      {/* 🟢 BOUTON DISPO MAINTENANT */}
+      {/* DISPO MAINTENANT */}
       {!isDispo ? (
         <TouchableOpacity style={styles.dispoBtn} onPress={() => setShowDispoModal(true)} activeOpacity={0.85}>
           <View style={styles.dispoBtnLeft}>
-            <View style={styles.dispoPulse}>
+            <Animated.View style={[styles.dispoPulseOuter, { transform: [{ scale: pulseAnim }] }]}>
               <View style={styles.dispoDot} />
-            </View>
+            </Animated.View>
             <View>
               <Text style={styles.dispoBtnTitre}>Je suis dispo maintenant</Text>
               <Text style={styles.dispoBtnSub}>Visible 2h · rayon 5km</Text>
@@ -273,9 +271,9 @@ export default function ExploreScreen() {
       ) : (
         <TouchableOpacity style={styles.dispoActifBtn} onPress={desactiverDispo} activeOpacity={0.85}>
           <View style={styles.dispoBtnLeft}>
-            <View style={styles.dispoPulseActif}>
-              <View style={styles.dispoDotActif} />
-            </View>
+            <Animated.View style={[styles.dispoPulseOuter, { transform: [{ scale: pulseAnim }], backgroundColor: '#1DB95440' }]}>
+              <View style={[styles.dispoDot, { backgroundColor: '#1DB954' }]} />
+            </Animated.View>
             <View>
               <Text style={styles.dispoActifTitre}>🟢 Dispo — {dispoActivite}</Text>
               <Text style={styles.dispoActifSub}>Encore {dispoTempsRestant} · Appuie pour désactiver</Text>
@@ -373,7 +371,7 @@ export default function ExploreScreen() {
                       const dist = getDistance(a);
                       const placesRestantes = (a.max_participants || 0) - (a.participants_count || 0);
                       return (
-                        <TouchableOpacity key={a.id} style={[styles.featuredCard, { backgroundColor: c1 }]} onPress={() => router.push(`/activite/${a.id}` as any)}>
+                        <TouchableOpacity key={a.id} style={[styles.featuredCard, { backgroundColor: c1 }]} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.9}>
                           <Text style={styles.featuredBgEmoji}>{emoji}</Text>
                           <View style={styles.featuredTop}>
                             <View style={[styles.featuredBadge, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
@@ -409,11 +407,11 @@ export default function ExploreScreen() {
                   </View>
                   <View style={styles.cardsContainer}>
                     {reste.map((a) => {
-                      const { c1, c2, emoji } = getCouleurs(a.categorie);
+                      const { c1, emoji } = getCouleurs(a.categorie);
                       const dist = getDistance(a);
                       const placesRestantes = (a.max_participants || 0) - (a.participants_count || 0);
                       return (
-                        <TouchableOpacity key={a.id} style={styles.card} onPress={() => router.push(`/activite/${a.id}` as any)}>
+                        <TouchableOpacity key={a.id} style={styles.card} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.8}>
                           <View style={[styles.cardBar, { backgroundColor: c1 }]} />
                           <View style={[styles.cardIcon, { backgroundColor: c1 + '15' }]}>
                             <Text style={styles.cardIconTexte}>{emoji}</Text>
@@ -459,7 +457,7 @@ export default function ExploreScreen() {
       )}
 
       {/* MODAL DISPO */}
-      {showDispoModal && (
+      <Modal visible={showDispoModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -485,7 +483,7 @@ export default function ExploreScreen() {
             </View>
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
@@ -502,22 +500,16 @@ const styles = StyleSheet.create({
   iconBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#DDD4C4' },
   iconBtnActive: { backgroundColor: '#1DB954', borderColor: '#1DB954' },
   iconBtnEmoji: { fontSize: 18 },
-
-  // DISPO MAINTENANT
   dispoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 12, backgroundColor: '#1A1A1A', borderRadius: 20, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
   dispoActifBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12, backgroundColor: '#1DB95415', borderRadius: 20, padding: 16, borderWidth: 2, borderColor: '#1DB954' },
   dispoBtnLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dispoPulse: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1DB95430', alignItems: 'center', justifyContent: 'center' },
+  dispoPulseOuter: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1DB95430', alignItems: 'center', justifyContent: 'center' },
   dispoDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#1DB954' },
-  dispoPulseActif: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1DB95430', alignItems: 'center', justifyContent: 'center' },
-  dispoDotActif: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#1DB954' },
   dispoBtnTitre: { color: '#fff', fontSize: 15, fontWeight: '800' },
   dispoBtnSub: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 },
   dispoBtnArrow: { color: 'rgba(255,255,255,0.5)', fontSize: 20 },
   dispoActifTitre: { color: '#1DB954', fontSize: 15, fontWeight: '800' },
   dispoActifSub: { color: '#1DB95480', fontSize: 12, marginTop: 2 },
-
-  // USERS DISPOS
   usersDisposContainer: { marginHorizontal: 20, marginBottom: 12, backgroundColor: '#fff', borderRadius: 20, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   usersDisposHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   usersDisposTitre: { fontSize: 14, fontWeight: '800', color: '#1A1A1A' },
@@ -529,21 +521,15 @@ const styles = StyleSheet.create({
   userDispoOnline: { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: '#1DB954', borderWidth: 2, borderColor: '#fff' },
   userDispoNom: { fontSize: 11, fontWeight: '700', color: '#1A1A1A', textAlign: 'center' },
   userDispoActivite: { fontSize: 10, color: '#AAA', textAlign: 'center', marginTop: 2 },
-
-  // SEARCH
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1.5, borderColor: '#EEE8DE', marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   searchIcon: { fontSize: 16, marginRight: 10 },
   searchInput: { flex: 1, color: '#1A1A1A', fontSize: 14, fontWeight: '500' },
   searchClear: { color: '#AAA', fontSize: 16, paddingLeft: 8 },
-
-  // CATEGORIES
   catsScroll: { maxHeight: 52 },
   catsContent: { paddingHorizontal: 20, gap: 8, paddingVertical: 6 },
   catBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#EEE8DE' },
   catEmoji: { fontSize: 14 },
   catLabel: { fontSize: 12, fontWeight: '700' },
-
-  // LOADING
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 60 },
   loadingTexte: { color: '#AAA', fontSize: 14 },
   feed: { flex: 1 },
@@ -556,11 +542,9 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, color: '#AAA' },
   emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
   emptyBtnTexte: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
-  // FEATURED
   featuredContent: { paddingHorizontal: 20, gap: 14, paddingBottom: 4 },
-  featuredCard: { width: 230, height: 150, borderRadius: 24, overflow: 'hidden', position: 'relative', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
-  featuredBgEmoji: { position: 'absolute', right: -10, bottom: -10, fontSize: 80, opacity: 0.15 },
+  featuredCard: { width: 230, height: 160, borderRadius: 24, overflow: 'hidden', position: 'relative', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
+  featuredBgEmoji: { position: 'absolute', right: -10, bottom: -10, fontSize: 90, opacity: 0.15 },
   featuredTop: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', gap: 6 },
   featuredBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   featuredBadgeTexte: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
@@ -570,8 +554,6 @@ const styles = StyleSheet.create({
   featuredDate: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' },
   featuredPlaces: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   featuredPlacesTexte: { color: '#fff', fontSize: 10, fontWeight: '700' },
-
-  // CARDS
   cardsContainer: { paddingHorizontal: 20, gap: 12 },
   card: { backgroundColor: '#fff', borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
   cardBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, borderRadius: 4 },
@@ -586,17 +568,13 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
   cardMeta: { color: '#BBB', fontSize: 11, fontWeight: '500' },
   cardPlaces: { fontSize: 11, fontWeight: '700' },
-
-  // FAB
   fab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1A1A1A', borderRadius: 22, padding: 18, marginHorizontal: 20, marginTop: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
   fabLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   fabIcon: { fontSize: 24, color: '#fff' },
   fabTexte: { color: '#fff', fontSize: 15, fontWeight: '800' },
   fabSub: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 2 },
   fabArr: { color: 'rgba(255,255,255,0.6)', fontSize: 22 },
-
-  // MODAL DISPO
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: '#FAF7F2', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   modalTitre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },

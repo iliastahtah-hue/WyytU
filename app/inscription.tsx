@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,7 +16,6 @@ import {
 import { supabase } from '../lib/supabase';
 
 const ETAPES = ['Compte', 'Profil', 'Photos', 'Vérif'];
-
 const ACTIVITES_CHIPS = ['⚡ Sport', '🍕 Resto', '🎬 Ciné', '🎉 Soirée', '🎮 Gaming', '✈️ Voyage', '🎵 Musique', '🏃 Bien-être', '👥 Social', '🎨 Art'];
 
 export default function InscriptionScreen() {
@@ -43,6 +43,11 @@ export default function InscriptionScreen() {
 
   const choisirPhoto = async () => {
     if (photos.length >= 4) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Active l\'accès aux photos dans les réglages.');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true, aspect: [1, 1], quality: 0.8,
@@ -51,6 +56,11 @@ export default function InscriptionScreen() {
   };
 
   const prendreSelfiee = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Active l\'accès à la caméra dans les réglages de ton iPhone.');
+      return;
+    }
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true, aspect: [1, 1], quality: 0.8,
     });
@@ -119,16 +129,8 @@ export default function InscriptionScreen() {
         </View>
 
         <View style={styles.card}>
-          {erreur ? (
-            <View style={styles.erreurBox}>
-              <Text style={styles.erreurTexte}>❌ {erreur}</Text>
-            </View>
-          ) : null}
-          {succes ? (
-            <View style={styles.succesBox}>
-              <Text style={styles.succesTexte}>{succes}</Text>
-            </View>
-          ) : null}
+          {erreur ? <View style={styles.erreurBox}><Text style={styles.erreurTexte}>❌ {erreur}</Text></View> : null}
+          {succes ? <View style={styles.succesBox}><Text style={styles.succesTexte}>{succes}</Text></View> : null}
 
           {etape === 0 && (
             <View style={styles.etapeContent}>
@@ -168,7 +170,7 @@ export default function InscriptionScreen() {
                 <Text style={styles.inputIcon}>📝</Text>
                 <TextInput
                   style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
-                  placeholder="Ta bio... Ex: J'aime le sport et les sorties 🔥"
+                  placeholder="Ta bio..."
                   placeholderTextColor="#BBB"
                   multiline
                   value={bio}
@@ -192,7 +194,7 @@ export default function InscriptionScreen() {
           {etape === 2 && (
             <View style={styles.etapeContent}>
               <Text style={styles.etapeTitre}>Tes photos 📸</Text>
-              <Text style={styles.etapeSub}>Minimum 2, maximum 4. Montre ton vrai toi !</Text>
+              <Text style={styles.etapeSub}>Minimum 2, maximum 4.</Text>
               <View style={styles.photosGrid}>
                 {photos.map((photo, index) => (
                   <View key={index} style={styles.photoWrapper}>
@@ -215,7 +217,7 @@ export default function InscriptionScreen() {
                 )}
               </View>
               <View style={styles.photoTips}>
-                <Text style={styles.photoTipsTexte}>💡 Conseils : souris, montre ton visage clairement, évite les lunettes de soleil</Text>
+                <Text style={styles.photoTipsTexte}>💡 Souris, montre ton visage clairement</Text>
               </View>
             </View>
           )}
@@ -223,7 +225,7 @@ export default function InscriptionScreen() {
           {etape === 3 && (
             <View style={styles.etapeContent}>
               <Text style={styles.etapeTitre}>Vérification 🪪</Text>
-              <Text style={styles.etapeSub}>Pour la sécurité de tous, WyytU vérifie chaque membre</Text>
+              <Text style={styles.etapeSub}>Pour la sécurité de tous</Text>
               <View style={styles.verificationSteps}>
                 <View style={styles.verifStep}>
                   <View style={[styles.verifStepIcon, { backgroundColor: '#0070F315' }]}>
@@ -251,7 +253,7 @@ export default function InscriptionScreen() {
                 <Text style={styles.selfieBtnTexte}>{selfie ? 'Reprendre le selfie' : 'Prendre mon selfie'}</Text>
               </TouchableOpacity>
               <View style={styles.securiteBadge}>
-                <Text style={styles.securiteTexte}>🔒 Tes données sont 100% sécurisées et ne seront jamais partagées</Text>
+                <Text style={styles.securiteTexte}>🔒 Tes données sont 100% sécurisées</Text>
               </View>
             </View>
           )}
@@ -294,8 +296,8 @@ const styles = StyleSheet.create({
   logoTexte: { color: '#fff', fontSize: 36, fontWeight: '900' },
   logo: { fontSize: 32, fontWeight: '900', color: '#1A1A1A', letterSpacing: -1, marginBottom: 4 },
   tagline: { fontSize: 15, color: '#AAA', fontWeight: '500' },
-  stepper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', paddingHorizontal: 20, marginBottom: 20, gap: 0 },
-  stepWrapper: { alignItems: 'center', flexDirection: 'row', gap: 0 },
+  stepper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', paddingHorizontal: 20, marginBottom: 20 },
+  stepWrapper: { alignItems: 'center', flexDirection: 'row' },
   stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#DDD4C4' },
   stepCircleActive: { backgroundColor: '#E8000D', borderColor: '#E8000D' },
   stepCircleDone: { backgroundColor: '#1DB954', borderColor: '#1DB954' },
@@ -353,7 +355,7 @@ const styles = StyleSheet.create({
   selfieBtnEmoji: { fontSize: 22 },
   selfieBtnTexte: { color: '#fff', fontSize: 15, fontWeight: '800' },
   securiteBadge: { backgroundColor: '#EEF7EE', borderRadius: 14, padding: 12, marginTop: 12 },
-  securiteTexte: { color: '#1DB954', fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
+  securiteTexte: { color: '#1DB954', fontSize: 12, fontWeight: '600', textAlign: 'center' },
   navBtns: { flexDirection: 'row', gap: 12, marginTop: 24 },
   btnRetour: { paddingVertical: 16, paddingHorizontal: 20, borderRadius: 16, backgroundColor: '#EEE8DE' },
   btnRetourTexte: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
