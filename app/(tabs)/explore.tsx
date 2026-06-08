@@ -84,11 +84,57 @@ const formatDate = (dateStr: string) => {
   const diff = date.getTime() - now.getTime();
   const hours = Math.floor(diff / 3600000);
   if (hours > 0 && hours < 24) return `Dans ${hours}h`;
-  if (hours < 0 && hours > -24) return 'Aujourd\'hui';
+  if (hours < 0 && hours > -24) return "Aujourd'hui";
   return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 };
 
 const COULEURS_AVATAR = ['#E8000D', '#7B2FBE', '#0070F3', '#1DB954', '#FF6A00', '#00B4D8'];
+
+const getMissions = (ville: string) => {
+  const heure = new Date().getHours();
+  const v = ville || 'ta ville';
+  const missions = [
+    {
+      emoji: '☕', couleur: '#FF6A00', temps: 'Dans 30 min',
+      titre: `Café sympa à ${v}`,
+      desc: 'Quelqu\'un cherche un café et une bonne conversation',
+      participants: Math.floor(Math.random() * 3) + 1,
+    },
+    {
+      emoji: '⚽', couleur: '#E8000D', temps: 'Dans 1h',
+      titre: `Foot 5v5 — ${v}`,
+      desc: 'Il manque 2 joueurs pour compléter l\'équipe',
+      participants: Math.floor(Math.random() * 4) + 3,
+    },
+    {
+      emoji: '🏃', couleur: '#00897B', temps: 'Dans 45 min',
+      titre: 'Running matinal',
+      desc: 'Parcours de 5km, tous niveaux bienvenus',
+      participants: Math.floor(Math.random() * 3) + 2,
+    },
+    {
+      emoji: heure >= 18 ? '🎉' : '🎬',
+      couleur: heure >= 18 ? '#7B2FBE' : '#CC0000',
+      temps: heure >= 18 ? 'Ce soir' : 'Cet après-midi',
+      titre: heure >= 18 ? `Soirée à ${v}` : `Ciné — ${v}`,
+      desc: heure >= 18 ? 'Ambiance garantie, venez nombreux 🔥' : 'Film au choix du groupe',
+      participants: Math.floor(Math.random() * 5) + 2,
+    },
+    {
+      emoji: '🍕', couleur: '#FF4B7D', temps: 'À 12h30',
+      titre: 'Déjeuner en groupe',
+      desc: `Resto sympa à ${v}, cuisine variée`,
+      participants: Math.floor(Math.random() * 3) + 1,
+    },
+    {
+      emoji: '🎮', couleur: '#0070F3', temps: 'Ce soir',
+      titre: 'Gaming Night',
+      desc: 'Session en ligne ou IRL chez quelqu\'un',
+      participants: Math.floor(Math.random() * 4) + 2,
+    },
+  ];
+  return missions.sort(() => Math.random() - 0.5).slice(0, 4);
+};
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -105,6 +151,7 @@ export default function ExploreScreen() {
   const [usersDispos, setUsersDispos] = useState<UserDispo[]>([]);
   const [dispoTempsRestant, setDispoTempsRestant] = useState('');
   const [prenom, setPrenom] = useState('');
+  const [missions] = useState(() => getMissions(''));
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -191,11 +238,12 @@ export default function ExploreScreen() {
 
   const heure = new Date().getHours();
   const salutation = heure < 12 ? 'Bonjour' : heure < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const missionsVille = getMissions(villeUser);
 
   return (
     <View style={styles.container}>
 
-      {/* ═══ HEADER PREMIUM ═══ */}
+      {/* HEADER */}
       <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
         <View>
           <Text style={styles.greeting}>{salutation} {prenom ? prenom : '👋'}</Text>
@@ -215,7 +263,7 @@ export default function ExploreScreen() {
         </View>
       </Animated.View>
 
-      {/* ═══ DISPO MAINTENANT PREMIUM ═══ */}
+      {/* DISPO */}
       {!isDispo ? (
         <TouchableOpacity style={styles.dispoCard} onPress={() => setShowDispoModal(true)} activeOpacity={0.9}>
           <View style={styles.dispoBg} />
@@ -240,13 +288,13 @@ export default function ExploreScreen() {
           </Animated.View>
           <View style={{ flex: 1 }}>
             <Text style={styles.dispoActifTitre}>🟢 Dispo — {dispoActivite}</Text>
-            <Text style={styles.dispoActifSub}>Encore {dispoTempsRestant} restant · Touche pour désactiver</Text>
+            <Text style={styles.dispoActifSub}>Encore {dispoTempsRestant} · Touche pour désactiver</Text>
           </View>
           <Text style={styles.dispoActifClose}>✕</Text>
         </TouchableOpacity>
       )}
 
-      {/* ═══ USERS DISPOS ═══ */}
+      {/* USERS DISPOS */}
       {usersDispos.length > 0 && (
         <View style={styles.disposSection}>
           <View style={styles.disposHeader}>
@@ -268,7 +316,7 @@ export default function ExploreScreen() {
         </View>
       )}
 
-      {/* ═══ SEARCH ═══ */}
+      {/* SEARCH */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>🔍</Text>
@@ -290,15 +338,12 @@ export default function ExploreScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ═══ CATEGORIES ═══ */}
+      {/* CATEGORIES */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catsScroll} contentContainerStyle={styles.catsContent}>
         {CATEGORIES.map((cat) => {
           const active = categorieActive === cat.label;
           return (
-            <TouchableOpacity
-              key={cat.label}
-              style={[styles.catChip, active && { backgroundColor: cat.couleur1 }]}
-              onPress={() => setCategorieActive(cat.label)}>
+            <TouchableOpacity key={cat.label} style={[styles.catChip, active && { backgroundColor: cat.couleur1 }]} onPress={() => setCategorieActive(cat.label)}>
               <Text style={styles.catEmoji}>{cat.emoji}</Text>
               <Text style={[styles.catLabel, active && { color: '#fff' }]}>{cat.label}</Text>
             </TouchableOpacity>
@@ -306,7 +351,7 @@ export default function ExploreScreen() {
         })}
       </ScrollView>
 
-      {/* ═══ FEED ═══ */}
+      {/* FEED */}
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color="#E8000D" />
@@ -316,6 +361,38 @@ export default function ExploreScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); chargerActivites(); chargerUsersDispos(); }} tintColor="#E8000D" />}>
+
+          {/* ═══ MISSIONS INSTANTANÉES ═══ */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitre}>⚡ Missions instantanées</Text>
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveTexte}>LIVE</Text>
+            </View>
+          </View>
+          <Text style={styles.missionsSub}>Plans disponibles maintenant près de toi</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.missionsScroll}>
+            {missionsVille.map((m, i) => (
+              <TouchableOpacity key={i} style={[styles.missionCard, { backgroundColor: m.couleur }]} onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.9}>
+                <Text style={styles.missionBgEmoji}>{m.emoji}</Text>
+                <View style={styles.missionTopRow}>
+                  <View style={styles.missionLiveBadge}>
+                    <View style={styles.missionLiveDot} />
+                    <Text style={styles.missionLiveTexte}>DISPO</Text>
+                  </View>
+                  <Text style={styles.missionTemps}>{m.temps}</Text>
+                </View>
+                <Text style={styles.missionTitre}>{m.titre}</Text>
+                <Text style={styles.missionDesc} numberOfLines={2}>{m.desc}</Text>
+                <View style={styles.missionFooter}>
+                  <Text style={styles.missionParticipants}>👥 {m.participants} partant{m.participants > 1 ? 's' : ''}</Text>
+                  <View style={styles.missionJoinBtn}>
+                    <Text style={styles.missionJoinTexte}>Rejoindre →</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           {activitesFiltrees.length === 0 ? (
             <View style={styles.emptyBox}>
@@ -328,7 +405,6 @@ export default function ExploreScreen() {
             </View>
           ) : (
             <>
-              {/* SECTION FEATURED */}
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitre}>🔥 Plans chauds</Text>
                 <TouchableOpacity><Text style={styles.sectionLien}>Tout voir →</Text></TouchableOpacity>
@@ -341,10 +417,7 @@ export default function ExploreScreen() {
                   const places = (a.max_participants || 0) - (a.participants_count || 0);
                   return (
                     <TouchableOpacity key={a.id} style={[styles.featuredCard, { backgroundColor: couleur }]} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.9}>
-                      {/* BG EMOJI */}
                       <Text style={styles.featuredBgEmoji}>{emoji}</Text>
-
-                      {/* TAGS */}
                       <View style={styles.featuredTags}>
                         <View style={styles.featuredTag}>
                           <Text style={styles.featuredTagTexte}>{a.categorie?.toUpperCase()}</Text>
@@ -355,19 +428,14 @@ export default function ExploreScreen() {
                           </View>
                         )}
                       </View>
-
-                      {/* CONTENU */}
                       <View style={styles.featuredContent}>
                         <Text style={styles.featuredTitre} numberOfLines={2}>{a.titre}</Text>
                         <View style={styles.featuredMeta}>
                           <Text style={styles.featuredDate}>{formatDate(a.date)}</Text>
                           <View style={styles.featuredPlacesBadge}>
-                            <Text style={styles.featuredPlacesTexte}>
-                              {places > 0 ? `${places} places` : '🔴 Complet'}
-                            </Text>
+                            <Text style={styles.featuredPlacesTexte}>{places > 0 ? `${places} places` : '🔴 Complet'}</Text>
                           </View>
                         </View>
-                        {/* CRÉATEUR */}
                         <View style={styles.featuredCreateur}>
                           <View style={styles.featuredCreateurAvatar}>
                             <Text style={styles.featuredCreateurLettre}>{a.createur_prenom?.[0]?.toUpperCase()}</Text>
@@ -380,7 +448,6 @@ export default function ExploreScreen() {
                 })}
               </ScrollView>
 
-              {/* SECTION LISTE */}
               {activitesFiltrees.length > 5 && (
                 <>
                   <View style={styles.sectionHeader}>
@@ -424,7 +491,6 @@ export default function ExploreScreen() {
             </>
           )}
 
-          {/* FAB CRÉER */}
           <TouchableOpacity style={styles.fabCreer} onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.9}>
             <View style={styles.fabGauche}>
               <View style={styles.fabIconWrapper}>
@@ -442,7 +508,7 @@ export default function ExploreScreen() {
         </ScrollView>
       )}
 
-      {/* ═══ MODAL DISPO ═══ */}
+      {/* MODAL DISPO */}
       <Modal visible={showDispoModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -465,20 +531,17 @@ export default function ExploreScreen() {
               ))}
             </View>
             <View style={styles.modalInfoBox}>
-              <Text style={styles.modalInfoTexte}>✅ Visible pendant 2h · rayon 5km · désactivable à tout moment</Text>
+              <Text style={styles.modalInfoTexte}>✅ Visible 2h · rayon 5km · désactivable à tout moment</Text>
             </View>
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
-
-  // HEADER
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 14 },
   greeting: { fontSize: 13, color: '#AAA', fontWeight: '600', marginBottom: 3 },
   titre: { fontSize: 34, fontWeight: '900', color: '#1A1A1A', letterSpacing: -1.5, marginBottom: 4 },
@@ -489,8 +552,6 @@ const styles = StyleSheet.create({
   headerBtnDark: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
   headerBtnLight: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#DDD4C4' },
   headerBtnIcon: { fontSize: 20 },
-
-  // DISPO CARD
   dispoCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', padding: 18, position: 'relative' },
   dispoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#1A1A1A' },
   dispoBgCircle: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: '#1DB954', opacity: 0.08, right: -30, top: -40 },
@@ -501,15 +562,12 @@ const styles = StyleSheet.create({
   dispoSub: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '500' },
   dispoArrowWrapper: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   dispoArrow: { color: 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '700' },
-
   dispoActifCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#1DB95412', borderWidth: 2, borderColor: '#1DB954' },
   dispoPulseActif: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(29,185,84,0.2)', alignItems: 'center', justifyContent: 'center' },
   dispoDotActif: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#1DB954' },
   dispoActifTitre: { color: '#1DB954', fontSize: 14, fontWeight: '800' },
   dispoActifSub: { color: '#1DB95480', fontSize: 11, marginTop: 2 },
   dispoActifClose: { color: '#1DB954', fontSize: 18, fontWeight: '700' },
-
-  // USERS DISPOS
   disposSection: { marginHorizontal: 20, marginBottom: 12, backgroundColor: '#fff', borderRadius: 20, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   disposHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   disposDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1DB954' },
@@ -521,8 +579,6 @@ const styles = StyleSheet.create({
   disposOnline: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: '#1DB954', borderWidth: 2, borderColor: '#fff' },
   disposNom: { fontSize: 11, fontWeight: '700', color: '#1A1A1A', textAlign: 'center' },
   disposActivite: { fontSize: 10, color: '#AAA', textAlign: 'center', marginTop: 1 },
-
-  // SEARCH
   searchRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 10 },
   searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 1.5, borderColor: '#EEE8DE', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
   searchIcon: { fontSize: 15, marginRight: 8 },
@@ -530,15 +586,11 @@ const styles = StyleSheet.create({
   searchClear: { color: '#BBB', fontSize: 15 },
   filterBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
   filterIcon: { fontSize: 20 },
-
-  // CATEGORIES
   catsScroll: { maxHeight: 50 },
   catsContent: { paddingHorizontal: 20, gap: 8, paddingVertical: 4 },
   catChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: '#EEE8DE' },
   catEmoji: { fontSize: 14 },
   catLabel: { fontSize: 12, fontWeight: '700', color: '#555' },
-
-  // LOADING / EMPTY
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 12 },
   loadingTexte: { color: '#AAA', fontSize: 14, fontWeight: '600' },
   emptyBox: { alignItems: 'center', paddingTop: 60, gap: 12 },
@@ -547,14 +599,34 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, color: '#AAA' },
   emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 28, paddingVertical: 14, marginTop: 4 },
   emptyBtnTexte: { color: '#fff', fontWeight: '800', fontSize: 14 },
-
-  // SECTION HEADER
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
   sectionTitre: { fontSize: 19, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.4 },
   sectionLien: { fontSize: 13, color: '#E8000D', fontWeight: '700' },
   sectionSub: { fontSize: 12, color: '#AAA', fontWeight: '600' },
 
-  // FEATURED CARDS
+  // LIVE BADGE
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#E8000D', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
+  liveTexte: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+
+  // MISSIONS
+  missionsSub: { fontSize: 13, color: '#AAA', paddingHorizontal: 20, marginBottom: 14 },
+  missionsScroll: { paddingHorizontal: 20, gap: 12, paddingBottom: 4 },
+  missionCard: { width: width * 0.72, borderRadius: 24, overflow: 'hidden', position: 'relative', padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8, gap: 8 },
+  missionBgEmoji: { position: 'absolute', right: -10, bottom: -10, fontSize: 90, opacity: 0.12 },
+  missionTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  missionLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  missionLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
+  missionLiveTexte: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  missionTemps: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600' },
+  missionTitre: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
+  missionDesc: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 18 },
+  missionFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  missionParticipants: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600' },
+  missionJoinBtn: { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  missionJoinTexte: { color: '#fff', fontSize: 12, fontWeight: '800' },
+
+  // FEATURED
   featuredScroll: { paddingHorizontal: 20, gap: 14, paddingBottom: 4 },
   featuredCard: { width: width * 0.65, height: 200, borderRadius: 26, overflow: 'hidden', position: 'relative', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
   featuredBgEmoji: { position: 'absolute', right: -15, bottom: -10, fontSize: 100, opacity: 0.12 },
@@ -572,7 +644,7 @@ const styles = StyleSheet.create({
   featuredCreateurLettre: { color: '#fff', fontSize: 11, fontWeight: '800' },
   featuredCreateurNom: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
 
-  // LISTE CARDS
+  // LISTE
   listeContainer: { paddingHorizontal: 20, gap: 10 },
   listeCard: { backgroundColor: '#fff', borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
   listeCardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
