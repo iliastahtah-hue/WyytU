@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import TabBar from '../components/TabBar';
 import { supabase } from '../lib/supabase';
 
 type Activite = {
@@ -82,11 +81,9 @@ export default function CarteScreen() {
   const centerLat = userLocation?.latitude ?? 33.5731;
   const centerLng = userLocation?.longitude ?? -7.5898;
 
-  // Générer les marqueurs pour la carte
   const marqueurs = activitesFiltrees
     .filter((a) => a.latitude && a.longitude)
     .map((a) => {
-      const cat = CATEGORIES[a.categorie] || { couleur: '#1A1A1A', emoji: '✦' };
       return `L.marker([${a.latitude}, ${a.longitude}])
         .addTo(map)
         .bindPopup('<b>${a.titre}</b><br>${a.ville}');`;
@@ -131,9 +128,12 @@ export default function CarteScreen() {
 
   return (
     <View style={styles.container}>
+
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/explore' as any)}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View>
@@ -201,7 +201,6 @@ export default function CarteScreen() {
         </ScrollView>
       </View>
 
-      <TabBar />
     </View>
   );
 }
