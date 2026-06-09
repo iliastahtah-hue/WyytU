@@ -36,7 +36,7 @@ const C = {
   grayMid: '#C8C0B4',
   grayText: '#8A7F72',
   green: '#2ECC71',
-  red: '#E74C3C',
+  red: '#8B1A1A',
 };
 
 type Activite = {
@@ -86,10 +86,13 @@ const ACTIVITES_RAPIDES = [
 ];
 
 const CAT_COLORS: Record<string, string> = {
-  Sport: '#E74C3C', Resto: '#E67E22', Ciné: '#8E44AD',
-  Soirée: '#2C3E50', Gaming: '#2980B9', Voyage: '#16A085',
-  Musique: '#27AE60', 'Bien-être': '#1ABC9C', Social: '#C0392B',
-  Art: '#F39C12', Tout: C.brown,
+  Sport: '#7A1515', Resto: '#7A3200', Ciné: '#4A1A6B',
+  Soirée: '#1A1A3A', Gaming: '#0D2845', Voyage: '#0A3040',
+  Musique: '#0D3D1E', 'Bien-être': '#0A3D35', Social: '#6B1414',
+  Art: '#7A5000', Tout: '#1A1209',
+  Soirée: '#1A2530', Gaming: '#14406B', Voyage: '#0A4F42',
+  Musique: '#0D5C2E', 'Bien-être': '#0D5C4A', Social: '#6B1414',
+  Art: '#7A5000', Tout: C.brown,
 };
 
 const getCouleur = (cat: string) => CAT_COLORS[cat] || C.brown;
@@ -120,10 +123,10 @@ const getMissions = (ville: string) => {
   const heure = new Date().getHours();
   const v = ville || 'ta ville';
   return [
-    { emoji: '☕', couleur: '#FF6A00', temps: 'Dans 30 min', titre: `Café à ${v}`, desc: 'Bonne conversation recherchée', participants: 2 },
-    { emoji: '⚽', couleur: '#E74C3C', temps: 'Dans 1h', titre: `Foot 5v5 — ${v}`, desc: 'Il manque 2 joueurs', participants: 5 },
-    { emoji: '🏃', couleur: '#1ABC9C', temps: 'Dans 45 min', titre: 'Running matinal', desc: 'Parcours 5km, tous niveaux', participants: 3 },
-    { emoji: heure >= 18 ? '🎉' : '🎬', couleur: heure >= 18 ? '#8E44AD' : '#2980B9', temps: heure >= 18 ? 'Ce soir' : 'Cet après-midi', titre: heure >= 18 ? `Soirée à ${v}` : `Ciné — ${v}`, desc: heure >= 18 ? 'Ambiance garantie 🔥' : 'Film au choix', participants: 4 },
+    { emoji: '☕', couleur: '#7A3200', temps: 'Dans 30 min', titre: `Café à ${v}`, desc: 'Bonne conversation recherchée', participants: 2 },
+    { emoji: '⚽', couleur: '#8B1A1A', temps: 'Dans 1h', titre: `Foot 5v5 — ${v}`, desc: 'Il manque 2 joueurs', participants: 5 },
+    { emoji: '🏃', couleur: '#0D5C4A', temps: 'Dans 45 min', titre: 'Running matinal', desc: 'Parcours 5km, tous niveaux', participants: 3 },
+    { emoji: heure >= 18 ? '🎉' : '🎬', couleur: heure >= 18 ? '#4A1A6B' : '#14406B', temps: heure >= 18 ? 'Ce soir' : 'Cet après-midi', titre: heure >= 18 ? `Soirée à ${v}` : `Ciné — ${v}`, desc: heure >= 18 ? 'Ambiance garantie 🔥' : 'Film au choix', participants: 4 },
   ].sort(() => Math.random() - 0.5).slice(0, 4);
 };
 
@@ -294,7 +297,7 @@ export default function ExploreScreen() {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.disposScroll}>
             {usersDispos.map((u, i) => {
-              const colors = [C.gold, C.brownMid, '#E74C3C', '#2ECC71', '#3498DB'];
+              const colors = [C.gold, C.brownMid, '#8B1A1A', '#2ECC71', '#3498DB'];
               return (
                 <View key={u.id} style={s.disposAvatar}>
                   <View style={[s.disposAvatarImg, { backgroundColor: colors[i % colors.length] }]}>
