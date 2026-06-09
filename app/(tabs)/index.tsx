@@ -135,7 +135,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={i}
               style={[styles.activiteCard, { backgroundColor: act.couleur }]}
-              onPress={() => router.push('/inscription' as any)}
+              onPress={() => router.replace('/(tabs)/explore' as any)}
               activeOpacity={0.85}>
               <Text style={styles.activiteEmoji}>{act.emoji}</Text>
               <Text style={styles.activiteLabel}>{act.label}</Text>
@@ -215,14 +215,14 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.boutonPrimary}
-          onPress={() => router.push('/inscription' as any)}
+          onPress={() => router.replace('/(tabs)/explore' as any)}
           activeOpacity={0.85}>
           <Text style={styles.boutonPrimaryTexte}>🚀 Commencer gratuitement</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.boutonSecondary}
-          onPress={() => router.push('/connexion' as any)}
+          onPress={() => router.replace('/(tabs)/explore' as any)}
           activeOpacity={0.85}>
           <Text style={styles.boutonSecondaryTexte}>J'ai déjà un compte →</Text>
         </TouchableOpacity>

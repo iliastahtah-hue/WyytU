@@ -1,516 +1,1218 @@
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Alert,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
   Animated,
   Dimensions,
-  Image,
+  Modal,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  StatusBar,
+  Switch,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width, height } = Dimensions.get('window');
 
-const ETAPES = [
-  { label: 'Compte', emoji: '👤', desc: 'Tes infos de base' },
-  { label: 'Profil', emoji: '✨', desc: 'Qui tu es' },
-  { label: 'Photos', emoji: '📸', desc: 'Montre-toi' },
-  { label: 'Vérif', emoji: '🔒', desc: 'Sécurité' },
+// ─── PALETTE WyytU ───────────────────────────────────────────────────────────
+const C = {
+  gold: '#C9A84C',
+  goldLight: '#E8C96A',
+  goldDark: '#A07830',
+  beige: '#FAF7F2',
+  beigeDeep: '#EEE8DE',
+  brown: '#1A1209',
+  brownMid: '#5C4A2A',
+  white: '#FFFFFF',
+  grayLight: '#F0EDE8',
+  grayMid: '#C8C0B4',
+  grayText: '#8A7F72',
+  error: '#D94F3D',
+};
+
+// ─── ÉTAPES ──────────────────────────────────────────────────────────────────
+const TOTAL_STEPS = 14;
+
+// ─── DONNÉES ─────────────────────────────────────────────────────────────────
+const MODES = [
+  { id: 'sport', emoji: '🏃', label: 'Sport & Fitness', desc: 'Cours, gym, randos, matchs...' },
+  { id: 'sorties', emoji: '🎉', label: 'Sorties & Soirées', desc: 'Fêtes, clubs, afterworks...' },
+  { id: 'culture', emoji: '🎨', label: 'Culture & Loisirs', desc: 'Expos, ciné, concerts...' },
+  { id: 'food', emoji: '🍽️', label: 'Food & Restos', desc: 'Bons plans cuisine & restos...' },
 ];
 
-const ACTIVITES_CHIPS = [
-  { label: '⚡ Sport', couleur: '#E8000D' },
-  { label: '🍕 Resto', couleur: '#FF6A00' },
-  { label: '🎬 Ciné', couleur: '#CC0000' },
-  { label: '🎉 Soirée', couleur: '#7B2FBE' },
-  { label: '🎮 Gaming', couleur: '#0070F3' },
-  { label: '✈️ Voyage', couleur: '#00B4D8' },
-  { label: '🎵 Musique', couleur: '#1DB954' },
-  { label: '🏃 Bien-être', couleur: '#00897B' },
-  { label: '👥 Social', couleur: '#FF4B7D' },
-  { label: '🎨 Art', couleur: '#FFD600' },
+const INTERETS_CATEGORIES = [
+  {
+    cat: 'Sport & Bien-être',
+    items: ['Football', 'Basketball', 'Tennis', 'Running', 'Yoga', 'CrossFit', 'Natation', 'Randonnée', 'Cyclisme', 'Arts martiaux'],
+  },
+  {
+    cat: 'Culture & Loisirs',
+    items: ['Cinéma', 'Musique', 'Concerts', 'Théâtre', 'Musées', 'Lecture', 'Photography', 'Danse', 'Jeux vidéo', 'Voyages'],
+  },
+  {
+    cat: 'Food & Sorties',
+    items: ['Cuisine', 'Restos', 'Street food', 'Cafés', 'Rooftops', 'Soirées', 'Brunches', 'Pâtisserie', 'Cocktails', 'Night life'],
+  },
 ];
 
-export default function InscriptionScreen() {
-  const router = useRouter();
-  const [etape, setEtape] = useState(0);
-  const [prenom, setPrenom] = useState('');
-  const [email, setEmail] = useState('');
-  const [telephone, setTelephone] = useState('');
-  const [motDePasse, setMotDePasse] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [ville, setVille] = useState('');
-  const [bio, setBio] = useState('');
-  const [activitesChoisies, setActivitesChoisies] = useState<string[]>([]);
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [selfie, setSelfie] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [erreur, setErreur] = useState('');
-  const [succes, setSucces] = useState('');
-  const [focusField, setFocusField] = useState('');
-  const progressAnim = useRef(new Animated.Value(0)).current;
+const LIFESTYLE_QUESTIONS = [
+  {
+    id: 'sport_freq',
+    icon: '💪',
+    question: 'Tu fais du sport ?',
+    options: ['Tous les jours', 'Souvent', 'Parfois', 'Jamais'],
+  },
+  {
+    id: 'sortie_freq',
+    icon: '🌙',
+    question: 'Tu sors le week-end ?',
+    options: ['Toujours', 'Souvent', 'Parfois', 'Rarement'],
+  },
+  {
+    id: 'food_pref',
+    icon: '🍕',
+    question: 'Ton rapport à la bouffe ?',
+    options: ['Foodie passionné', 'J\'aime bien manger', 'Je mange pour vivre', 'Healthy only'],
+  },
+  {
+    id: 'niveau',
+    icon: '🎓',
+    question: 'Ton niveau d\'étude ?',
+    options: ['Lycée', 'Bac+2/3', 'Bac+5', 'Doctorat', 'Autodidacte'],
+  },
+];
 
-  const animateProgress = (toValue: number) => {
-    Animated.spring(progressAnim, { toValue, useNativeDriver: false, tension: 60 }).start();
-  };
+// ─── COMPOSANTS RÉUTILISABLES ─────────────────────────────────────────────────
 
-  const toggleActivite = (a: string) => {
-    setActivitesChoisies(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
-  };
+function ProgressBar({ step }: { step: number }) {
+  const progress = (step / TOTAL_STEPS) * 100;
+  const anim = useRef(new Animated.Value(0)).current;
 
-  const choisirPhoto = async () => {
-    if (photos.length >= 4) return;
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission refusée', 'Active l\'accès aux photos.'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled) setPhotos([...photos, result.assets[0].uri]);
-  };
-
-  const prendreSelfiee = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission refusée', 'Active la caméra dans les réglages.'); return; }
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled) setSelfie(result.assets[0].uri);
-  };
-
-  const suivant = () => {
-    setErreur('');
-    if (etape === 0) {
-      if (!prenom || !email || !motDePasse) { setErreur('Remplis tous les champs *'); return; }
-      if (motDePasse.length < 6) { setErreur('Mot de passe trop court (min. 6)'); return; }
-    }
-    if (etape === 2 && photos.length < 2) { setErreur('Ajoute au moins 2 photos'); return; }
-    if (etape === 3 && !selfie) { setErreur('Prends ton selfie de vérification'); return; }
-    if (etape < 3) {
-      setEtape(etape + 1);
-      animateProgress((etape + 1) / 3);
-    } else { inscrire(); }
-  };
-
-  const inscrire = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signUp({ email, password: motDePasse, options: { data: { prenom, telephone, ville } } });
-      if (error) { setErreur(error.message); setLoading(false); return; }
-      await supabase.from('utilisateurs').insert({ prenom, email, telephone, ville, bio, activites_favorites: activitesChoisies.join(', ') });
-      setSucces('🎉 Bienvenue sur WyytU !');
-      setTimeout(() => router.push('/'), 1500);
-    } catch { setErreur('Une erreur est survenue.'); }
-    finally { setLoading(false); }
-  };
-
-  const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: progress,
+      duration: 350,
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={pb.container}>
+      <Animated.View
+        style={[
+          pb.fill,
+          {
+            width: anim.interpolate({
+              inputRange: [0, 100],
+              outputRange: ['0%', '100%'],
+            }),
+          },
+        ]}
+      />
+    </View>
+  );
+}
 
-      {/* BG PREMIUM */}
-      <View style={styles.bgTop} />
-      <View style={styles.bgCircle1} />
-      <View style={styles.bgCircle2} />
+const pb = StyleSheet.create({
+  container: {
+    height: 3,
+    backgroundColor: C.beigeDeep,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    backgroundColor: C.gold,
+    borderRadius: 2,
+  },
+});
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+function NextButton({ onPress, disabled = false }: { onPress: () => void; disabled?: boolean }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const press = () => {
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.92, duration: 80, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 80, useNativeDriver: true }),
+    ]).start();
+    if (!disabled) onPress();
+  };
+  return (
+    <Animated.View style={[nb.wrap, { transform: [{ scale }], opacity: disabled ? 0.35 : 1 }]}>
+      <TouchableOpacity onPress={press} activeOpacity={0.85}>
+        <LinearGradient colors={[C.goldLight, C.gold]} style={nb.btn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Text style={nb.arrow}>→</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
-        {/* HEADER */}
-        <View style={styles.header}>
-          <View style={styles.logoWrapper}>
-            <Text style={styles.logoW}>W</Text>
+const nb = StyleSheet.create({
+  wrap: { position: 'absolute', top: Platform.OS === 'ios' ? 54 : 20, right: 16, zIndex: 999 },
+  btn: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: C.gold, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
+  arrow: { fontSize: 26, color: C.white, fontWeight: '700' },
+});
+
+function BigButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.85} style={[bbs.btn, disabled && bbs.disabled]}>
+      <LinearGradient colors={disabled ? [C.grayLight, C.grayMid] : [C.goldLight, C.gold]} style={bbs.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+        <Text style={[bbs.txt, disabled && bbs.txtDis]}>{label}</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+const bbs = StyleSheet.create({
+  btn: { marginHorizontal: 24, borderRadius: 16, overflow: 'hidden', shadowColor: C.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+  grad: { paddingVertical: 18, alignItems: 'center' },
+  txt: { fontSize: 17, fontWeight: '700', color: C.white, letterSpacing: 0.3 },
+  disabled: { shadowOpacity: 0 },
+  txtDis: { color: C.grayText },
+});
+
+function StepLayout({
+  step,
+  onBack,
+  children,
+  showBack = true,
+  showSkip = false,
+  onSkip,
+}: {
+  step: number;
+  onBack?: () => void;
+  children: React.ReactNode;
+  showBack?: boolean;
+  showSkip?: boolean;
+  onSkip?: () => void;
+}) {
+  return (
+    <View style={sl.root}>
+      <StatusBar barStyle="dark-content" />
+      {/* Header */}
+      <View style={sl.header}>
+        {showBack && onBack ? (
+          <TouchableOpacity onPress={onBack} style={sl.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={sl.backArrow}>‹</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={sl.backBtn} />
+        )}
+        <View style={sl.barWrap}>
+          <ProgressBar step={step} />
+        </View>
+        {showSkip ? (
+          <TouchableOpacity onPress={onSkip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={sl.skip}>Passer</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 60 }} />
+        )}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+const sl = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.beige },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 56 : 20, paddingBottom: 8, gap: 12 },
+  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  backArrow: { fontSize: 30, color: C.brownMid, fontWeight: '300', lineHeight: 34 },
+  barWrap: { flex: 1 },
+  skip: { fontSize: 15, fontWeight: '600', color: C.grayText, width: 60, textAlign: 'right' },
+});
+
+// ─── ÉCRANS ───────────────────────────────────────────────────────────────────
+
+// STEP 0: Splash
+function SplashScreen({ onNext }: { onNext: () => void }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.7)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }),
+    ]).start();
+    const t = setTimeout(onNext, 2200);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <LinearGradient colors={[C.beige, C.beigeDeep, '#DDD4C4']} style={splash.root} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
+        <View style={splash.logoBox}>
+          <Text style={splash.logoText}>W</Text>
+          <View style={splash.goldDot} />
+        </View>
+        <Text style={splash.appName}>WyytU</Text>
+        <Text style={splash.tagline}>Trouve ta bande, vis tes passions</Text>
+      </Animated.View>
+    </LinearGradient>
+  );
+}
+
+const splash = StyleSheet.create({
+  root: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  logoBox: { width: 90, height: 90, borderRadius: 28, backgroundColor: C.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 20, shadowColor: C.goldDark, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 12 },
+  logoText: { fontSize: 52, fontWeight: '800', color: C.white },
+  goldDot: { position: 'absolute', bottom: 10, right: 10, width: 14, height: 14, borderRadius: 7, backgroundColor: C.white },
+  appName: { fontSize: 40, fontWeight: '800', color: C.brown, letterSpacing: -1 },
+  tagline: { fontSize: 16, color: C.grayText, marginTop: 10, fontWeight: '500' },
+});
+
+// STEP 1: Téléphone
+function StepPhone({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (phone: string) => void }) {
+  const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState({ code: 'MA', dial: '+212', flag: '🇲🇦' });
+
+  const countries = [
+    { code: 'MA', dial: '+212', flag: '🇲🇦', name: 'Maroc' },
+    { code: 'BE', dial: '+32', flag: '🇧🇪', name: 'Belgique' },
+    { code: 'FR', dial: '+33', flag: '🇫🇷', name: 'France' },
+    { code: 'NL', dial: '+31', flag: '🇳🇱', name: 'Pays-Bas' },
+  ];
+
+  const [showCountry, setShowCountry] = useState(false);
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={ph.scroll} keyboardShouldPersistTaps="handled">
+          <Text style={ph.title}>Quel est ton numéro ?</Text>
+          <Text style={ph.sub}>Ton numéro est uniquement utilisé pour vérifier ton identité.</Text>
+
+          <View style={ph.row}>
+            <TouchableOpacity style={ph.countryBtn} onPress={() => setShowCountry(true)}>
+              <Text style={ph.flag}>{country.flag}</Text>
+              <Text style={ph.dial}>{country.dial}</Text>
+              <Text style={ph.chevron}>▾</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={ph.input}
+              placeholder="06 64 68 35 62"
+              placeholderTextColor={C.grayMid}
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              autoFocus
+            />
           </View>
-          <View>
-            <Text style={styles.logo}>WyytU</Text>
-            <Text style={styles.logoSub}>Rejoins la communauté</Text>
+
+          <View style={ph.noteRow}>
+            <Text style={ph.lock}>🔒</Text>
+            <Text style={ph.note}>Ton numéro ne sera jamais visible sur ton profil.</Text>
+          </View>
+        </ScrollView>
+
+        <NextButton onPress={() => phone.length >= 8 && onNext(country.dial + phone)} disabled={phone.length < 8} />
+      </KeyboardAvoidingView>
+
+      <Modal visible={showCountry} transparent animationType="slide">
+        <View style={ph.modalOverlay}>
+          <View style={ph.modalCard}>
+            <Text style={ph.modalTitle}>Choisir un pays</Text>
+            {countries.map(c => (
+              <TouchableOpacity key={c.code} style={ph.countryItem} onPress={() => { setCountry(c); setShowCountry(false); }}>
+                <Text style={ph.flag}>{c.flag}</Text>
+                <Text style={ph.countryName}>{c.name}</Text>
+                <Text style={ph.dial}>{c.dial}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setShowCountry(false)} style={ph.closeModal}>
+              <Text style={ph.closeModalTxt}>Fermer</Text>
+            </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+    </StepLayout>
+  );
+}
 
-        {/* STEPPER PREMIUM */}
-        <View style={styles.stepperContainer}>
-          <View style={styles.stepperTrack}>
-            <Animated.View style={[styles.stepperFill, { width: progressWidth }]} />
-          </View>
-          <View style={styles.stepsRow}>
-            {ETAPES.map((e, i) => (
-              <View key={e.label} style={styles.stepItem}>
-                <View style={[
-                  styles.stepCircle,
-                  i < etape && styles.stepDone,
-                  i === etape && styles.stepActive,
-                ]}>
-                  <Text style={[styles.stepCircleTexte, (i <= etape) && styles.stepCircleTexteActive]}>
-                    {i < etape ? '✓' : e.emoji}
-                  </Text>
-                </View>
-                <Text style={[styles.stepLabel, i === etape && styles.stepLabelActive]}>{e.label}</Text>
-              </View>
+const ph = StyleSheet.create({
+  scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 120 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10, lineHeight: 36 },
+  sub: { fontSize: 15, color: C.grayText, marginBottom: 36, lineHeight: 22 },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  countryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 16, borderWidth: 1.5, borderColor: C.beigeDeep },
+  flag: { fontSize: 20 },
+  dial: { fontSize: 15, fontWeight: '700', color: C.brown },
+  chevron: { fontSize: 11, color: C.grayText },
+  input: { flex: 1, backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16, fontSize: 18, fontWeight: '600', color: C.brown, borderWidth: 1.5, borderColor: C.gold },
+  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 8 },
+  lock: { fontSize: 14, marginTop: 2 },
+  note: { fontSize: 13, color: C.grayText, flex: 1, lineHeight: 18 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: C.beige, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, paddingBottom: 40 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: C.brown, marginBottom: 20 },
+  countryItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.beigeDeep },
+  countryName: { flex: 1, fontSize: 16, fontWeight: '600', color: C.brown },
+  closeModal: { marginTop: 24, alignItems: 'center', padding: 14, backgroundColor: C.grayLight, borderRadius: 14 },
+  closeModalTxt: { fontSize: 16, fontWeight: '700', color: C.brownMid },
+});
+
+// STEP 2: OTP
+function StepOTP({ step, phone, onBack, onNext }: { step: number; phone: string; onBack: () => void; onNext: () => void }) {
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [timer, setTimer] = useState(30);
+  const inputs = useRef<(TextInput | null)[]>([]);
+
+  useEffect(() => {
+    const id = setInterval(() => setTimer(t => (t > 0 ? t - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const handleChange = (val: string, idx: number) => {
+    const newCode = [...code];
+    newCode[idx] = val;
+    setCode(newCode);
+    if (val && idx < 5) inputs.current[idx + 1]?.focus();
+    if (!val && idx > 0) inputs.current[idx - 1]?.focus();
+  };
+
+  const full = code.join('').length === 6;
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={otp.container}>
+          <Text style={otp.title}>Vérifie ton numéro</Text>
+          <Text style={otp.sub}>Code envoyé au <Text style={otp.phone}>{phone}</Text></Text>
+
+          <View style={otp.boxes}>
+            {code.map((c, i) => (
+              <TextInput
+                key={i}
+                ref={r => (inputs.current[i] = r)}
+                style={[otp.box, c !== '' && otp.boxFilled]}
+                value={c}
+                onChangeText={v => handleChange(v.slice(-1), i)}
+                keyboardType="number-pad"
+                maxLength={1}
+                autoFocus={i === 0}
+              />
             ))}
           </View>
+
+          <View style={otp.resendRow}>
+            <Text style={otp.resendLabel}>Code non reçu ? </Text>
+            {timer > 0 ? (
+              <Text style={otp.timer}>Renvoyer dans {timer}s</Text>
+            ) : (
+              <TouchableOpacity onPress={() => setTimer(30)}>
+                <Text style={otp.resendLink}>Renvoyer</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* CARD PRINCIPALE */}
-        <View style={styles.card}>
+        <NextButton onPress={onNext} disabled={!full} />
+      </KeyboardAvoidingView>
+    </StepLayout>
+  );
+}
 
-          {/* ÉTAPE HEADER */}
-          <View style={styles.etapeHeader}>
-            <Text style={styles.etapeEmoji}>{ETAPES[etape].emoji}</Text>
-            <View>
-              <Text style={styles.etapeTitre}>
-                {etape === 0 ? 'Crée ton compte' : etape === 1 ? 'Ton profil' : etape === 2 ? 'Tes photos' : 'Vérification'}
-              </Text>
-              <Text style={styles.etapeSub}>{ETAPES[etape].desc}</Text>
+const otp = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10 },
+  sub: { fontSize: 15, color: C.grayText, marginBottom: 40 },
+  phone: { fontWeight: '700', color: C.brownMid },
+  boxes: { flexDirection: 'row', gap: 10, marginBottom: 28 },
+  box: { flex: 1, aspectRatio: 1, borderRadius: 16, backgroundColor: C.white, borderWidth: 2, borderColor: C.beigeDeep, textAlign: 'center', fontSize: 24, fontWeight: '700', color: C.brown },
+  boxFilled: { borderColor: C.gold, backgroundColor: '#FDF8EE' },
+  resendRow: { flexDirection: 'row', alignItems: 'center' },
+  resendLabel: { fontSize: 14, color: C.grayText },
+  timer: { fontSize: 14, color: C.grayMid, fontWeight: '600' },
+  resendLink: { fontSize: 14, color: C.gold, fontWeight: '700' },
+});
+
+// STEP 3: Prénom
+function StepPrenom({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (prenom: string) => void }) {
+  const [prenom, setPrenom] = useState('');
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={pr.container}>
+          <Text style={pr.title}>C'est quoi ton prénom ?</Text>
+          <Text style={pr.sub}>Ton prénom sera visible sur ton profil.</Text>
+          <View style={pr.inputWrap}>
+            <Text style={pr.label}>Prénom</Text>
+            <TextInput
+              style={pr.input}
+              placeholder="Ilias"
+              placeholderTextColor={C.grayMid}
+              value={prenom}
+              onChangeText={setPrenom}
+              autoFocus
+              autoCapitalize="words"
+            />
+            <View style={pr.underline} />
+            <Text style={pr.hint}>Voici comment ça va apparaître sur ton profil.</Text>
+          </View>
+        </View>
+        <NextButton onPress={() => prenom.trim().length > 0 && onNext(prenom.trim())} disabled={prenom.trim().length === 0} />
+      </KeyboardAvoidingView>
+    </StepLayout>
+  );
+}
+
+const pr = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10 },
+  sub: { fontSize: 15, color: C.grayText, marginBottom: 40 },
+  inputWrap: { gap: 8 },
+  label: { fontSize: 13, fontWeight: '700', color: C.brownMid, letterSpacing: 0.5 },
+  input: { fontSize: 26, fontWeight: '700', color: C.brown, paddingVertical: 8 },
+  underline: { height: 2, backgroundColor: C.gold, borderRadius: 1 },
+  hint: { fontSize: 13, color: C.grayText, marginTop: 6 },
+});
+
+// STEP 4: Date de naissance
+function StepDateNaissance({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (dob: string) => void }) {
+  const [jour, setJour] = useState('');
+  const [mois, setMois] = useState('');
+  const [annee, setAnnee] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const moisRef = useRef<TextInput>(null);
+  const anneeRef = useRef<TextInput>(null);
+
+  const getAge = () => {
+    const d = new Date(parseInt(annee), parseInt(mois) - 1, parseInt(jour));
+    const diff = Date.now() - d.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  };
+
+  const valid = jour.length === 2 && mois.length === 2 && annee.length === 4;
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={dn.container}>
+          <Text style={dn.title}>C'est quand ton anniv' ?</Text>
+          <Text style={dn.sub}>Ton âge sera visible sur ton profil, pas ta date de naissance.</Text>
+
+          <View style={dn.row}>
+            <View style={dn.field}>
+              <Text style={dn.label}>Jour</Text>
+              <TextInput
+                style={dn.input}
+                placeholder="JJ"
+                placeholderTextColor={C.grayMid}
+                keyboardType="number-pad"
+                maxLength={2}
+                value={jour}
+                onChangeText={v => { setJour(v); if (v.length === 2) moisRef.current?.focus(); }}
+                autoFocus
+              />
             </View>
-            <View style={styles.etapeNumBadge}>
-              <Text style={styles.etapeNumTexte}>{etape + 1}/4</Text>
+            <View style={dn.field}>
+              <Text style={dn.label}>Mois</Text>
+              <TextInput
+                ref={moisRef}
+                style={dn.input}
+                placeholder="MM"
+                placeholderTextColor={C.grayMid}
+                keyboardType="number-pad"
+                maxLength={2}
+                value={mois}
+                onChangeText={v => { setMois(v); if (v.length === 2) anneeRef.current?.focus(); }}
+              />
+            </View>
+            <View style={[dn.field, { flex: 1.5 }]}>
+              <Text style={dn.label}>Année</Text>
+              <TextInput
+                ref={anneeRef}
+                style={dn.input}
+                placeholder="AAAA"
+                placeholderTextColor={C.grayMid}
+                keyboardType="number-pad"
+                maxLength={4}
+                value={annee}
+                onChangeText={setAnnee}
+              />
             </View>
           </View>
+        </View>
 
-          {/* ALERTS */}
-          {erreur ? (
-            <View style={styles.alertErreur}>
-              <Text style={styles.alertEmoji}>⚠️</Text>
-              <Text style={styles.alertTexte}>{erreur}</Text>
+        <NextButton
+          onPress={() => valid && setShowConfirm(true)}
+          disabled={!valid}
+        />
+      </KeyboardAvoidingView>
+
+      <Modal visible={showConfirm} transparent animationType="fade">
+        <View style={dn.overlay}>
+          <View style={dn.card}>
+            <Text style={dn.cardTitle}>Tu as {getAge()} ans</Text>
+            <Text style={dn.cardSub}>Vérifie bien ton âge, tu ne pourras pas le modifier après.</Text>
+            <View style={dn.cardBtns}>
+              <TouchableOpacity style={dn.btnMod} onPress={() => setShowConfirm(false)}>
+                <Text style={dn.btnModTxt}>Modifier</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={dn.btnConf} onPress={() => { setShowConfirm(false); onNext(`${annee}-${mois}-${jour}`); }}>
+                <Text style={dn.btnConfTxt}>Confirmer</Text>
+              </TouchableOpacity>
             </View>
-          ) : null}
-          {succes ? (
-            <View style={styles.alertSucces}>
-              <Text style={styles.alertEmoji}>🎉</Text>
-              <Text style={[styles.alertTexte, { color: '#1DB954' }]}>{succes}</Text>
-            </View>
-          ) : null}
+          </View>
+        </View>
+      </Modal>
+    </StepLayout>
+  );
+}
 
-          {/* ═══ ÉTAPE 0 — COMPTE ═══ */}
-          {etape === 0 && (
-            <View style={styles.etapeContent}>
-              {[
-                { key: 'prenom', icon: '😊', placeholder: 'Ton prénom *', value: prenom, set: setPrenom, type: 'default' },
-                { key: 'email', icon: '✉️', placeholder: 'ton@email.com *', value: email, set: setEmail, type: 'email-address' },
-                { key: 'tel', icon: '📱', placeholder: '+212 ou +32...', value: telephone, set: setTelephone, type: 'phone-pad' },
-              ].map((field) => (
-                <View key={field.key} style={[styles.fieldWrapper, focusField === field.key && styles.fieldWrapperFocus]}>
-                  <View style={styles.fieldIconBox}>
-                    <Text style={styles.fieldIcon}>{field.icon}</Text>
-                  </View>
-                  <TextInput
-                    style={styles.fieldInput}
-                    placeholder={field.placeholder}
-                    placeholderTextColor="#AAA"
-                    value={field.value}
-                    onChangeText={field.set}
-                    keyboardType={field.type as any}
-                    autoCapitalize={field.key === 'email' ? 'none' : 'words'}
-                    onFocus={() => setFocusField(field.key)}
-                    onBlur={() => setFocusField('')}
-                  />
-                  {field.key === 'email' && email.includes('@') && (
-                    <View style={styles.fieldCheck}><Text style={styles.fieldCheckTexte}>✓</Text></View>
-                  )}
-                </View>
-              ))}
+const dn = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10 },
+  sub: { fontSize: 15, color: C.grayText, marginBottom: 40 },
+  row: { flexDirection: 'row', gap: 12 },
+  field: { flex: 1, gap: 8 },
+  label: { fontSize: 12, fontWeight: '700', color: C.grayText, letterSpacing: 0.5 },
+  input: { backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 16, fontSize: 20, fontWeight: '700', color: C.brown, borderWidth: 2, borderColor: C.gold, textAlign: 'center' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 40 },
+  card: { backgroundColor: C.beige, borderRadius: 24, padding: 28, width: '100%', alignItems: 'center' },
+  cardTitle: { fontSize: 22, fontWeight: '800', color: C.brown, marginBottom: 10 },
+  cardSub: { fontSize: 14, color: C.grayText, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  cardBtns: { flexDirection: 'row', gap: 12, width: '100%' },
+  btnMod: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.grayLight, alignItems: 'center' },
+  btnModTxt: { fontSize: 15, fontWeight: '700', color: C.brownMid },
+  btnConf: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.gold, alignItems: 'center' },
+  btnConfTxt: { fontSize: 15, fontWeight: '700', color: C.white },
+});
 
-              <View style={[styles.fieldWrapper, focusField === 'mdp' && styles.fieldWrapperFocus]}>
-                <View style={styles.fieldIconBox}>
-                  <Text style={styles.fieldIcon}>🔒</Text>
-                </View>
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder="Mot de passe *"
-                  placeholderTextColor="#AAA"
-                  secureTextEntry={!showPassword}
-                  value={motDePasse}
-                  onChangeText={setMotDePasse}
-                  onFocus={() => setFocusField('mdp')}
-                  onBlur={() => setFocusField('')}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
-                </TouchableOpacity>
+// STEP 5: Genre
+function StepGenre({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (genre: string, afficher: boolean) => void }) {
+  const [selected, setSelected] = useState('');
+  const [afficher, setAfficher] = useState(true);
+
+  const genres = [
+    { id: 'femme', label: 'Je suis une femme' },
+    { id: 'homme', label: 'Je suis un homme' },
+    { id: 'autre', label: 'Autre / Non-binaire' },
+  ];
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <View style={gn.container}>
+        <Text style={gn.title}>Qu'est-ce qui te{'\n'}décrit le mieux ?</Text>
+
+        <View style={gn.options}>
+          {genres.map(g => (
+            <TouchableOpacity key={g.id} style={[gn.option, selected === g.id && gn.optSelected]} onPress={() => setSelected(g.id)} activeOpacity={0.75}>
+              <Text style={[gn.optTxt, selected === g.id && gn.optTxtSel]}>{g.label}</Text>
+              <View style={[gn.radio, selected === g.id && gn.radioSel]}>
+                {selected === g.id && <View style={gn.radioDot} />}
               </View>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-              {/* FORCE MOT DE PASSE */}
-              {motDePasse.length > 0 && (
-                <View style={styles.strengthRow}>
-                  {[1, 2, 3].map(i => (
-                    <View key={i} style={[styles.strengthBar, { backgroundColor: motDePasse.length >= i * 3 ? (motDePasse.length >= 8 ? '#1DB954' : '#FF9500') : '#EEE8DE' }]} />
-                  ))}
-                  <Text style={styles.strengthLabel}>
-                    {motDePasse.length < 6 ? 'Trop court' : motDePasse.length < 8 ? 'Moyen' : 'Fort ✓'}
-                  </Text>
+        <View style={gn.toggleRow}>
+          <View style={gn.toggleText}>
+            <Text style={gn.toggleLabel}>Afficher sur mon profil ?</Text>
+            <Text style={gn.toggleSub}>Modifiable plus tard</Text>
+          </View>
+          <Switch
+            value={afficher}
+            onValueChange={setAfficher}
+            trackColor={{ false: C.grayMid, true: C.gold }}
+            thumbColor={C.white}
+          />
+        </View>
+      </View>
+      <NextButton onPress={() => selected && onNext(selected, afficher)} disabled={!selected} />
+    </StepLayout>
+  );
+}
+
+const gn = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 32, lineHeight: 36 },
+  options: { gap: 12, marginBottom: 28 },
+  option: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderRadius: 16, padding: 18, borderWidth: 2, borderColor: C.beigeDeep },
+  optSelected: { borderColor: C.gold, backgroundColor: '#FDF8EE' },
+  optTxt: { flex: 1, fontSize: 17, fontWeight: '600', color: C.brownMid },
+  optTxtSel: { color: C.brown },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: C.grayMid, justifyContent: 'center', alignItems: 'center' },
+  radioSel: { borderColor: C.gold },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.gold },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: C.beigeDeep },
+  toggleText: { flex: 1 },
+  toggleLabel: { fontSize: 15, fontWeight: '700', color: C.brown },
+  toggleSub: { fontSize: 12, color: C.grayText, marginTop: 2 },
+});
+
+// STEP 6: Mode / Ambiance
+function StepMode({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (mode: string) => void }) {
+  const [selected, setSelected] = useState('');
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <View style={md.container}>
+        <Text style={md.title}>Quelle est ton{'\n'}ambiance, {prenom} ?</Text>
+        <Text style={md.sub}>Choisis ce qui correspond à ton mood du moment !</Text>
+
+        <View style={md.grid}>
+          {MODES.map(m => (
+            <TouchableOpacity
+              key={m.id}
+              style={[md.card, selected === m.id && md.cardSel]}
+              onPress={() => setSelected(m.id)}
+              activeOpacity={0.75}
+            >
+              <Text style={md.emoji}>{m.emoji}</Text>
+              <Text style={[md.cardLabel, selected === m.id && md.cardLabelSel]}>{m.label}</Text>
+              <Text style={md.cardDesc}>{m.desc}</Text>
+              {selected === m.id && (
+                <View style={md.checkBadge}>
+                  <Text style={md.checkMark}>✓</Text>
                 </View>
               )}
-            </View>
-          )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      <NextButton onPress={() => selected && onNext(selected)} disabled={!selected} />
+    </StepLayout>
+  );
+}
 
-          {/* ═══ ÉTAPE 1 — PROFIL ═══ */}
-          {etape === 1 && (
-            <View style={styles.etapeContent}>
-              <View style={[styles.fieldWrapper, focusField === 'ville' && styles.fieldWrapperFocus]}>
-                <View style={styles.fieldIconBox}><Text style={styles.fieldIcon}>📍</Text></View>
-                <TextInput style={styles.fieldInput} placeholder="Ta ville" placeholderTextColor="#AAA" value={ville} onChangeText={setVille} onFocus={() => setFocusField('ville')} onBlur={() => setFocusField('')} />
-              </View>
+const md = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 24 },
+  title: { fontSize: 28, fontWeight: '800', color: C.brown, marginBottom: 10, lineHeight: 34 },
+  sub: { fontSize: 14, color: C.grayText, marginBottom: 24 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  card: { width: (width - 52) / 2, backgroundColor: C.white, borderRadius: 20, padding: 18, borderWidth: 2, borderColor: C.beigeDeep, position: 'relative', minHeight: 120 },
+  cardSel: { borderColor: C.gold, backgroundColor: '#FDF8EE' },
+  emoji: { fontSize: 32, marginBottom: 8 },
+  cardLabel: { fontSize: 14, fontWeight: '800', color: C.brownMid, marginBottom: 4 },
+  cardLabelSel: { color: C.brown },
+  cardDesc: { fontSize: 12, color: C.grayText, lineHeight: 16 },
+  checkBadge: { position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, backgroundColor: C.gold, justifyContent: 'center', alignItems: 'center' },
+  checkMark: { fontSize: 13, color: C.white, fontWeight: '800' },
+});
 
-              <View style={[styles.fieldWrapper, styles.fieldWrapperMulti, focusField === 'bio' && styles.fieldWrapperFocus]}>
-                <View style={[styles.fieldIconBox, { alignSelf: 'flex-start', marginTop: 4 }]}><Text style={styles.fieldIcon}>💬</Text></View>
-                <TextInput
-                  style={[styles.fieldInput, { height: 80, textAlignVertical: 'top' }]}
-                  placeholder="Ta bio — ex: J'adore le sport et les sorties 🔥"
-                  placeholderTextColor="#AAA"
-                  multiline value={bio} onChangeText={setBio}
-                  onFocus={() => setFocusField('bio')} onBlur={() => setFocusField('')}
-                />
-              </View>
+// STEP 7: Centres d'intérêt
+function StepInterets({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (interets: string[]) => void }) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const MAX = 10;
 
-              <Text style={styles.chipsLabel}>Tes activités favorites 🎯</Text>
-              <View style={styles.chipsGrid}>
-                {ACTIVITES_CHIPS.map((a) => {
-                  const active = activitesChoisies.includes(a.label);
+  const toggle = (item: string) => {
+    if (selected.includes(item)) setSelected(selected.filter(s => s !== item));
+    else if (selected.length < MAX) setSelected([...selected, item]);
+  };
+
+  return (
+    <StepLayout step={step} onBack={onBack} showSkip onSkip={() => onNext(selected)}>
+      <View style={int.container}>
+        <Text style={int.title}>C'est quoi tes Passions ?</Text>
+        <Text style={int.sub}>Choisis au moins 3 activités pour trouver des gens qui partagent tes goûts.</Text>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={int.scroll}>
+          {INTERETS_CATEGORIES.map(cat => (
+            <View key={cat.cat} style={int.catBlock}>
+              <Text style={int.catLabel}>{cat.cat}</Text>
+              <View style={int.tagsWrap}>
+                {cat.items.map(item => {
+                  const sel = selected.includes(item);
                   return (
                     <TouchableOpacity
-                      key={a.label}
-                      style={[styles.chip, active && { backgroundColor: a.couleur, borderColor: a.couleur }]}
-                      onPress={() => toggleActivite(a.label)}>
-                      <Text style={[styles.chipTexte, active && { color: '#fff' }]}>{a.label}</Text>
+                      key={item}
+                      style={[int.tag, sel && int.tagSel]}
+                      onPress={() => toggle(item)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[int.tagTxt, sel && int.tagTxtSel]}>{item}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </View>
-          )}
+          ))}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </View>
 
-          {/* ═══ ÉTAPE 2 — PHOTOS ═══ */}
-          {etape === 2 && (
-            <View style={styles.etapeContent}>
-              <View style={styles.photosInfo}>
-                <Text style={styles.photosInfoTexte}>📸 Min. 2 photos · Max. 4 · Montre ton vrai toi !</Text>
-              </View>
-
-              <View style={styles.photosGrid}>
-                {photos.map((photo, index) => (
-                  <View key={index} style={styles.photoWrapper}>
-                    <Image source={{ uri: photo }} style={styles.photoImg} />
-                    {index === 0 && <View style={styles.photoMainBadge}><Text style={styles.photoMainTexte}>⭐ Principal</Text></View>}
-                    <TouchableOpacity style={styles.photoDelBtn} onPress={() => setPhotos(photos.filter((_, i) => i !== index))}>
-                      <Text style={styles.photoDelTexte}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                {photos.length < 4 && (
-                  <TouchableOpacity style={styles.photoAddBtn} onPress={choisirPhoto}>
-                    <Text style={styles.photoAddIcon}>+</Text>
-                    <Text style={styles.photoAddLabel}>{photos.length}/4</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.photosTips}>
-                {['😊 Souris naturellement', '💡 Bonne luminosité', '🙅 Pas de lunettes de soleil'].map((tip, i) => (
-                  <View key={i} style={styles.tipRow}>
-                    <Text style={styles.tipTexte}>{tip}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* ═══ ÉTAPE 3 — VÉRIFICATION ═══ */}
-          {etape === 3 && (
-            <View style={styles.etapeContent}>
-              <View style={styles.verifCard}>
-                <Text style={styles.verifEmoji}>🛡️</Text>
-                <Text style={styles.verifTitre}>Identité vérifiée</Text>
-                <Text style={styles.verifDesc}>WyytU vérifie chaque membre pour garantir la sécurité de tous</Text>
-              </View>
-
-              <View style={styles.verifStep}>
-                <View style={[styles.verifStepIcon, { backgroundColor: selfie ? '#1DB95420' : '#F8F6F2' }]}>
-                  <Text style={styles.verifStepEmoji}>🤳</Text>
-                </View>
-                <View style={styles.verifStepInfo}>
-                  <Text style={styles.verifStepTitre}>Selfie en temps réel</Text>
-                  <Text style={styles.verifStepSub}>Confirme que c'est bien toi</Text>
-                </View>
-                <View style={[styles.verifCheck, selfie && styles.verifCheckDone]}>
-                  <Text style={styles.verifCheckTexte}>{selfie ? '✓' : '○'}</Text>
-                </View>
-              </View>
-
-              {selfie && (
-                <View style={styles.selfiePreviewWrapper}>
-                  <Image source={{ uri: selfie }} style={styles.selfieImg} />
-                  <View style={styles.selfieBadge}>
-                    <Text style={styles.selfieBadgeTexte}>✅ Selfie validé !</Text>
-                  </View>
-                </View>
-              )}
-
-              <TouchableOpacity style={styles.selfieBtn} onPress={prendreSelfiee} activeOpacity={0.85}>
-                <Text style={styles.selfieBtnEmoji}>🤳</Text>
-                <Text style={styles.selfieBtnTexte}>{selfie ? 'Reprendre le selfie' : 'Prendre mon selfie'}</Text>
-              </TouchableOpacity>
-
-              <View style={styles.securityBadge}>
-                <Text style={styles.securityTexte}>🔒 Tes données sont chiffrées et ne seront jamais partagées</Text>
-              </View>
-            </View>
-          )}
-
-          {/* BOUTONS NAV */}
-          <View style={styles.navBtns}>
-            {etape > 0 && (
-              <TouchableOpacity style={styles.btnBack} onPress={() => { setEtape(etape - 1); setErreur(''); animateProgress((etape - 1) / 3); }}>
-                <Text style={styles.btnBackTexte}>←</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.btnNext, loading && { opacity: 0.6 }, etape === 0 && { flex: 1 }]}
-              onPress={suivant}
-              disabled={loading}
-              activeOpacity={0.85}>
-              <Text style={styles.btnNextTexte}>
-                {loading ? '⏳ Création...' : etape === 3 ? '🚀 Créer mon compte' : `Suivant →`}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-        </View>
-
-        {/* LIEN CONNEXION */}
-        <TouchableOpacity onPress={() => router.push('/connexion' as any)} style={styles.loginLink}>
-          <Text style={styles.loginTexte}>
-            Déjà membre ?  <Text style={styles.loginLien}>Connecte-toi →</Text>
-          </Text>
+      <View style={int.footer}>
+        <Text style={int.count}>{selected.length}/{MAX} sélectionnés</Text>
+        <TouchableOpacity
+          style={[int.nextBtn, selected.length < 3 && int.nextBtnDis]}
+          onPress={() => selected.length >= 3 && onNext(selected)}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={selected.length >= 3 ? [C.goldLight, C.gold] : [C.grayLight, C.grayMid]} style={int.nextGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <Text style={[int.nextTxt, selected.length < 3 && int.nextTxtDis]}>Suivant →</Text>
+          </LinearGradient>
         </TouchableOpacity>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </StepLayout>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0D' },
-  bgTop: { position: 'absolute', top: 0, left: 0, right: 0, height: height * 0.45, backgroundColor: '#0D0D0D' },
-  bgCircle1: { position: 'absolute', width: 350, height: 350, borderRadius: 175, backgroundColor: '#E8000D', opacity: 0.08, top: -100, right: -80 },
-  bgCircle2: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: '#7B2FBE', opacity: 0.06, top: 80, left: -60 },
-  scroll: { paddingBottom: 40 },
-
-  // HEADER
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 24, paddingTop: 70, paddingBottom: 28 },
-  logoWrapper: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center', shadowColor: '#E8000D', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 },
-  logoW: { color: '#fff', fontSize: 28, fontWeight: '900' },
-  logo: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -1 },
-  logoSub: { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
-
-  // STEPPER
-  stepperContainer: { paddingHorizontal: 24, marginBottom: 24 },
-  stepperTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, marginBottom: 20, overflow: 'hidden' },
-  stepperFill: { height: 3, backgroundColor: '#E8000D', borderRadius: 2 },
-  stepsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  stepItem: { alignItems: 'center', gap: 6 },
-  stepCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)' },
-  stepActive: { backgroundColor: '#E8000D', borderColor: '#E8000D', shadowColor: '#E8000D', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
-  stepDone: { backgroundColor: '#1DB954', borderColor: '#1DB954' },
-  stepCircleTexte: { fontSize: 18, color: 'rgba(255,255,255,0.4)' },
-  stepCircleTexteActive: { color: '#fff' },
-  stepLabel: { fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: '600' },
-  stepLabelActive: { color: '#fff', fontWeight: '800' },
-
-  // CARD
-  card: { marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 32, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.15, shadowRadius: 32, elevation: 12 },
-
-  // ÉTAPE HEADER
-  etapeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  etapeEmoji: { fontSize: 30, width: 44, textAlign: 'center' },
-  etapeTitre: { fontSize: 20, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5 },
-  etapeSub: { fontSize: 13, color: '#AAA', marginTop: 2 },
-  etapeNumBadge: { marginLeft: 'auto', backgroundColor: '#F5F3EF', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  etapeNumTexte: { fontSize: 12, fontWeight: '800', color: '#1A1A1A' },
-
-  // ALERTS
-  alertErreur: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFF0F0', borderRadius: 14, padding: 12, marginBottom: 16, borderWidth: 1.5, borderColor: '#E8000D30' },
-  alertSucces: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EEF7EE', borderRadius: 14, padding: 12, marginBottom: 16, borderWidth: 1.5, borderColor: '#1DB95430' },
-  alertEmoji: { fontSize: 18 },
-  alertTexte: { flex: 1, fontSize: 13, fontWeight: '700', color: '#E8000D' },
-
-  // FIELDS
-  etapeContent: { gap: 12 },
-  fieldWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F6F2', borderRadius: 18, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 2, borderColor: '#F0EDE8' },
-  fieldWrapperFocus: { borderColor: '#E8000D', backgroundColor: '#FFF8F8' },
-  fieldWrapperMulti: { alignItems: 'flex-start', paddingVertical: 10 },
-  fieldIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  fieldIcon: { fontSize: 18 },
-  fieldInput: { flex: 1, color: '#1A1A1A', fontSize: 15, paddingVertical: 12, fontWeight: '500' },
-  fieldCheck: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1DB954', alignItems: 'center', justifyContent: 'center', marginRight: 4 },
-  fieldCheckTexte: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  eyeBtn: { padding: 8 },
-  eyeIcon: { fontSize: 18 },
-
-  // FORCE MOT DE PASSE
-  strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -4 },
-  strengthBar: { flex: 1, height: 4, borderRadius: 2 },
-  strengthLabel: { fontSize: 11, color: '#AAA', fontWeight: '600', width: 60 },
-
-  // CHIPS
-  chipsLabel: { fontSize: 14, fontWeight: '800', color: '#1A1A1A', marginTop: 4 },
-  chipsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: '#F0EDE8', borderWidth: 2, borderColor: '#EEE8DE' },
-  chipTexte: { fontSize: 13, fontWeight: '700', color: '#888' },
-
-  // PHOTOS
-  photosInfo: { backgroundColor: '#F8F6F2', borderRadius: 16, padding: 12, marginBottom: 4 },
-  photosInfoTexte: { fontSize: 13, color: '#888', fontWeight: '600', textAlign: 'center' },
-  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  photoWrapper: { position: 'relative' },
-  photoImg: { width: 96, height: 96, borderRadius: 20 },
-  photoMainBadge: { position: 'absolute', bottom: 6, left: 0, right: 0, alignItems: 'center' },
-  photoMainTexte: { backgroundColor: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 9, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  photoDelBtn: { position: 'absolute', top: -6, right: -6, backgroundColor: '#E8000D', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: '#E8000D', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
-  photoDelTexte: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  photoAddBtn: { width: 96, height: 96, borderRadius: 20, backgroundColor: '#F8F6F2', borderWidth: 2, borderColor: '#E8000D', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  photoAddIcon: { color: '#E8000D', fontSize: 32, fontWeight: '300' },
-  photoAddLabel: { color: '#E8000D', fontSize: 11, fontWeight: '700' },
-  photosTips: { backgroundColor: '#F8F6F2', borderRadius: 16, padding: 14, gap: 6 },
-  tipRow: { flexDirection: 'row', alignItems: 'center' },
-  tipTexte: { fontSize: 12, color: '#888', fontWeight: '500' },
-
-  // VÉRIFICATION
-  verifCard: { backgroundColor: '#1A1A1A', borderRadius: 20, padding: 20, alignItems: 'center', gap: 8, marginBottom: 4 },
-  verifEmoji: { fontSize: 36 },
-  verifTitre: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  verifDesc: { color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', lineHeight: 18 },
-  verifStep: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#F8F6F2', borderRadius: 18, padding: 14 },
-  verifStepIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  verifStepEmoji: { fontSize: 24 },
-  verifStepInfo: { flex: 1 },
-  verifStepTitre: { fontSize: 14, fontWeight: '800', color: '#1A1A1A' },
-  verifStepSub: { fontSize: 12, color: '#AAA', marginTop: 2 },
-  verifCheck: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center' },
-  verifCheckDone: { backgroundColor: '#1DB954' },
-  verifCheckTexte: { fontSize: 14, fontWeight: '800', color: '#AAA' },
-  selfiePreviewWrapper: { alignItems: 'center', gap: 10 },
-  selfieImg: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: '#1DB954' },
-  selfieBadge: { backgroundColor: '#EEF7EE', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1, borderColor: '#1DB954' },
-  selfieBadgeTexte: { color: '#1DB954', fontWeight: '800', fontSize: 13 },
-  selfieBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#1A1A1A', borderRadius: 18, padding: 17 },
-  selfieBtnEmoji: { fontSize: 22 },
-  selfieBtnTexte: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  securityBadge: { backgroundColor: '#EEF7EE', borderRadius: 14, padding: 12 },
-  securityTexte: { color: '#1DB954', fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
-
-  // NAV BTNS
-  navBtns: { flexDirection: 'row', gap: 10, marginTop: 24 },
-  btnBack: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
-  btnBackTexte: { fontSize: 22, color: '#1A1A1A' },
-  btnNext: { flex: 2, borderRadius: 18, padding: 17, backgroundColor: '#E8000D', alignItems: 'center', shadowColor: '#E8000D', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
-  btnNextTexte: { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.2 },
-
-  // LOGIN LINK
-  loginLink: { alignItems: 'center', marginTop: 20 },
-  loginTexte: { color: 'rgba(255,255,255,0.35)', fontSize: 14 },
-  loginLien: { color: '#E8000D', fontWeight: '800' },
+const int = StyleSheet.create({
+  container: { flex: 1, paddingTop: 24 },
+  title: { fontSize: 28, fontWeight: '800', color: C.brown, paddingHorizontal: 24, marginBottom: 8 },
+  sub: { fontSize: 14, color: C.grayText, paddingHorizontal: 24, marginBottom: 16, lineHeight: 20 },
+  scroll: { paddingHorizontal: 24 },
+  catBlock: { marginBottom: 24 },
+  catLabel: { fontSize: 13, fontWeight: '800', color: C.brownMid, letterSpacing: 0.8, marginBottom: 12 },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 50, backgroundColor: C.white, borderWidth: 1.5, borderColor: C.beigeDeep },
+  tagSel: { backgroundColor: C.gold, borderColor: C.gold },
+  tagTxt: { fontSize: 14, fontWeight: '600', color: C.brownMid },
+  tagTxtSel: { color: C.white },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.beige, paddingTop: 12, paddingBottom: 40, paddingHorizontal: 24, borderTopWidth: 1, borderTopColor: C.beigeDeep },
+  count: { fontSize: 13, color: C.grayText, textAlign: 'center', marginBottom: 10 },
+  nextBtn: { borderRadius: 16, overflow: 'hidden' },
+  nextBtnDis: {},
+  nextGrad: { paddingVertical: 17, alignItems: 'center' },
+  nextTxt: { fontSize: 17, fontWeight: '700', color: C.white },
+  nextTxtDis: { color: C.grayText },
 });
+
+// STEP 8: Lifestyle
+function StepLifestyle({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (data: Record<string, string>) => void }) {
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const set = (qid: string, val: string) => setAnswers(prev => ({ ...prev, [qid]: val }));
+
+  return (
+    <StepLayout step={step} onBack={onBack} showSkip onSkip={() => onNext(answers)}>
+      <ScrollView contentContainerStyle={ls.scroll}>
+        <Text style={ls.title}>Et si on parlait de ton Lifestyle, {prenom} ?</Text>
+        <Text style={ls.sub}>Ça correspond au tien ? Tu commences.</Text>
+
+        {LIFESTYLE_QUESTIONS.map((q, qi) => (
+          <View key={q.id} style={[ls.qBlock, qi < LIFESTYLE_QUESTIONS.length - 1 && ls.qBorder]}>
+            <View style={ls.qHeader}>
+              <Text style={ls.qIcon}>{q.icon}</Text>
+              <Text style={ls.qText}>{q.question}</Text>
+            </View>
+            <View style={ls.optWrap}>
+              {q.options.map(opt => {
+                const sel = answers[q.id] === opt;
+                return (
+                  <TouchableOpacity key={opt} style={[ls.opt, sel && ls.optSel]} onPress={() => set(q.id, opt)}>
+                    <Text style={[ls.optTxt, sel && ls.optTxtSel]}>{opt}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      <View style={ls.footer}>
+        <BigButton label={`Suivant ${Object.keys(answers).length}/${LIFESTYLE_QUESTIONS.length}`} onPress={() => onNext(answers)} disabled={Object.keys(answers).length < 2} />
+      </View>
+    </StepLayout>
+  );
+}
+
+const ls = StyleSheet.create({
+  scroll: { paddingHorizontal: 24, paddingTop: 24 },
+  title: { fontSize: 26, fontWeight: '800', color: C.brown, marginBottom: 6, lineHeight: 32 },
+  sub: { fontSize: 14, color: C.grayText, marginBottom: 28 },
+  qBlock: { paddingBottom: 24, marginBottom: 24 },
+  qBorder: { borderBottomWidth: 1, borderBottomColor: C.beigeDeep },
+  qHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  qIcon: { fontSize: 18 },
+  qText: { fontSize: 15, fontWeight: '700', color: C.brown },
+  optWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  opt: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 50, backgroundColor: C.white, borderWidth: 1.5, borderColor: C.beigeDeep },
+  optSel: { backgroundColor: C.gold, borderColor: C.gold },
+  optTxt: { fontSize: 13, fontWeight: '600', color: C.brownMid },
+  optTxtSel: { color: C.white },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.beige, paddingTop: 12, paddingBottom: 40, borderTopWidth: 1, borderTopColor: C.beigeDeep },
+});
+
+// STEP 9: Bio
+function StepBio({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (bio: string) => void }) {
+  const [bio, setBio] = useState('');
+  const MAX = 300;
+
+  return (
+    <StepLayout step={step} onBack={onBack} showSkip onSkip={() => onNext(bio)}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={bio_.container}>
+          <Text style={bio_.title}>Ma bio</Text>
+          <Text style={bio_.sub}>Décris-toi : ce que tu aimes faire, tes activités préférées, et pourquoi tu rejoins WyytU.</Text>
+
+          <View style={bio_.inputWrap}>
+            <TextInput
+              style={bio_.input}
+              placeholder="Ex : Passionné de sport et de food, je cherche des gens motivés pour explorer Tanger..."
+              placeholderTextColor={C.grayMid}
+              value={bio}
+              onChangeText={v => v.length <= MAX && setBio(v)}
+              multiline
+              autoFocus
+            />
+            <Text style={bio_.counter}>{bio.length}/{MAX}</Text>
+          </View>
+
+          <View style={bio_.tipBox}>
+            <Text style={bio_.tipIcon}>💡</Text>
+            <Text style={bio_.tipTxt}>Une bio, même courte, multiplie tes chances de trouver ta bande 😎</Text>
+          </View>
+        </View>
+
+        <View style={bio_.footer}>
+          <View style={bio_.footRow}>
+            <TouchableOpacity onPress={() => onNext('')} style={bio_.skip}>
+              <Text style={bio_.skipTxt}>Plus tard</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={bio_.nextBtn} onPress={() => onNext(bio)} activeOpacity={0.85}>
+              <LinearGradient colors={[C.goldLight, C.gold]} style={bio_.nextGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Text style={bio_.nextTxt}>→</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </StepLayout>
+  );
+}
+
+const bio_ = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 8 },
+  sub: { fontSize: 14, color: C.grayText, marginBottom: 24, lineHeight: 20 },
+  inputWrap: { backgroundColor: C.white, borderRadius: 20, padding: 18, minHeight: 160, borderWidth: 2, borderColor: C.gold, marginBottom: 20 },
+  input: { fontSize: 16, color: C.brown, lineHeight: 24, flex: 1, minHeight: 120 },
+  counter: { textAlign: 'right', fontSize: 12, color: C.grayText, marginTop: 8 },
+  tipBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: C.grayLight, borderRadius: 16, padding: 16 },
+  tipIcon: { fontSize: 16 },
+  tipTxt: { flex: 1, fontSize: 13, color: C.brownMid, lineHeight: 19 },
+  footer: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 },
+  footRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  skip: { padding: 12 },
+  skipTxt: { fontSize: 15, fontWeight: '600', color: C.grayText },
+  nextBtn: { borderRadius: 30, overflow: 'hidden' },
+  nextGrad: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center' },
+  nextTxt: { fontSize: 26, color: C.white, fontWeight: '700' },
+});
+
+// STEP 10: Photos
+function StepPhotos({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (photos: string[]) => void }) {
+  const [photos, setPhotos] = useState<(string | null)[]>([null, null, null, null, null, null]);
+
+  const pick = async (idx: number) => {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [3, 4], quality: 0.8 });
+    if (!res.canceled) {
+      const newPhotos = [...photos];
+      newPhotos[idx] = res.assets[0].uri;
+      setPhotos(newPhotos);
+    }
+  };
+
+  const filled = photos.filter(Boolean).length;
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <View style={ph2.container}>
+        <Text style={ph2.title}>Ajoute tes photos</Text>
+        <Text style={ph2.sub}>Ajoute au moins 2 photos pour commencer.</Text>
+
+        <View style={ph2.grid}>
+          {photos.map((p, i) => (
+            <TouchableOpacity key={i} style={ph2.slot} onPress={() => pick(i)} activeOpacity={0.8}>
+              {p ? (
+                <>
+                  <View style={ph2.photoFill}>
+                    <Text style={ph2.photoPlaceholder}>📷</Text>
+                  </View>
+                  <View style={ph2.checkCircle}>
+                    <Text style={ph2.checkMark}>✓</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={ph2.plus}>
+                  <Text style={ph2.plusTxt}>+</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={ph2.counter}>
+          <View style={ph2.counterDot} />
+          <Text style={ph2.counterTxt}>{filled}/6 — {filled < 2 ? `Ajoutes-en encore ${2 - filled} pour commencer.` : 'Super ! Tu peux continuer.'}</Text>
+        </View>
+      </View>
+
+      <View style={ph2.footer}>
+        <BigButton label="Continuer" onPress={() => onNext(photos.filter(Boolean) as string[])} disabled={filled < 2} />
+      </View>
+    </StepLayout>
+  );
+}
+
+const ph2 = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 8 },
+  sub: { fontSize: 14, color: C.grayText, marginBottom: 24 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  slot: { width: (width - 68) / 3, aspectRatio: 3 / 4, borderRadius: 16, backgroundColor: C.white, borderWidth: 2, borderColor: C.beigeDeep, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
+  photoFill: { ...StyleSheet.absoluteFillObject, backgroundColor: C.beigeDeep, justifyContent: 'center', alignItems: 'center' },
+  photoPlaceholder: { fontSize: 32 },
+  checkCircle: { position: 'absolute', bottom: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: C.gold, justifyContent: 'center', alignItems: 'center' },
+  checkMark: { fontSize: 13, color: C.white, fontWeight: '800' },
+  plus: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.beigeDeep, justifyContent: 'center', alignItems: 'center' },
+  plusTxt: { fontSize: 24, color: C.grayText, lineHeight: 28 },
+  counter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  counterDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.gold },
+  counterTxt: { fontSize: 13, color: C.grayText },
+  footer: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 },
+});
+
+// STEP 11: Distance
+function StepDistance({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (km: number) => void }) {
+  const [km, setKm] = useState(30);
+  const sliderRef = useRef<View>(null);
+
+  const handleSlider = (e: any) => {
+    const { locationX, target } = e.nativeEvent;
+    const sliderWidth = width - 48;
+    const newVal = Math.round(Math.max(5, Math.min(100, (locationX / sliderWidth) * 100)));
+    setKm(newVal);
+  };
+
+  const pos = ((km - 5) / 95) * 100;
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <View style={dist.container}>
+        <Text style={dist.title}>Ta distance maximale ?</Text>
+        <Text style={dist.sub}>Utilise le curseur pour définir la zone autour de toi.</Text>
+
+        <View style={dist.sliderWrap}>
+          <View style={dist.sliderRow}>
+            <Text style={dist.distLabel}>Distance maximale</Text>
+            <Text style={dist.distVal}>{km} km</Text>
+          </View>
+
+          <View style={dist.track} onStartShouldSetResponder={() => true} onResponderMove={handleSlider} onResponderGrant={handleSlider}>
+            <LinearGradient colors={[C.gold, C.goldLight]} style={[dist.fill, { width: `${pos}%` }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+            <View style={[dist.thumb, { left: `${pos}%` }]}>
+              <View style={dist.thumbInner} />
+            </View>
+          </View>
+
+          <View style={dist.labels}>
+            <Text style={dist.trackLbl}>5 km</Text>
+            <Text style={dist.trackLbl}>100 km</Text>
+          </View>
+        </View>
+
+        <View style={dist.note}>
+          <Text style={dist.noteIcon}>📍</Text>
+          <Text style={dist.noteTxt}>Tu peux changer cette préférence plus tard dans les Réglages.</Text>
+        </View>
+      </View>
+
+      <View style={dist.footer}>
+        <BigButton label="Suivant" onPress={() => onNext(km)} />
+      </View>
+    </StepLayout>
+  );
+}
+
+const dist = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10 },
+  sub: { fontSize: 15, color: C.grayText, marginBottom: 48 },
+  sliderWrap: { backgroundColor: C.white, borderRadius: 20, padding: 24, marginBottom: 24 },
+  sliderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  distLabel: { fontSize: 15, color: C.brownMid, fontWeight: '600' },
+  distVal: { fontSize: 22, fontWeight: '800', color: C.gold },
+  track: { height: 6, backgroundColor: C.beigeDeep, borderRadius: 3, marginBottom: 8, position: 'relative', justifyContent: 'center' },
+  fill: { position: 'absolute', left: 0, height: 6, borderRadius: 3 },
+  thumb: { position: 'absolute', width: 28, height: 28, borderRadius: 14, backgroundColor: C.white, borderWidth: 3, borderColor: C.gold, justifyContent: 'center', alignItems: 'center', top: -11, marginLeft: -14, shadowColor: C.gold, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4 },
+  thumbInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.gold },
+  labels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  trackLbl: { fontSize: 12, color: C.grayText },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: C.grayLight, borderRadius: 16, padding: 16 },
+  noteIcon: { fontSize: 16 },
+  noteTxt: { flex: 1, fontSize: 13, color: C.grayText, lineHeight: 18 },
+  footer: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 },
+});
+
+// STEP 12: Géolocalisation
+function StepGeo({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: () => void }) {
+  const requestGeo = async () => {
+    await Location.requestForegroundPermissionsAsync();
+    onNext();
+  };
+
+  return (
+    <StepLayout step={step} onBack={onBack} showBack={false}>
+      <View style={geo.container}>
+        <View style={geo.iconWrap}>
+          <View style={geo.iconBg}>
+            <Text style={geo.iconEmoji}>📍</Text>
+          </View>
+          <View style={geo.checkCircle}>
+            <Text style={geo.checkMark}>✓</Text>
+          </View>
+        </View>
+
+        <Text style={geo.title}>Alors, tu vis pas loin ?</Text>
+        <Text style={geo.sub}>Nous utilisons ta localisation pour te montrer des activités et des gens dans ta zone. Tu ne pourras pas matcher sans ça.</Text>
+
+        <TouchableOpacity onPress={() => {}}>
+          <Text style={geo.howLink}>Comment ma localisation est-elle utilisée ? ▾</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={geo.footer}>
+        <BigButton label="Activer la localisation" onPress={requestGeo} />
+        <TouchableOpacity style={geo.later} onPress={onNext}>
+          <Text style={geo.laterTxt}>Plus tard</Text>
+        </TouchableOpacity>
+      </View>
+    </StepLayout>
+  );
+}
+
+const geo = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60, alignItems: 'center' },
+  iconWrap: { position: 'relative', marginBottom: 40 },
+  iconBg: { width: 110, height: 110, borderRadius: 32, backgroundColor: C.grayLight, justifyContent: 'center', alignItems: 'center' },
+  iconEmoji: { fontSize: 52 },
+  checkCircle: { position: 'absolute', top: -6, right: -6, width: 30, height: 30, borderRadius: 15, backgroundColor: '#4CAF50', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: C.beige },
+  checkMark: { fontSize: 15, color: C.white, fontWeight: '800' },
+  title: { fontSize: 28, fontWeight: '800', color: C.brown, marginBottom: 14, textAlign: 'center' },
+  sub: { fontSize: 15, color: C.grayText, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
+  howLink: { fontSize: 14, color: C.gold, fontWeight: '600' },
+  footer: { paddingHorizontal: 24, paddingBottom: 40, gap: 12 },
+  later: { alignItems: 'center', padding: 12 },
+  laterTxt: { fontSize: 15, color: C.grayText, fontWeight: '600' },
+});
+
+// STEP 13: Notifications
+function StepNotifs({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: () => void }) {
+  const requestNotifs = async () => {
+    await Notifications.requestPermissionsAsync();
+    onNext();
+  };
+
+  return (
+    <StepLayout step={step} onBack={onBack} showBack={false}>
+      <View style={notif.container}>
+        <Text style={notif.emoji}>🔔</Text>
+        <Text style={notif.title}>Ne rate aucune activité !</Text>
+        <Text style={notif.sub}>Active les notifications pour être prévenu quand quelqu'un rejoint ton activité, te contacte ou qu'une sortie est disponible près de toi.</Text>
+      </View>
+
+      <View style={notif.footer}>
+        <BigButton label="Activer les notifications" onPress={requestNotifs} />
+        <TouchableOpacity style={notif.later} onPress={onNext}>
+          <Text style={notif.laterTxt}>Plus tard</Text>
+        </TouchableOpacity>
+      </View>
+    </StepLayout>
+  );
+}
+
+const notif = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 80, alignItems: 'center' },
+  emoji: { fontSize: 72, marginBottom: 32 },
+  title: { fontSize: 28, fontWeight: '800', color: C.brown, marginBottom: 14, textAlign: 'center' },
+  sub: { fontSize: 15, color: C.grayText, textAlign: 'center', lineHeight: 22 },
+  footer: { paddingHorizontal: 24, paddingBottom: 40, gap: 12 },
+  later: { alignItems: 'center', padding: 12 },
+  laterTxt: { fontSize: 15, color: C.grayText, fontWeight: '600' },
+});
+
+// ─── ÉCRAN PRINCIPAL ──────────────────────────────────────────────────────────
+export default function Inscription() {
+  const [step, setStep] = useState(0);
+
+  // Données collectées
+  const [phone, setPhone] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [dob, setDob] = useState('');
+  const [genre, setGenre] = useState('');
+  const [afficherGenre, setAfficherGenre] = useState(true);
+  const [mode, setMode] = useState('');
+  const [interets, setInterets] = useState<string[]>([]);
+  const [lifestyle, setLifestyle] = useState<Record<string, string>>({});
+  const [bio, setBio] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [distance, setDistance] = useState(30);
+
+  const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
+  const back = () => setStep(s => Math.max(s - 1, 0));
+
+  const finishOnboarding = async () => { require('expo-router').router.replace('/(tabs)/explore'); return; require('expo-router').router.replace('/(tabs)/explore'); return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from('utilisateurs').upsert({
+        id: user.id,
+        prenom,
+        date_naissance: dob,
+        genre,
+        afficher_genre: afficherGenre,
+        mode_principal: mode,
+        interets,
+        lifestyle,
+        bio,
+        distance_max: distance,
+        onboarding_complete: true,
+        created_at: new Date().toISOString(),
+      });
+
+      router.replace('/(tabs)/explorer');
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de sauvegarder ton profil. Réessaie.');
+    }
+  };
+
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    slideAnim.setValue(30);
+    Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }).start();
+  }, [step]);
+
+  const renderStep = () => {
+    switch (step) {
+      case 0: return <SplashScreen onNext={next} />;
+      case 1: return <StepPhone step={step} onBack={back} onNext={p => { setPhone(p); next(); }} />;
+      case 2: return <StepOTP step={step} phone={phone} onBack={back} onNext={next} />;
+      case 3: return <StepPrenom step={step} onBack={back} onNext={p => { setPrenom(p); next(); }} />;
+      case 4: return <StepDateNaissance step={step} prenom={prenom} onBack={back} onNext={d => { setDob(d); next(); }} />;
+      case 5: return <StepGenre step={step} prenom={prenom} onBack={back} onNext={(g, a) => { setGenre(g); setAfficherGenre(a); next(); }} />;
+      case 6: return <StepMode step={step} prenom={prenom} onBack={back} onNext={m => { setMode(m); next(); }} />;
+      case 7: return <StepInterets step={step} onBack={back} onNext={i => { setInterets(i); next(); }} />;
+      case 8: return <StepLifestyle step={step} prenom={prenom} onBack={back} onNext={l => { setLifestyle(l); next(); }} />;
+      case 9: return <StepBio step={step} onBack={back} onNext={b => { setBio(b); next(); }} />;
+      case 10: return <StepPhotos step={step} onBack={back} onNext={p => { setPhotos(p); next(); }} />;
+      case 11: return <StepDistance step={step} onBack={back} onNext={d => { setDistance(d); next(); }} />;
+      case 12: return <StepGeo step={step} onBack={back} onNext={next} />;
+      case 13: return <StepNotifs step={step} onBack={back} onNext={finishOnboarding} />;
+      default: return null;
+    }
+  };
+
+  return (
+    <Animated.View style={{ flex: 1, transform: [{ translateY: step === 0 ? 0 : slideAnim }] }}>
+      {renderStep()}
+    </Animated.View>
+  );
+}

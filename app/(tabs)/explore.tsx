@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -6,6 +7,7 @@ import {
   Animated,
   Dimensions,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,25 @@ import {
 import { supabase } from '../../lib/supabase';
 
 const { width } = Dimensions.get('window');
+
+// ─── PALETTE WyytU ────────────────────────────────────────────────────────────
+const C = {
+  gold: '#C9A84C',
+  goldLight: '#E8C96A',
+  goldDark: '#A07830',
+  goldPale: '#FDF8EE',
+  beige: '#FAF7F2',
+  beigeDeep: '#EEE8DE',
+  beigeCard: '#F5F0E8',
+  brown: '#1A1209',
+  brownMid: '#5C4A2A',
+  white: '#FFFFFF',
+  grayLight: '#F0EDE8',
+  grayMid: '#C8C0B4',
+  grayText: '#8A7F72',
+  green: '#2ECC71',
+  red: '#E74C3C',
+};
 
 type Activite = {
   id: string;
@@ -40,17 +61,17 @@ type UserDispo = {
 };
 
 const CATEGORIES = [
-  { label: 'Tout', emoji: '✦', couleur1: '#1A1A1A' },
-  { label: 'Sport', emoji: '⚡', couleur1: '#E8000D' },
-  { label: 'Resto', emoji: '🍕', couleur1: '#FF6A00' },
-  { label: 'Ciné', emoji: '🎬', couleur1: '#CC0000' },
-  { label: 'Soirée', emoji: '🎉', couleur1: '#7B2FBE' },
-  { label: 'Gaming', emoji: '🎮', couleur1: '#0070F3' },
-  { label: 'Voyage', emoji: '✈️', couleur1: '#00B4D8' },
-  { label: 'Musique', emoji: '🎵', couleur1: '#1DB954' },
-  { label: 'Bien-être', emoji: '🏃', couleur1: '#00897B' },
-  { label: 'Social', emoji: '👥', couleur1: '#FF4B7D' },
-  { label: 'Art', emoji: '🎨', couleur1: '#FFD600' },
+  { label: 'Tout', emoji: '✦' },
+  { label: 'Sport', emoji: '⚡' },
+  { label: 'Resto', emoji: '🍕' },
+  { label: 'Ciné', emoji: '🎬' },
+  { label: 'Soirée', emoji: '🎉' },
+  { label: 'Gaming', emoji: '🎮' },
+  { label: 'Voyage', emoji: '✈️' },
+  { label: 'Musique', emoji: '🎵' },
+  { label: 'Bien-être', emoji: '🏃' },
+  { label: 'Social', emoji: '👥' },
+  { label: 'Art', emoji: '🎨' },
 ];
 
 const ACTIVITES_RAPIDES = [
@@ -64,8 +85,15 @@ const ACTIVITES_RAPIDES = [
   { emoji: '🎵', label: 'Concert' },
 ];
 
-const getCouleur = (categorie: string) => CATEGORIES.find(c => c.label === categorie)?.couleur1 || '#1A1A1A';
-const getEmoji = (categorie: string) => CATEGORIES.find(c => c.label === categorie)?.emoji || '✦';
+const CAT_COLORS: Record<string, string> = {
+  Sport: '#E74C3C', Resto: '#E67E22', Ciné: '#8E44AD',
+  Soirée: '#2C3E50', Gaming: '#2980B9', Voyage: '#16A085',
+  Musique: '#27AE60', 'Bien-être': '#1ABC9C', Social: '#C0392B',
+  Art: '#F39C12', Tout: C.brown,
+};
+
+const getCouleur = (cat: string) => CAT_COLORS[cat] || C.brown;
+const getEmoji = (cat: string) => CATEGORIES.find(c => c.label === cat)?.emoji || '✦';
 
 const calculerDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371;
@@ -88,52 +116,15 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 };
 
-const COULEURS_AVATAR = ['#E8000D', '#7B2FBE', '#0070F3', '#1DB954', '#FF6A00', '#00B4D8'];
-
 const getMissions = (ville: string) => {
   const heure = new Date().getHours();
   const v = ville || 'ta ville';
-  const missions = [
-    {
-      emoji: '☕', couleur: '#FF6A00', temps: 'Dans 30 min',
-      titre: `Café sympa à ${v}`,
-      desc: 'Quelqu\'un cherche un café et une bonne conversation',
-      participants: Math.floor(Math.random() * 3) + 1,
-    },
-    {
-      emoji: '⚽', couleur: '#E8000D', temps: 'Dans 1h',
-      titre: `Foot 5v5 — ${v}`,
-      desc: 'Il manque 2 joueurs pour compléter l\'équipe',
-      participants: Math.floor(Math.random() * 4) + 3,
-    },
-    {
-      emoji: '🏃', couleur: '#00897B', temps: 'Dans 45 min',
-      titre: 'Running matinal',
-      desc: 'Parcours de 5km, tous niveaux bienvenus',
-      participants: Math.floor(Math.random() * 3) + 2,
-    },
-    {
-      emoji: heure >= 18 ? '🎉' : '🎬',
-      couleur: heure >= 18 ? '#7B2FBE' : '#CC0000',
-      temps: heure >= 18 ? 'Ce soir' : 'Cet après-midi',
-      titre: heure >= 18 ? `Soirée à ${v}` : `Ciné — ${v}`,
-      desc: heure >= 18 ? 'Ambiance garantie, venez nombreux 🔥' : 'Film au choix du groupe',
-      participants: Math.floor(Math.random() * 5) + 2,
-    },
-    {
-      emoji: '🍕', couleur: '#FF4B7D', temps: 'À 12h30',
-      titre: 'Déjeuner en groupe',
-      desc: `Resto sympa à ${v}, cuisine variée`,
-      participants: Math.floor(Math.random() * 3) + 1,
-    },
-    {
-      emoji: '🎮', couleur: '#0070F3', temps: 'Ce soir',
-      titre: 'Gaming Night',
-      desc: 'Session en ligne ou IRL chez quelqu\'un',
-      participants: Math.floor(Math.random() * 4) + 2,
-    },
-  ];
-  return missions.sort(() => Math.random() - 0.5).slice(0, 4);
+  return [
+    { emoji: '☕', couleur: '#FF6A00', temps: 'Dans 30 min', titre: `Café à ${v}`, desc: 'Bonne conversation recherchée', participants: 2 },
+    { emoji: '⚽', couleur: '#E74C3C', temps: 'Dans 1h', titre: `Foot 5v5 — ${v}`, desc: 'Il manque 2 joueurs', participants: 5 },
+    { emoji: '🏃', couleur: '#1ABC9C', temps: 'Dans 45 min', titre: 'Running matinal', desc: 'Parcours 5km, tous niveaux', participants: 3 },
+    { emoji: heure >= 18 ? '🎉' : '🎬', couleur: heure >= 18 ? '#8E44AD' : '#2980B9', temps: heure >= 18 ? 'Ce soir' : 'Cet après-midi', titre: heure >= 18 ? `Soirée à ${v}` : `Ciné — ${v}`, desc: heure >= 18 ? 'Ambiance garantie 🔥' : 'Film au choix', participants: 4 },
+  ].sort(() => Math.random() - 0.5).slice(0, 4);
 };
 
 export default function ExploreScreen() {
@@ -160,11 +151,11 @@ export default function ExploreScreen() {
     init();
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.2, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
       ])
     ).start();
-    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
   }, []);
 
   const init = async () => {
@@ -241,243 +232,268 @@ export default function ExploreScreen() {
   const missionsVille = getMissions(villeUser);
 
   return (
-    <View style={styles.container}>
+    <View style={s.root}>
 
-      {/* HEADER */}
-      <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+      {/* ── HEADER ── */}
+      <Animated.View style={[s.header, { opacity: fadeAnim }]}>
         <View>
-          <Text style={styles.greeting}>{salutation} {prenom ? prenom : '👋'}</Text>
-          <Text style={styles.titre}>Explorer</Text>
-          <View style={styles.locationRow}>
-            <View style={styles.locationDot} />
-            <Text style={styles.sousTitre}>{villeUser || 'Localisation...'} · {activitesFiltrees.length} plans</Text>
+          <Text style={s.greeting}>{salutation} {prenom || '👋'}</Text>
+          <Text style={s.headerTitle}>Explorer</Text>
+          <View style={s.locationRow}>
+            <View style={s.locationDot} />
+            <Text style={s.locationTxt}>{villeUser || 'Localisation...'} · {activitesFiltrees.length} plans</Text>
           </View>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerBtnDark} onPress={() => router.push('/matching' as any)}>
-            <Text style={styles.headerBtnIcon}>🎯</Text>
+        <View style={s.headerRight}>
+          <TouchableOpacity style={s.headerBtn} onPress={() => router.push('/matching' as any)}>
+            <Text style={s.headerBtnIcon}>🎯</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerBtnLight}>
-            <Text style={styles.headerBtnIcon}>🔔</Text>
+          <TouchableOpacity style={s.headerBtnGold}>
+            <Text style={s.headerBtnIcon}>🔔</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
 
-      {/* DISPO */}
+      {/* ── DISPO CARD ── */}
       {!isDispo ? (
-        <TouchableOpacity style={styles.dispoCard} onPress={() => setShowDispoModal(true)} activeOpacity={0.9}>
-          <View style={styles.dispoBg} />
-          <View style={styles.dispoBgCircle} />
-          <View style={styles.dispoLeft}>
-            <Animated.View style={[styles.dispoPulse, { transform: [{ scale: pulseAnim }] }]}>
-              <View style={styles.dispoDotInner} />
-            </Animated.View>
-            <View>
-              <Text style={styles.dispoTitre}>Je suis dispo maintenant</Text>
-              <Text style={styles.dispoSub}>Visible 2h · rayon 5km · gratuit</Text>
+        <TouchableOpacity onPress={() => setShowDispoModal(true)} activeOpacity={0.9} style={s.dispoWrap}>
+          <LinearGradient colors={[C.brown, '#2C1F0A']} style={s.dispoCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={s.dispoLeft}>
+              <Animated.View style={[s.dispoPulse, { transform: [{ scale: pulseAnim }] }]}>
+                <View style={s.dispoDot} />
+              </Animated.View>
+              <View>
+                <Text style={s.dispoTitle}>Je suis dispo maintenant</Text>
+                <Text style={s.dispoSub}>Visible 2h · rayon 5km · gratuit</Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.dispoArrowWrapper}>
-            <Text style={styles.dispoArrow}>→</Text>
-          </View>
+            <View style={s.dispoArrow}>
+              <Text style={s.dispoArrowTxt}>→</Text>
+            </View>
+          </LinearGradient>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.dispoActifCard} onPress={desactiverDispo} activeOpacity={0.9}>
-          <Animated.View style={[styles.dispoPulseActif, { transform: [{ scale: pulseAnim }] }]}>
-            <View style={styles.dispoDotActif} />
+        <TouchableOpacity style={s.dispoActif} onPress={desactiverDispo} activeOpacity={0.9}>
+          <Animated.View style={[s.dispoPulseActif, { transform: [{ scale: pulseAnim }] }]}>
+            <View style={s.dispoDotActif} />
           </Animated.View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.dispoActifTitre}>🟢 Dispo — {dispoActivite}</Text>
-            <Text style={styles.dispoActifSub}>Encore {dispoTempsRestant} · Touche pour désactiver</Text>
+            <Text style={s.dispoActifTitle}>🟢 Dispo — {dispoActivite}</Text>
+            <Text style={s.dispoActifSub}>Encore {dispoTempsRestant} · Touche pour désactiver</Text>
           </View>
-          <Text style={styles.dispoActifClose}>✕</Text>
+          <Text style={s.dispoActifClose}>✕</Text>
         </TouchableOpacity>
       )}
 
-      {/* USERS DISPOS */}
+      {/* ── USERS DISPOS ── */}
       {usersDispos.length > 0 && (
-        <View style={styles.disposSection}>
-          <View style={styles.disposHeader}>
-            <View style={styles.disposDot} />
-            <Text style={styles.disposTitre}>{usersDispos.length} personne{usersDispos.length > 1 ? 's' : ''} dispo maintenant</Text>
+        <View style={s.disposSection}>
+          <View style={s.disposHeader}>
+            <View style={s.disposDot} />
+            <Text style={s.disposTitre}>{usersDispos.length} personne{usersDispos.length > 1 ? 's' : ''} dispo maintenant</Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.disposScroll}>
-            {usersDispos.map((u, i) => (
-              <View key={u.id} style={styles.disposAvatar}>
-                <View style={[styles.disposAvatarImg, { backgroundColor: COULEURS_AVATAR[i % COULEURS_AVATAR.length] }]}>
-                  <Text style={styles.disposAvatarLettre}>{u.prenom[0]?.toUpperCase()}</Text>
-                  <View style={styles.disposOnline} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.disposScroll}>
+            {usersDispos.map((u, i) => {
+              const colors = [C.gold, C.brownMid, '#E74C3C', '#2ECC71', '#3498DB'];
+              return (
+                <View key={u.id} style={s.disposAvatar}>
+                  <View style={[s.disposAvatarImg, { backgroundColor: colors[i % colors.length] }]}>
+                    <Text style={s.disposLetter}>{u.prenom[0]?.toUpperCase()}</Text>
+                    <View style={s.disposOnline} />
+                  </View>
+                  <Text style={s.disposNom} numberOfLines={1}>{u.prenom}</Text>
+                  <Text style={s.disposAct} numberOfLines={1}>{u.dispo_activite?.split(' ')[0]}</Text>
                 </View>
-                <Text style={styles.disposNom} numberOfLines={1}>{u.prenom}</Text>
-                <Text style={styles.disposActivite} numberOfLines={1}>{u.dispo_activite?.split(' ')[0]}</Text>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
         </View>
       )}
 
-      {/* SEARCH */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+      {/* ── SEARCH ── */}
+      <View style={s.searchRow}>
+        <View style={s.searchBox}>
+          <Text style={s.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={s.searchInput}
             placeholder="Plans, villes, activités..."
-            placeholderTextColor="#BBB"
+            placeholderTextColor={C.grayMid}
             value={recherche}
             onChangeText={setRecherche}
           />
           {recherche.length > 0 && (
             <TouchableOpacity onPress={() => setRecherche('')}>
-              <Text style={styles.searchClear}>✕</Text>
+              <Text style={s.searchClear}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.filterBtn}>
-          <Text style={styles.filterIcon}>⚡</Text>
+        <TouchableOpacity style={s.filterBtn}>
+          <LinearGradient colors={[C.goldLight, C.gold]} style={s.filterGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <Text style={s.filterIcon}>⚡</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      {/* CATEGORIES */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catsScroll} contentContainerStyle={styles.catsContent}>
+      {/* ── CATEGORIES ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catsScroll} contentContainerStyle={s.catsContent}>
         {CATEGORIES.map((cat) => {
           const active = categorieActive === cat.label;
           return (
-            <TouchableOpacity key={cat.label} style={[styles.catChip, active && { backgroundColor: cat.couleur1 }]} onPress={() => setCategorieActive(cat.label)}>
-              <Text style={styles.catEmoji}>{cat.emoji}</Text>
-              <Text style={[styles.catLabel, active && { color: '#fff' }]}>{cat.label}</Text>
+            <TouchableOpacity key={cat.label} onPress={() => setCategorieActive(cat.label)} activeOpacity={0.8}>
+              {active ? (
+                <LinearGradient colors={[C.goldLight, C.gold]} style={s.catChipActive} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Text style={s.catEmoji}>{cat.emoji}</Text>
+                  <Text style={s.catLabelActive}>{cat.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={s.catChip}>
+                  <Text style={s.catEmoji}>{cat.emoji}</Text>
+                  <Text style={s.catLabel}>{cat.label}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      {/* FEED */}
+      {/* ── FEED ── */}
       {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color="#E8000D" />
-          <Text style={styles.loadingTexte}>Chargement des plans...</Text>
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color={C.gold} />
+          <Text style={s.loadingTxt}>Chargement des plans...</Text>
         </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); chargerActivites(); chargerUsersDispos(); }} tintColor="#E8000D" />}>
-
-          {/* ═══ MISSIONS INSTANTANÉES ═══ */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitre}>⚡ Missions instantanées</Text>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTexte}>LIVE</Text>
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); chargerActivites(); chargerUsersDispos(); }} tintColor={C.gold} />}
+        >
+          {/* MISSIONS */}
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>⚡ Missions instantanées</Text>
+            <View style={s.liveBadge}>
+              <View style={s.liveDot} />
+              <Text style={s.liveTxt}>LIVE</Text>
             </View>
           </View>
-          <Text style={styles.missionsSub}>Plans disponibles maintenant près de toi</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.missionsScroll}>
+          <Text style={s.sectionSub}>Plans disponibles maintenant près de toi</Text>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.missionsScroll}>
             {missionsVille.map((m, i) => (
-              <TouchableOpacity key={i} style={[styles.missionCard, { backgroundColor: m.couleur }]} onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.9}>
-                <Text style={styles.missionBgEmoji}>{m.emoji}</Text>
-                <View style={styles.missionTopRow}>
-                  <View style={styles.missionLiveBadge}>
-                    <View style={styles.missionLiveDot} />
-                    <Text style={styles.missionLiveTexte}>DISPO</Text>
+              <TouchableOpacity key={i} style={s.missionCard} onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.88}>
+                <LinearGradient colors={[m.couleur || C.brown, (m.couleur || C.brown) + 'CC']} style={s.missionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Text style={s.missionBgEmoji}>{m.emoji}</Text>
+                  <View style={s.missionTop}>
+                    <View style={s.missionBadge}>
+                      <View style={s.missionBadgeDot} />
+                      <Text style={s.missionBadgeTxt}>DISPO</Text>
+                    </View>
+                    <Text style={s.missionTemps}>{m.temps}</Text>
                   </View>
-                  <Text style={styles.missionTemps}>{m.temps}</Text>
-                </View>
-                <Text style={styles.missionTitre}>{m.titre}</Text>
-                <Text style={styles.missionDesc} numberOfLines={2}>{m.desc}</Text>
-                <View style={styles.missionFooter}>
-                  <Text style={styles.missionParticipants}>👥 {m.participants} partant{m.participants > 1 ? 's' : ''}</Text>
-                  <View style={styles.missionJoinBtn}>
-                    <Text style={styles.missionJoinTexte}>Rejoindre →</Text>
+                  <Text style={s.missionTitre}>{m.titre}</Text>
+                  <Text style={s.missionDesc} numberOfLines={2}>{m.desc}</Text>
+                  <View style={s.missionFooter}>
+                    <Text style={s.missionParticipants}>👥 {m.participants} partant{m.participants > 1 ? 's' : ''}</Text>
+                    <LinearGradient colors={[C.goldLight, C.gold]} style={s.missionJoinBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                      <Text style={s.missionJoinTxt}>Rejoindre →</Text>
+                    </LinearGradient>
                   </View>
-                </View>
+                </LinearGradient>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
           {activitesFiltrees.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>🌍</Text>
-              <Text style={styles.emptyTitre}>Aucun plan trouvé</Text>
-              <Text style={styles.emptySub}>Sois le premier à proposer !</Text>
-              <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/creer-activite' as any)}>
-                <Text style={styles.emptyBtnTexte}>+ Créer un plan</Text>
+            <View style={s.emptyBox}>
+              <Text style={s.emptyEmoji}>🌍</Text>
+              <Text style={s.emptyTitle}>Aucun plan trouvé</Text>
+              <Text style={s.emptySub}>Sois le premier à proposer !</Text>
+              <TouchableOpacity onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.85}>
+                <LinearGradient colors={[C.goldLight, C.gold]} style={s.emptyBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Text style={s.emptyBtnTxt}>+ Créer un plan</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
             <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitre}>🔥 Plans chauds</Text>
-                <TouchableOpacity><Text style={styles.sectionLien}>Tout voir →</Text></TouchableOpacity>
+              {/* PLANS CHAUDS */}
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>🔥 Plans chauds</Text>
+                <TouchableOpacity><Text style={s.sectionLink}>Tout voir →</Text></TouchableOpacity>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.featuredScroll}>
                 {activitesFiltrees.slice(0, 5).map((a) => {
                   const couleur = getCouleur(a.categorie);
                   const emoji = getEmoji(a.categorie);
                   const dist = getDistance(a);
                   const places = (a.max_participants || 0) - (a.participants_count || 0);
                   return (
-                    <TouchableOpacity key={a.id} style={[styles.featuredCard, { backgroundColor: couleur }]} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.9}>
-                      <Text style={styles.featuredBgEmoji}>{emoji}</Text>
-                      <View style={styles.featuredTags}>
-                        <View style={styles.featuredTag}>
-                          <Text style={styles.featuredTagTexte}>{a.categorie?.toUpperCase()}</Text>
-                        </View>
-                        {dist && (
-                          <View style={[styles.featuredTag, { backgroundColor: 'rgba(0,0,0,0.25)' }]}>
-                            <Text style={styles.featuredTagTexte}>📍 {formatDistance(dist)}</Text>
+                    <TouchableOpacity key={a.id} style={s.featuredCard} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.88}>
+                      <View style={[s.featuredCardInner, { backgroundColor: couleur }]}>
+                        <Text style={s.featuredBgEmoji}>{emoji}</Text>
+                        <View style={s.featuredTags}>
+                          <View style={s.featuredTag}>
+                            <Text style={s.featuredTagTxt}>{a.categorie?.toUpperCase()}</Text>
                           </View>
-                        )}
+                          {dist && (
+                            <View style={[s.featuredTag, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+                              <Text style={s.featuredTagTxt}>📍 {formatDistance(dist)}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={s.featuredContent}>
+                          <Text style={s.featuredTitle} numberOfLines={2}>{a.titre}</Text>
+                          <View style={s.featuredMeta}>
+                            <Text style={s.featuredDate}>{formatDate(a.date)}</Text>
+                            <View style={s.placesBadge}>
+                              <Text style={s.placesTxt}>{places > 0 ? `${places} places` : '🔴 Complet'}</Text>
+                            </View>
+                          </View>
+                          <View style={s.createurRow}>
+                            <View style={s.createurAvatar}>
+                              <Text style={s.createurLetter}>{a.createur_prenom?.[0]?.toUpperCase()}</Text>
+                            </View>
+                            <Text style={s.createurNom}>{a.createur_prenom}</Text>
+                          </View>
+                        </View>
                       </View>
-                      <View style={styles.featuredContent}>
-                        <Text style={styles.featuredTitre} numberOfLines={2}>{a.titre}</Text>
-                        <View style={styles.featuredMeta}>
-                          <Text style={styles.featuredDate}>{formatDate(a.date)}</Text>
-                          <View style={styles.featuredPlacesBadge}>
-                            <Text style={styles.featuredPlacesTexte}>{places > 0 ? `${places} places` : '🔴 Complet'}</Text>
-                          </View>
-                        </View>
-                        <View style={styles.featuredCreateur}>
-                          <View style={styles.featuredCreateurAvatar}>
-                            <Text style={styles.featuredCreateurLettre}>{a.createur_prenom?.[0]?.toUpperCase()}</Text>
-                          </View>
-                          <Text style={styles.featuredCreateurNom}>{a.createur_prenom}</Text>
-                        </View>
-                      </View>
+                      {/* Bordure dorée sur les cartes */}
+                      <View style={s.featuredGoldBorder} />
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
 
+              {/* TOUS LES PLANS */}
               {activitesFiltrees.length > 5 && (
                 <>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitre}>✦ Tous les plans</Text>
-                    <Text style={styles.sectionSub}>{activitesFiltrees.length - 5} de plus</Text>
+                  <View style={s.sectionHeader}>
+                    <Text style={s.sectionTitle}>✦ Tous les plans</Text>
+                    <Text style={s.sectionCount}>{activitesFiltrees.length - 5} de plus</Text>
                   </View>
-                  <View style={styles.listeContainer}>
+                  <View style={s.listeContainer}>
                     {activitesFiltrees.slice(5).map((a) => {
                       const couleur = getCouleur(a.categorie);
                       const emoji = getEmoji(a.categorie);
                       const dist = getDistance(a);
                       const places = (a.max_participants || 0) - (a.participants_count || 0);
                       return (
-                        <TouchableOpacity key={a.id} style={styles.listeCard} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.8}>
-                          <View style={[styles.listeCardAccent, { backgroundColor: couleur }]} />
-                          <View style={[styles.listeCardIcon, { backgroundColor: couleur + '18' }]}>
-                            <Text style={styles.listeCardEmoji}>{emoji}</Text>
+                        <TouchableOpacity key={a.id} style={s.listeCard} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.8}>
+                          <View style={[s.listeAccent, { backgroundColor: couleur }]} />
+                          <View style={[s.listeIcon, { backgroundColor: couleur + '18' }]}>
+                            <Text style={s.listeEmoji}>{emoji}</Text>
                           </View>
-                          <View style={styles.listeCardInfo}>
-                            <View style={styles.listeCardTop}>
-                              <Text style={styles.listeCardTitre} numberOfLines={1}>{a.titre}</Text>
-                              <View style={[styles.listeCardTag, { backgroundColor: couleur }]}>
-                                <Text style={styles.listeCardTagTexte}>{a.categorie}</Text>
+                          <View style={s.listeInfo}>
+                            <View style={s.listeTop}>
+                              <Text style={s.listeTitre} numberOfLines={1}>{a.titre}</Text>
+                              <View style={[s.listeTag, { backgroundColor: couleur }]}>
+                                <Text style={s.listeTagTxt}>{a.categorie}</Text>
                               </View>
                             </View>
-                            <Text style={styles.listeCardDesc} numberOfLines={1}>{a.description}</Text>
-                            <View style={styles.listeCardFooter}>
-                              <Text style={styles.listeCardMeta}>📍 {a.ville}{dist ? ` · ${formatDistance(dist)}` : ''}</Text>
-                              <Text style={styles.listeCardMeta}>🗓 {formatDate(a.date)}</Text>
-                              <Text style={[styles.listeCardPlaces, { color: places > 0 ? couleur : '#AAA' }]}>
+                            <Text style={s.listeDesc} numberOfLines={1}>{a.description}</Text>
+                            <View style={s.listeFooter}>
+                              <Text style={s.listeMeta}>📍 {a.ville}{dist ? ` · ${formatDistance(dist)}` : ''}</Text>
+                              <Text style={s.listeMeta}>🗓 {formatDate(a.date)}</Text>
+                              <Text style={[s.listePlaces, { color: places > 0 ? couleur : C.grayMid }]}>
                                 {places > 0 ? `${places} places` : 'Complet'}
                               </Text>
                             </View>
@@ -491,47 +507,50 @@ export default function ExploreScreen() {
             </>
           )}
 
-          <TouchableOpacity style={styles.fabCreer} onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.9}>
-            <View style={styles.fabGauche}>
-              <View style={styles.fabIconWrapper}>
-                <Text style={styles.fabIconTexte}>✦</Text>
+          {/* FAB CRÉER */}
+          <TouchableOpacity onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.88} style={s.fabWrap}>
+            <LinearGradient colors={[C.brown, '#2C1F0A']} style={s.fab} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <View style={s.fabLeft}>
+                <LinearGradient colors={[C.goldLight, C.gold]} style={s.fabIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Text style={s.fabIconTxt}>✦</Text>
+                </LinearGradient>
+                <View>
+                  <Text style={s.fabTitle}>Propose un plan</Text>
+                  <Text style={s.fabSub}>30 secondes · gratuit</Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.fabTitre}>Propose un plan</Text>
-                <Text style={styles.fabSub}>30 secondes · gratuit</Text>
-              </View>
-            </View>
-            <Text style={styles.fabArrow}>→</Text>
+              <Text style={s.fabArrow}>→</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <View style={{ height: 120 }} />
         </ScrollView>
       )}
 
-      {/* MODAL DISPO */}
+      {/* ── MODAL DISPO ── */}
       <Modal visible={showDispoModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={s.modalHandle} />
+            <View style={s.modalHeader}>
               <View>
-                <Text style={styles.modalTitre}>🟢 Je suis dispo !</Text>
-                <Text style={styles.modalSub}>Choisis ce que tu veux faire maintenant</Text>
+                <Text style={s.modalTitle}>🟢 Je suis dispo !</Text>
+                <Text style={s.modalSub}>Choisis ce que tu veux faire maintenant</Text>
               </View>
-              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowDispoModal(false)}>
-                <Text style={styles.modalCloseTexte}>✕</Text>
+              <TouchableOpacity style={s.modalClose} onPress={() => setShowDispoModal(false)}>
+                <Text style={s.modalCloseTxt}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.activitesGrid}>
+            <View style={s.activitesGrid}>
               {ACTIVITES_RAPIDES.map((a) => (
-                <TouchableOpacity key={a.label} style={styles.activiteBtn} onPress={() => activerDispo(`${a.emoji} ${a.label}`)} activeOpacity={0.8}>
-                  <Text style={styles.activiteBtnEmoji}>{a.emoji}</Text>
-                  <Text style={styles.activiteBtnLabel}>{a.label}</Text>
+                <TouchableOpacity key={a.label} style={s.activiteBtn} onPress={() => activerDispo(`${a.emoji} ${a.label}`)} activeOpacity={0.8}>
+                  <Text style={s.activiteBtnEmoji}>{a.emoji}</Text>
+                  <Text style={s.activiteBtnLabel}>{a.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <View style={styles.modalInfoBox}>
-              <Text style={styles.modalInfoTexte}>✅ Visible 2h · rayon 5km · désactivable à tout moment</Text>
+            <View style={s.modalInfo}>
+              <Text style={s.modalInfoTxt}>✅ Visible 2h · rayon 5km · désactivable à tout moment</Text>
             </View>
           </View>
         </View>
@@ -540,148 +559,168 @@ export default function ExploreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F2' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 14 },
-  greeting: { fontSize: 13, color: '#AAA', fontWeight: '600', marginBottom: 3 },
-  titre: { fontSize: 34, fontWeight: '900', color: '#1A1A1A', letterSpacing: -1.5, marginBottom: 4 },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.beige },
+
+  // HEADER
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 60 : 30, paddingBottom: 14 },
+  greeting: { fontSize: 13, color: C.grayText, fontWeight: '600', marginBottom: 3 },
+  headerTitle: { fontSize: 34, fontWeight: '900', color: C.brown, letterSpacing: -1.5, marginBottom: 4 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  locationDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#E8000D' },
-  sousTitre: { fontSize: 13, color: '#AAA', fontWeight: '500' },
+  locationDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.gold },
+  locationTxt: { fontSize: 13, color: C.grayText, fontWeight: '500' },
   headerRight: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  headerBtnDark: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
-  headerBtnLight: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#DDD4C4' },
+  headerBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' },
+  headerBtnGold: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.goldPale, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.gold },
   headerBtnIcon: { fontSize: 20 },
-  dispoCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', padding: 18, position: 'relative' },
-  dispoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#1A1A1A' },
-  dispoBgCircle: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: '#1DB954', opacity: 0.08, right: -30, top: -40 },
+
+  // DISPO
+  dispoWrap: { marginHorizontal: 20, marginBottom: 14, borderRadius: 22, overflow: 'hidden', shadowColor: C.brown, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 14, elevation: 6 },
+  dispoCard: { flexDirection: 'row', alignItems: 'center', padding: 18 },
   dispoLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
-  dispoPulse: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(29,185,84,0.2)', alignItems: 'center', justifyContent: 'center' },
-  dispoDotInner: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#1DB954' },
-  dispoTitre: { color: '#fff', fontSize: 15, fontWeight: '800', marginBottom: 2 },
+  dispoPulse: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(201,168,76,0.2)', alignItems: 'center', justifyContent: 'center' },
+  dispoDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: C.gold },
+  dispoTitle: { color: C.white, fontSize: 15, fontWeight: '800', marginBottom: 2 },
   dispoSub: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '500' },
-  dispoArrowWrapper: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  dispoArrow: { color: 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '700' },
-  dispoActifCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#1DB95412', borderWidth: 2, borderColor: '#1DB954' },
-  dispoPulseActif: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(29,185,84,0.2)', alignItems: 'center', justifyContent: 'center' },
-  dispoDotActif: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#1DB954' },
-  dispoActifTitre: { color: '#1DB954', fontSize: 14, fontWeight: '800' },
-  dispoActifSub: { color: '#1DB95480', fontSize: 11, marginTop: 2 },
-  dispoActifClose: { color: '#1DB954', fontSize: 18, fontWeight: '700' },
-  disposSection: { marginHorizontal: 20, marginBottom: 12, backgroundColor: '#fff', borderRadius: 20, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  dispoArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(201,168,76,0.2)', alignItems: 'center', justifyContent: 'center' },
+  dispoArrowTxt: { color: C.gold, fontSize: 16, fontWeight: '700' },
+  dispoActif: { marginHorizontal: 20, marginBottom: 14, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.goldPale, borderWidth: 2, borderColor: C.gold },
+  dispoPulseActif: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(201,168,76,0.2)', alignItems: 'center', justifyContent: 'center' },
+  dispoDotActif: { width: 14, height: 14, borderRadius: 7, backgroundColor: C.gold },
+  dispoActifTitle: { color: C.brownMid, fontSize: 14, fontWeight: '800' },
+  dispoActifSub: { color: C.grayText, fontSize: 11, marginTop: 2 },
+  dispoActifClose: { color: C.gold, fontSize: 18, fontWeight: '700' },
+
+  // DISPOS USERS
+  disposSection: { marginHorizontal: 20, marginBottom: 12, backgroundColor: C.white, borderRadius: 20, padding: 14, shadowColor: C.brown, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   disposHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  disposDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1DB954' },
-  disposTitre: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  disposDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green },
+  disposTitre: { fontSize: 13, fontWeight: '700', color: C.brown },
   disposScroll: { gap: 14 },
   disposAvatar: { alignItems: 'center', width: 58 },
   disposAvatarImg: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginBottom: 5, position: 'relative' },
-  disposAvatarLettre: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  disposOnline: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: '#1DB954', borderWidth: 2, borderColor: '#fff' },
-  disposNom: { fontSize: 11, fontWeight: '700', color: '#1A1A1A', textAlign: 'center' },
-  disposActivite: { fontSize: 10, color: '#AAA', textAlign: 'center', marginTop: 1 },
+  disposLetter: { color: C.white, fontSize: 18, fontWeight: '800' },
+  disposOnline: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: C.green, borderWidth: 2, borderColor: C.white },
+  disposNom: { fontSize: 11, fontWeight: '700', color: C.brown, textAlign: 'center' },
+  disposAct: { fontSize: 10, color: C.grayText, textAlign: 'center', marginTop: 1 },
+
+  // SEARCH
   searchRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 10 },
-  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 1.5, borderColor: '#EEE8DE', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 1.5, borderColor: C.beigeDeep, shadowColor: C.brown, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
   searchIcon: { fontSize: 15, marginRight: 8 },
-  searchInput: { flex: 1, color: '#1A1A1A', fontSize: 14, fontWeight: '500' },
-  searchClear: { color: '#BBB', fontSize: 15 },
-  filterBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
+  searchInput: { flex: 1, color: C.brown, fontSize: 14, fontWeight: '500' },
+  searchClear: { color: C.grayMid, fontSize: 15 },
+  filterBtn: { borderRadius: 16, overflow: 'hidden', shadowColor: C.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  filterGrad: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   filterIcon: { fontSize: 20 },
+
+  // CATEGORIES
   catsScroll: { maxHeight: 50 },
   catsContent: { paddingHorizontal: 20, gap: 8, paddingVertical: 4 },
-  catChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: '#EEE8DE' },
+  catChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: C.beigeDeep },
+  catChipActive: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20 },
   catEmoji: { fontSize: 14 },
-  catLabel: { fontSize: 12, fontWeight: '700', color: '#555' },
+  catLabel: { fontSize: 12, fontWeight: '700', color: C.brownMid },
+  catLabelActive: { fontSize: 12, fontWeight: '800', color: C.white },
+
+  // LOADING / EMPTY
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 12 },
-  loadingTexte: { color: '#AAA', fontSize: 14, fontWeight: '600' },
+  loadingTxt: { color: C.grayText, fontSize: 14, fontWeight: '600' },
   emptyBox: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyEmoji: { fontSize: 64 },
-  emptyTitre: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
-  emptySub: { fontSize: 14, color: '#AAA' },
-  emptyBtn: { backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 28, paddingVertical: 14, marginTop: 4 },
-  emptyBtnTexte: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
-  sectionTitre: { fontSize: 19, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.4 },
-  sectionLien: { fontSize: 13, color: '#E8000D', fontWeight: '700' },
-  sectionSub: { fontSize: 12, color: '#AAA', fontWeight: '600' },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: C.brown },
+  emptySub: { fontSize: 14, color: C.grayText },
+  emptyBtn: { borderRadius: 20, paddingHorizontal: 28, paddingVertical: 14, marginTop: 4 },
+  emptyBtnTxt: { color: C.white, fontWeight: '800', fontSize: 14 },
+
+  // SECTION
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 6 },
+  sectionTitle: { fontSize: 19, fontWeight: '900', color: C.brown, letterSpacing: -0.4 },
+  sectionLink: { fontSize: 13, color: C.gold, fontWeight: '700' },
+  sectionSub: { fontSize: 13, color: C.grayText, paddingHorizontal: 20, marginBottom: 12 },
+  sectionCount: { fontSize: 12, color: C.grayText, fontWeight: '600' },
 
   // LIVE BADGE
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#E8000D', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
-  liveTexte: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.gold, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.white },
+  liveTxt: { color: C.white, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
 
   // MISSIONS
-  missionsSub: { fontSize: 13, color: '#AAA', paddingHorizontal: 20, marginBottom: 14 },
-  missionsScroll: { paddingHorizontal: 20, gap: 12, paddingBottom: 4 },
-  missionCard: { width: width * 0.72, borderRadius: 24, overflow: 'hidden', position: 'relative', padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8, gap: 8 },
-  missionBgEmoji: { position: 'absolute', right: -10, bottom: -10, fontSize: 90, opacity: 0.12 },
-  missionTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  missionLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  missionLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
-  missionLiveTexte: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  missionTemps: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600' },
-  missionTitre: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
-  missionDesc: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 18 },
+  missionsScroll: { paddingHorizontal: 20, gap: 12, paddingBottom: 4, paddingTop: 4 },
+  missionCard: { width: width * 0.72, borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
+  missionGrad: { padding: 18, gap: 8, position: 'relative' },
+  missionBgEmoji: { position: 'absolute', right: -10, bottom: -10, fontSize: 90, opacity: 0.1 },
+  missionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  missionBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(201,168,76,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  missionBadgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.gold },
+  missionBadgeTxt: { color: C.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  missionTemps: { color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: '600' },
+  missionTitre: { color: C.white, fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
+  missionDesc: { color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 18 },
   missionFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  missionParticipants: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600' },
-  missionJoinBtn: { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
-  missionJoinTexte: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  missionParticipants: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
+  missionJoinBtn: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  missionJoinTxt: { color: C.brown, fontSize: 12, fontWeight: '800' },
 
   // FEATURED
-  featuredScroll: { paddingHorizontal: 20, gap: 14, paddingBottom: 4 },
-  featuredCard: { width: width * 0.65, height: 200, borderRadius: 26, overflow: 'hidden', position: 'relative', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
-  featuredBgEmoji: { position: 'absolute', right: -15, bottom: -10, fontSize: 100, opacity: 0.12 },
+  featuredScroll: { paddingHorizontal: 20, gap: 14, paddingBottom: 4, paddingTop: 4 },
+  featuredCard: { width: width * 0.65, height: 200, borderRadius: 26, overflow: 'hidden', shadowColor: C.brown, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 8 },
+  featuredCardInner: { flex: 1, position: 'relative' },
+  featuredGoldBorder: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: C.gold, opacity: 0.6 },
+  featuredBgEmoji: { position: 'absolute', right: -15, bottom: -10, fontSize: 100, opacity: 0.1 },
   featuredTags: { position: 'absolute', top: 16, left: 16, flexDirection: 'row', gap: 6 },
-  featuredTag: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  featuredTagTexte: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
+  featuredTag: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  featuredTagTxt: { color: C.white, fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
   featuredContent: { position: 'absolute', bottom: 14, left: 16, right: 16 },
-  featuredTitre: { color: '#fff', fontSize: 18, fontWeight: '900', lineHeight: 24, marginBottom: 8, letterSpacing: -0.3 },
+  featuredTitle: { color: C.white, fontSize: 18, fontWeight: '900', lineHeight: 24, marginBottom: 8, letterSpacing: -0.3 },
   featuredMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   featuredDate: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600' },
-  featuredPlacesBadge: { backgroundColor: 'rgba(0,0,0,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  featuredPlacesTexte: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  featuredCreateur: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featuredCreateurAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  featuredCreateurLettre: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  featuredCreateurNom: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
+  placesBadge: { backgroundColor: 'rgba(0,0,0,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  placesTxt: { color: C.white, fontSize: 11, fontWeight: '700' },
+  createurRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  createurAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(201,168,76,0.4)', alignItems: 'center', justifyContent: 'center' },
+  createurLetter: { color: C.white, fontSize: 11, fontWeight: '800' },
+  createurNom: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
 
   // LISTE
   listeContainer: { paddingHorizontal: 20, gap: 10 },
-  listeCard: { backgroundColor: '#fff', borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
-  listeCardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
-  listeCardIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
-  listeCardEmoji: { fontSize: 24 },
-  listeCardInfo: { flex: 1 },
-  listeCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-  listeCardTitre: { color: '#1A1A1A', fontSize: 14, fontWeight: '800', flex: 1, marginRight: 8 },
-  listeCardTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  listeCardTagTexte: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  listeCardDesc: { color: '#AAA', fontSize: 12, marginBottom: 6 },
-  listeCardFooter: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  listeCardMeta: { color: '#BBB', fontSize: 11, fontWeight: '500' },
-  listeCardPlaces: { fontSize: 11, fontWeight: '700' },
+  listeCard: { backgroundColor: C.white, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, shadowColor: C.brown, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
+  listeAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  listeIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
+  listeEmoji: { fontSize: 24 },
+  listeInfo: { flex: 1 },
+  listeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
+  listeTitre: { color: C.brown, fontSize: 14, fontWeight: '800', flex: 1, marginRight: 8 },
+  listeTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  listeTagTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
+  listeDesc: { color: C.grayText, fontSize: 12, marginBottom: 6 },
+  listeFooter: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  listeMeta: { color: C.grayMid, fontSize: 11, fontWeight: '500' },
+  listePlaces: { fontSize: 11, fontWeight: '700' },
 
   // FAB
-  fabCreer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1A1A1A', borderRadius: 24, padding: 20, marginHorizontal: 20, marginTop: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 },
-  fabGauche: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  fabIconWrapper: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#E8000D', alignItems: 'center', justifyContent: 'center' },
-  fabIconTexte: { color: '#fff', fontSize: 22 },
-  fabTitre: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  fabWrap: { marginHorizontal: 20, marginTop: 24, borderRadius: 24, overflow: 'hidden', shadowColor: C.brown, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 },
+  fab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
+  fabLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  fabIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  fabIconTxt: { color: C.brown, fontSize: 22, fontWeight: '900' },
+  fabTitle: { color: C.white, fontSize: 15, fontWeight: '800' },
   fabSub: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
-  fabArrow: { color: 'rgba(255,255,255,0.5)', fontSize: 22 },
+  fabArrow: { color: C.gold, fontSize: 22, fontWeight: '700' },
 
   // MODAL
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#FAF7F2', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 44 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#DDD4C4', alignSelf: 'center', marginBottom: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(26,18,9,0.6)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: C.beige, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 44 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.beigeDeep, alignSelf: 'center', marginBottom: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  modalTitre: { fontSize: 22, fontWeight: '900', color: '#1A1A1A', marginBottom: 4 },
-  modalSub: { fontSize: 14, color: '#AAA' },
-  modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center' },
-  modalCloseTexte: { fontSize: 14, color: '#AAA', fontWeight: '700' },
+  modalTitle: { fontSize: 22, fontWeight: '900', color: C.brown, marginBottom: 4 },
+  modalSub: { fontSize: 14, color: C.grayText },
+  modalClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.beigeDeep, alignItems: 'center', justifyContent: 'center' },
+  modalCloseTxt: { fontSize: 14, color: C.grayText, fontWeight: '700' },
   activitesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  activiteBtn: { backgroundColor: '#fff', borderRadius: 18, padding: 16, alignItems: 'center', width: '22%', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  activiteBtn: { backgroundColor: C.white, borderRadius: 18, padding: 16, alignItems: 'center', width: '22%', shadowColor: C.brown, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   activiteBtnEmoji: { fontSize: 30, marginBottom: 6 },
-  activiteBtnLabel: { fontSize: 11, fontWeight: '700', color: '#1A1A1A' },
-  modalInfoBox: { backgroundColor: '#1DB95412', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#1DB95430' },
-  modalInfoTexte: { color: '#1DB954', fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
+  activiteBtnLabel: { fontSize: 11, fontWeight: '700', color: C.brown },
+  modalInfo: { backgroundColor: C.goldPale, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: C.gold + '40' },
+  modalInfoTxt: { color: C.brownMid, fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
 });
