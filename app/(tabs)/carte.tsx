@@ -14,6 +14,17 @@ import {
 import { WebView } from 'react-native-webview';
 import { supabase } from '../../lib/supabase';
 
+const C = {
+  bg: '#F8F9FA',
+  white: '#FFFFFF',
+  text: '#1A1A2E',
+  textMid: '#4A4A6A',
+  textLight: '#9090A0',
+  border: '#EEEEEE',
+  green: '#00C853',
+  purple: '#7C4DFF',
+};
+
 type Activite = {
   id: string;
   titre: string;
@@ -26,27 +37,39 @@ type Activite = {
   longitude?: number;
 };
 
-const CATEGORIES: Record<string, { couleur: string; emoji: string }> = {
-  Sport: { couleur: '#E8000D', emoji: '⚡' },
-  Resto: { couleur: '#FF6A00', emoji: '🍕' },
-  Ciné: { couleur: '#7B2FBE', emoji: '🎬' },
-  Soirée: { couleur: '#1A1A3A', emoji: '🎉' },
-  Gaming: { couleur: '#0070F3', emoji: '🎮' },
-  Voyage: { couleur: '#00B4D8', emoji: '✈️' },
-  Musique: { couleur: '#1DB954', emoji: '🎵' },
-  'Bien-être': { couleur: '#00897B', emoji: '🏃' },
-  Social: { couleur: '#FF4B7D', emoji: '👥' },
-  Art: { couleur: '#FFD600', emoji: '🎨' },
+const CAT_GRADIENT: Record<string, [string, string]> = {
+  Sport: ['#FF416C', '#FF4B2B'],
+  Resto: ['#F7971E', '#FFD200'],
+  Ciné: ['#8E2DE2', '#4A00E0'],
+  Soirée: ['#FC466B', '#3F5EFB'],
+  Gaming: ['#0072FF', '#00C6FF'],
+  Voyage: ['#00B4DB', '#0083B0'],
+  Musique: ['#11998E', '#38EF7D'],
+  'Bien-être': ['#56AB2F', '#A8E063'],
+  Social: ['#FF416C', '#FF4B2B'],
+  Art: ['#F7971E', '#FFD200'],
+};
+
+const CAT_COLOR: Record<string, string> = {
+  Sport: '#FF416C', Resto: '#F7971E', Ciné: '#8E2DE2',
+  Soirée: '#FC466B', Gaming: '#0072FF', Voyage: '#00B4DB',
+  Musique: '#11998E', 'Bien-être': '#56AB2F', Social: '#FF4081', Art: '#F7971E',
+};
+
+const CAT_EMOJI: Record<string, string> = {
+  Sport: '⚡', Resto: '🍕', Ciné: '🎬', Soirée: '🎉',
+  Gaming: '🎮', Voyage: '✈️', Musique: '🎵', 'Bien-être': '🏃',
+  Social: '👥', Art: '🎨',
 };
 
 const FILTRES = [
-  { label: 'Tout', value: null, couleur: '#1A1209' },
-  { label: '⚡ Sport', value: 'Sport', couleur: '#E8000D' },
-  { label: '🍕 Resto', value: 'Resto', couleur: '#FF6A00' },
-  { label: '🎉 Soirée', value: 'Soirée', couleur: '#7B2FBE' },
-  { label: '🎮 Gaming', value: 'Gaming', couleur: '#0070F3' },
-  { label: '🎵 Musique', value: 'Musique', couleur: '#1DB954' },
-  { label: '✈️ Voyage', value: 'Voyage', couleur: '#00B4D8' },
+  { label: 'Tout', value: null },
+  { label: '⚡ Sport', value: 'Sport' },
+  { label: '🍕 Resto', value: 'Resto' },
+  { label: '🎉 Soirée', value: 'Soirée' },
+  { label: '🎮 Gaming', value: 'Gaming' },
+  { label: '🎵 Musique', value: 'Musique' },
+  { label: '✈️ Voyage', value: 'Voyage' },
 ];
 
 export default function CarteScreen() {
@@ -56,10 +79,7 @@ export default function CarteScreen() {
   const [categorieActive, setCategorieActive] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  useEffect(() => {
-    chargerActivites();
-    demanderLocalisation();
-  }, []);
+  useEffect(() => { chargerActivites(); demanderLocalisation(); }, []);
 
   const demanderLocalisation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -81,26 +101,25 @@ export default function CarteScreen() {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Date à confirmer';
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
-  const centerLat = userLocation?.latitude ?? 33.5731;
-  const centerLng = userLocation?.longitude ?? -7.5898;
+  const centerLat = userLocation?.latitude ?? 35.7595;
+  const centerLng = userLocation?.longitude ?? -5.8340;
 
   const marqueurs = activitesFiltrees
     .filter(a => a.latitude && a.longitude)
     .map(a => {
-      const cat = CATEGORIES[a.categorie] || { couleur: '#1A1209', emoji: '📍' };
+      const color = CAT_COLOR[a.categorie] || '#667EEA';
+      const emoji = CAT_EMOJI[a.categorie] || '📍';
       return `
         var icon_${a.id.replace(/-/g, '_')} = L.divIcon({
-          html: '<div style="background:${cat.couleur};width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${cat.emoji}</div>',
-          className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+          html: '<div style="background:${color};width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.25)">${emoji}</div>',
+          className: '', iconSize: [40, 40], iconAnchor: [20, 20]
         });
         L.marker([${a.latitude}, ${a.longitude}], {icon: icon_${a.id.replace(/-/g, '_')}})
           .addTo(map)
-          .bindPopup('<div style="font-family:sans-serif;padding:4px"><b style="font-size:14px">${a.titre.replace(/'/g, "\\'")}</b><br><span style="color:#888;font-size:12px">📍 ${a.ville.replace(/'/g, "\\'")}</span></div>');
+          .bindPopup('<div style="font-family:sans-serif;padding:6px;min-width:140px"><b style="font-size:14px;color:#1A1A2E">${a.titre.replace(/'/g, "\\'")}</b><br><span style="color:#9090A0;font-size:12px">📍 ${a.ville.replace(/'/g, "\\'")}</span></div>');
       `;
     }).join('\n');
 
@@ -111,10 +130,10 @@ export default function CarteScreen() {
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#FAF7F2; }
+        * { margin:0; padding:0; }
         #map { width:100vw; height:100vh; }
-        .leaflet-popup-content-wrapper { border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.15); }
+        .leaflet-popup-content-wrapper { border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.12); border:1px solid #eee; }
+        .leaflet-popup-tip { display:none; }
       </style>
     </head>
     <body>
@@ -126,11 +145,11 @@ export default function CarteScreen() {
         }).addTo(map);
         L.control.zoom({position:'bottomright'}).addTo(map);
         ${userLocation ? `
-        var pulse = L.divIcon({
-          html: '<div style="width:20px;height:20px;background:#E8000D;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(232,0,13,0.25)"></div>',
-          className:'', iconSize:[20,20], iconAnchor:[10,10]
+        var userIcon = L.divIcon({
+          html: '<div style="width:18px;height:18px;background:#667EEA;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(102,126,234,0.25)"></div>',
+          className:'', iconSize:[18,18], iconAnchor:[9,9]
         });
-        L.marker([${centerLat}, ${centerLng}], {icon:pulse}).addTo(map).bindPopup('📍 Vous êtes ici');
+        L.marker([${centerLat}, ${centerLng}], {icon:userIcon}).addTo(map).bindPopup('📍 Vous êtes ici');
         ` : ''}
         ${marqueurs}
       </script>
@@ -140,7 +159,7 @@ export default function CarteScreen() {
   if (loading) {
     return (
       <View style={s.loading}>
-        <ActivityIndicator size="large" color="#C9A84C" />
+        <ActivityIndicator size="large" color={C.purple} />
         <Text style={s.loadingTxt}>Chargement de la carte...</Text>
       </View>
     );
@@ -149,8 +168,9 @@ export default function CarteScreen() {
   return (
     <View style={s.root}>
 
-      {/* HEADER */}
-      <LinearGradient colors={['#1A1209', '#2C1F0A']} style={s.header}>
+      {/* ── HEADER ── */}
+      <LinearGradient colors={['#667EEA', '#764BA2']} style={s.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <View style={s.headerCircle} />
         <View style={s.headerContent}>
           <View>
             <Text style={s.headerSub}>Explore autour de toi</Text>
@@ -163,32 +183,25 @@ export default function CarteScreen() {
         </View>
 
         {/* FILTRES */}
-        <ScrollView
-          horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.filtresContent}>
-          {FILTRES.map(f => (
-            <TouchableOpacity
-              key={f.label}
-              onPress={() => setCategorieActive(f.value)}
-              activeOpacity={0.8}>
-              {categorieActive === f.value ? (
-                <LinearGradient
-                  colors={[f.couleur + 'DD', f.couleur]}
-                  style={s.filtreActive}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                  <Text style={s.filtreActiveTxt}>{f.label}</Text>
-                </LinearGradient>
-              ) : (
-                <View style={s.filtre}>
-                  <Text style={s.filtreTxt}>{f.label}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtresContent}>
+          {FILTRES.map(f => {
+            const active = categorieActive === f.value;
+            const color = f.value ? CAT_COLOR[f.value] : '#667EEA';
+            return (
+              <TouchableOpacity key={f.label} onPress={() => setCategorieActive(f.value)} activeOpacity={0.8}>
+                <View style={[
+                  s.filtre,
+                  active && { backgroundColor: color, borderColor: color }
+                ]}>
+                  <Text style={[s.filtreTxt, active && { color: C.white }]}>{f.label}</Text>
                 </View>
-              )}
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </LinearGradient>
 
-      {/* CARTE */}
+      {/* ── CARTE ── */}
       <View style={s.mapWrap}>
         <WebView
           source={{ html: mapHtml }}
@@ -197,23 +210,19 @@ export default function CarteScreen() {
           javaScriptEnabled
           originWhitelist={['*']}
         />
-
-        {/* Badge compteur sur la carte */}
         <View style={s.mapBadge}>
           <View style={s.mapBadgeDot} />
           <Text style={s.mapBadgeTxt}>{activitesFiltrees.filter(a => a.latitude && a.longitude).length} sur la carte</Text>
         </View>
       </View>
 
-      {/* MINI LISTE */}
+      {/* ── LISTE ── */}
       <View style={s.liste}>
         <View style={s.listeHeader}>
           <Text style={s.listeTitre}>Plans disponibles</Text>
           <Text style={s.listeCount}>{activitesFiltrees.length} résultats</Text>
         </View>
-        <ScrollView
-          horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.listeContent}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.listeContent}>
           {activitesFiltrees.length === 0 ? (
             <View style={s.emptyCard}>
               <Text style={{ fontSize: 36 }}>🗺️</Text>
@@ -221,7 +230,9 @@ export default function CarteScreen() {
             </View>
           ) : (
             activitesFiltrees.map(a => {
-              const cat = CATEGORIES[a.categorie] || { couleur: '#1A1209', emoji: '✦' };
+              const gradient = CAT_GRADIENT[a.categorie] || ['#667EEA', '#764BA2'];
+              const emoji = CAT_EMOJI[a.categorie] || '✨';
+              const color = CAT_COLOR[a.categorie] || '#667EEA';
               const dispo = (a.max_participants || 0) - (a.participants_count || 0);
               return (
                 <TouchableOpacity
@@ -229,90 +240,86 @@ export default function CarteScreen() {
                   style={s.card}
                   onPress={() => router.push(`/activite/${a.id}` as any)}
                   activeOpacity={0.85}>
-                  <LinearGradient
-                    colors={[cat.couleur + '22', cat.couleur + '08']}
-                    style={s.cardGrad}>
-                    <View style={[s.cardIcon, { backgroundColor: cat.couleur }]}>
-                      <Text style={{ fontSize: 20 }}>{cat.emoji}</Text>
+                  <LinearGradient colors={gradient as [string,string]} style={s.cardHeader}>
+                    <Text style={{ fontSize: 28 }}>{emoji}</Text>
+                    <View style={s.cardHeaderBadge}>
+                      <Text style={s.cardHeaderBadgeTxt}>{a.categorie}</Text>
                     </View>
+                  </LinearGradient>
+                  <View style={s.cardBody}>
                     <Text style={s.cardTitre} numberOfLines={1}>{a.titre}</Text>
                     <Text style={s.cardVille} numberOfLines={1}>📍 {a.ville}</Text>
-                    <Text style={s.cardDate}>{formatDate(a.date)}</Text>
-                    <View style={s.cardBottom}>
-                      <View style={[s.cardDispo, { backgroundColor: dispo > 0 ? '#1DB95420' : '#E8000D20' }]}>
-                        <Text style={[s.cardDispoTxt, { color: dispo > 0 ? '#1DB954' : '#E8000D' }]}>
+                    <Text style={s.cardDate}>🗓 {formatDate(a.date)}</Text>
+                    <View style={s.cardFooter}>
+                      <View style={[s.cardDispo, { backgroundColor: dispo > 0 ? '#00C85315' : '#FF3B3015' }]}>
+                        <Text style={[s.cardDispoTxt, { color: dispo > 0 ? C.green : '#FF3B30' }]}>
                           {dispo > 0 ? `${dispo} places` : 'Complet'}
                         </Text>
                       </View>
-                      <View style={[s.cardBtn, { backgroundColor: cat.couleur }]}>
-                        <Text style={s.cardBtnTxt}>Voir</Text>
-                      </View>
+                      <TouchableOpacity style={[s.cardBtn, { backgroundColor: color }]}>
+                        <Text style={s.cardBtnTxt}>Voir →</Text>
+                      </TouchableOpacity>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               );
             })
           )}
         </ScrollView>
       </View>
-
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FAF7F2' },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#FAF7F2' },
-  loadingTxt: { color: '#AAA', fontSize: 14, fontWeight: '600' },
+  root: { flex: 1, backgroundColor: C.bg },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: C.bg },
+  loadingTxt: { color: C.textLight, fontSize: 14, fontWeight: '600' },
 
   // HEADER
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 58 : 32,
-    paddingBottom: 12,
-  },
-  headerContent: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-end', paddingHorizontal: 20, marginBottom: 14,
-  },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: '600', marginBottom: 2 },
-  headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: -0.8 },
-  headerBadge: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  headerBadgeNum: { fontSize: 20, fontWeight: '900', color: '#C9A84C' },
-  headerBadgeLbl: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700' },
+  header: { paddingTop: Platform.OS === 'ios' ? 58 : 32, paddingBottom: 12, overflow: 'hidden' },
+  headerCircle: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)', top: -100, right: -60 },
+  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, marginBottom: 14 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginBottom: 2 },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: C.white, letterSpacing: -0.8 },
+  headerBadge: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  headerBadgeNum: { fontSize: 20, fontWeight: '900', color: C.white },
+  headerBadgeLbl: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
 
   // FILTRES
-  filtresContent: { paddingHorizontal: 20, gap: 8, paddingBottom: 4, alignItems: 'center' },
-  filtre: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  filtreTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
-  filtreActive: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  filtreActiveTxt: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  filtresContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 4, alignItems: 'center' },
+  filtre: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  filtreTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
 
   // CARTE
   mapWrap: { flex: 1, position: 'relative' },
   webview: { flex: 1 },
-  mapBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(26,18,9,0.85)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  mapBadgeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#1DB954' },
-  mapBadgeTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  mapBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(26,26,46,0.85)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  mapBadgeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
+  mapBadgeTxt: { color: C.white, fontSize: 12, fontWeight: '700' },
 
   // LISTE
-  liste: { backgroundColor: '#FAF7F2', paddingTop: 14, paddingBottom: 8 },
-  listeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 10 },
-  listeTitre: { fontSize: 15, fontWeight: '800', color: '#1A1209' },
-  listeCount: { fontSize: 12, fontWeight: '700', color: '#8A7F72' },
-  listeContent: { paddingHorizontal: 20, gap: 10, paddingBottom: 4 },
+  liste: { backgroundColor: C.white, paddingTop: 14, paddingBottom: 8, borderTopWidth: 1, borderTopColor: C.border },
+  listeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
+  listeTitre: { fontSize: 15, fontWeight: '800', color: C.text },
+  listeCount: { fontSize: 12, fontWeight: '700', color: C.textLight },
+  listeContent: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
 
   emptyCard: { alignItems: 'center', justifyContent: 'center', width: 160, padding: 24, gap: 8 },
-  emptyTxt: { fontSize: 13, color: '#AAA', fontWeight: '600' },
+  emptyTxt: { fontSize: 13, color: C.textLight, fontWeight: '600' },
 
-  card: { width: 160, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3 },
-  cardGrad: { padding: 14, gap: 5, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)', borderRadius: 20 },
-  cardIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cardTitre: { fontSize: 13, fontWeight: '800', color: '#1A1209' },
-  cardVille: { fontSize: 11, color: '#8A7F72' },
-  cardDate: { fontSize: 10, color: '#AAA' },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  // CARDS
+  card: { width: 165, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, backgroundColor: C.white, borderWidth: 1, borderColor: C.border },
+  cardHeader: { padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardHeaderBadge: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  cardHeaderBadgeTxt: { color: C.white, fontSize: 10, fontWeight: '800' },
+  cardBody: { padding: 12, gap: 4 },
+  cardTitre: { fontSize: 13, fontWeight: '800', color: C.text },
+  cardVille: { fontSize: 11, color: C.textLight },
+  cardDate: { fontSize: 10, color: C.textLight },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   cardDispo: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   cardDispoTxt: { fontSize: 10, fontWeight: '700' },
   cardBtn: { borderRadius: 10, paddingVertical: 5, paddingHorizontal: 10 },
-  cardBtnTxt: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  cardBtnTxt: { color: C.white, fontSize: 11, fontWeight: '800' },
 });
