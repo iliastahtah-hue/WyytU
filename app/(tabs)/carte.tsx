@@ -133,16 +133,13 @@ export default function CarteScreen() {
         * { margin:0; padding:0; }
         #map { width:100vw; height:100vh; }
         .leaflet-popup-content-wrapper { border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.12); border:1px solid #eee; }
-        .leaflet-popup-tip { display:none; }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
         var map = L.map('map', {zoomControl:false}).setView([${centerLat}, ${centerLng}], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-          attribution: '© CartoDB'
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {attribution: '© CartoDB'}).addTo(map);
         L.control.zoom({position:'bottomright'}).addTo(map);
         ${userLocation ? `
         var userIcon = L.divIcon({
@@ -167,8 +164,6 @@ export default function CarteScreen() {
 
   return (
     <View style={s.root}>
-
-      {/* ── HEADER ── */}
       <LinearGradient colors={['#667EEA', '#764BA2']} style={s.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <View style={s.headerCircle} />
         <View style={s.headerContent}>
@@ -181,18 +176,13 @@ export default function CarteScreen() {
             <Text style={s.headerBadgeLbl}>plans</Text>
           </View>
         </View>
-
-        {/* FILTRES */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtresContent}>
           {FILTRES.map(f => {
             const active = categorieActive === f.value;
             const color = f.value ? CAT_COLOR[f.value] : '#667EEA';
             return (
               <TouchableOpacity key={f.label} onPress={() => setCategorieActive(f.value)} activeOpacity={0.8}>
-                <View style={[
-                  s.filtre,
-                  active && { backgroundColor: color, borderColor: color }
-                ]}>
+                <View style={[s.filtre, active && { backgroundColor: color, borderColor: color }]}>
                   <Text style={[s.filtreTxt, active && { color: C.white }]}>{f.label}</Text>
                 </View>
               </TouchableOpacity>
@@ -201,22 +191,14 @@ export default function CarteScreen() {
         </ScrollView>
       </LinearGradient>
 
-      {/* ── CARTE ── */}
       <View style={s.mapWrap}>
-        <WebView
-          source={{ html: mapHtml }}
-          style={s.webview}
-          scrollEnabled={false}
-          javaScriptEnabled
-          originWhitelist={['*']}
-        />
+        <WebView source={{ html: mapHtml }} style={s.webview} scrollEnabled={false} javaScriptEnabled originWhitelist={['*']} />
         <View style={s.mapBadge}>
           <View style={s.mapBadgeDot} />
           <Text style={s.mapBadgeTxt}>{activitesFiltrees.filter(a => a.latitude && a.longitude).length} sur la carte</Text>
         </View>
       </View>
 
-      {/* ── LISTE ── */}
       <View style={s.liste}>
         <View style={s.listeHeader}>
           <Text style={s.listeTitre}>Plans disponibles</Text>
@@ -230,21 +212,15 @@ export default function CarteScreen() {
             </View>
           ) : (
             activitesFiltrees.map(a => {
-              const gradient = CAT_GRADIENT[a.categorie] || ['#667EEA', '#764BA2'];
+              const gradient = CAT_GRADIENT[a.categorie] || ['#667EEA', '#764BA2'] as [string,string];
               const emoji = CAT_EMOJI[a.categorie] || '✨';
               const color = CAT_COLOR[a.categorie] || '#667EEA';
               const dispo = (a.max_participants || 0) - (a.participants_count || 0);
               return (
-                <TouchableOpacity
-                  key={a.id}
-                  style={s.card}
-                  onPress={() => router.push(`/activite/${a.id}` as any)}
-                  activeOpacity={0.85}>
+                <TouchableOpacity key={a.id} style={s.card} onPress={() => router.push(`/activite/${a.id}` as any)} activeOpacity={0.85}>
                   <LinearGradient colors={gradient as [string,string]} style={s.cardHeader}>
                     <Text style={{ fontSize: 28 }}>{emoji}</Text>
-                    <View style={s.cardHeaderBadge}>
-                      <Text style={s.cardHeaderBadgeTxt}>{a.categorie}</Text>
-                    </View>
+                    <View style={s.cardHeaderBadge}><Text style={s.cardHeaderBadgeTxt}>{a.categorie}</Text></View>
                   </LinearGradient>
                   <View style={s.cardBody}>
                     <Text style={s.cardTitre} numberOfLines={1}>{a.titre}</Text>
@@ -275,8 +251,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: C.bg },
   loadingTxt: { color: C.textLight, fontSize: 14, fontWeight: '600' },
-
-  // HEADER
   header: { paddingTop: Platform.OS === 'ios' ? 58 : 32, paddingBottom: 12, overflow: 'hidden' },
   headerCircle: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)', top: -100, right: -60 },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, marginBottom: 14 },
@@ -285,30 +259,21 @@ const s = StyleSheet.create({
   headerBadge: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   headerBadgeNum: { fontSize: 20, fontWeight: '900', color: C.white },
   headerBadgeLbl: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
-
-  // FILTRES
   filtresContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 4, alignItems: 'center' },
   filtre: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   filtreTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
-
-  // CARTE
   mapWrap: { flex: 1, position: 'relative' },
   webview: { flex: 1 },
   mapBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(26,26,46,0.85)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   mapBadgeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
   mapBadgeTxt: { color: C.white, fontSize: 12, fontWeight: '700' },
-
-  // LISTE
   liste: { backgroundColor: C.white, paddingTop: 14, paddingBottom: 8, borderTopWidth: 1, borderTopColor: C.border },
   listeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
   listeTitre: { fontSize: 15, fontWeight: '800', color: C.text },
   listeCount: { fontSize: 12, fontWeight: '700', color: C.textLight },
   listeContent: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
-
   emptyCard: { alignItems: 'center', justifyContent: 'center', width: 160, padding: 24, gap: 8 },
   emptyTxt: { fontSize: 13, color: C.textLight, fontWeight: '600' },
-
-  // CARDS
   card: { width: 165, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, backgroundColor: C.white, borderWidth: 1, borderColor: C.border },
   cardHeader: { padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardHeaderBadge: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },

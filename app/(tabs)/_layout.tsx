@@ -6,9 +6,6 @@ const C = {
   gold: '#C9A84C',
   goldLight: '#E8C96A',
   brown: '#1A1209',
-  brownMid: '#2C1F0A',
-  beige: '#FAF7F2',
-  beigeDeep: '#EEE8DE',
   white: '#FFFFFF',
   inactive: 'rgba(255,255,255,0.3)',
 };
@@ -38,33 +35,53 @@ function TabIcon({ name, focused }: { name: keyof typeof TAB_ICONS; focused: boo
   );
 }
 
+function PlusButton() {
+  return (
+    <TouchableOpacity
+      style={s.plusWrapper}
+      onPress={() => router.push('/creer-activite' as any)}
+      activeOpacity={0.85}>
+      <LinearGradient colors={[C.goldLight, C.gold]} style={s.plusBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Text style={s.plusIcon}>+</Text>
+      </LinearGradient>
+      <View style={s.plusGlow} />
+    </TouchableOpacity>
+  );
+}
+
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarStyle: s.tabBar, tabBarItemStyle: s.tabItem }}>
 
-      <Tabs.Screen name="explore" options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="explore" focused={focused} />, tabBarLabel: () => null }} />
+      <Tabs.Screen
+        name="explore"
+        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="explore" focused={focused} />, tabBarLabel: () => null }}
+      />
 
-      <Tabs.Screen name="carte" options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="carte" focused={focused} />, tabBarLabel: () => null }} />
+      <Tabs.Screen
+        name="carte"
+        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="carte" focused={focused} />, tabBarLabel: () => null }}
+      />
 
+      {/* BOUTON + CENTRAL */}
       <Tabs.Screen
         name="creer"
         options={{
           title: '',
-          tabBarIcon: () => (
-            <TouchableOpacity style={s.plusWrapper} onPress={() => router.push('/creer-activite' as any)} activeOpacity={0.85}>
-              <LinearGradient colors={[C.goldLight, C.gold, C.gold]} style={s.plusBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={s.plusIcon}>+</Text>
-              </LinearGradient>
-              <View style={s.plusGlow} />
-            </TouchableOpacity>
-          ),
+          tabBarIcon: () => <PlusButton />,
           tabBarLabel: () => null,
         }}
       />
 
-      <Tabs.Screen name="chat" options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="chat" focused={focused} />, tabBarLabel: () => null }} />
+      <Tabs.Screen
+        name="chat"
+        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="chat" focused={focused} />, tabBarLabel: () => null }}
+      />
 
-      <Tabs.Screen name="profil" options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="profil" focused={focused} />, tabBarLabel: () => null }} />
+      <Tabs.Screen
+        name="profil"
+        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="profil" focused={focused} />, tabBarLabel: () => null }}
+      />
 
       {/* CACHÉES */}
       <Tabs.Screen name="index" options={{ href: null }} />
@@ -96,7 +113,7 @@ const s = StyleSheet.create({
   iconBubbleActive: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: C.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8 },
   iconEmoji: { fontSize: 20 },
   label: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
-  plusWrapper: { alignItems: 'center', justifyContent: 'center', marginBottom: Platform.OS === 'ios' ? 8 : 4, position: 'relative' },
+  plusWrapper: { alignItems: 'center', justifyContent: 'center', marginBottom: Platform.OS === 'ios' ? 8 : 4 },
   plusBtn: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', shadowColor: C.gold, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.6, shadowRadius: 14, elevation: 10 },
   plusGlow: { position: 'absolute', width: 58, height: 58, borderRadius: 29, backgroundColor: C.gold, opacity: 0.15, transform: [{ scale: 1.3 }] },
   plusIcon: { fontSize: 32, color: C.brown, fontWeight: '300', lineHeight: 36 },
