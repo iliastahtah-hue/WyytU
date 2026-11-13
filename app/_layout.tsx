@@ -21,11 +21,25 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loading) return;
+
     const inAuthGroup = segments[0] === '(tabs)';
     const inPublic = segments[0] === 'connexion' || segments[0] === 'inscription' || segments[0] === 'mot-de-passe-oublie';
+
+    const privateRoutes = [
+      'creer-activite',
+      'matching',
+      'carte',
+      'activite',
+      'chat',
+      'appel',
+      'mes-activites',
+      'profils',
+    ];
+    const inPrivateRoute = privateRoutes.includes(segments[0] as string);
+
     if (!user && inAuthGroup) {
       router.replace('/connexion' as any);
-    } else if (user && !inAuthGroup && !inPublic) {
+    } else if (user && !inAuthGroup && !inPublic && !inPrivateRoute) {
       router.replace('/(tabs)/explore' as any);
     }
   }, [user, loading, segments]);

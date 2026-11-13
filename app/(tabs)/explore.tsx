@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -247,11 +248,15 @@ export default function ExploreScreen() {
               </View>
             </View>
             <View style={s.headerRight}>
-              <TouchableOpacity style={s.headerBtn} onPress={() => router.push('/matching' as any)}>
-                <Text style={{ fontSize: 20 }}>🎯</Text>
+              <TouchableOpacity style={s.headerBtnGlass} onPress={() => router.push('/matching' as any)} activeOpacity={0.8}>
+                <BlurView intensity={40} tint="light" style={s.headerBtnBlur}>
+                  <Text style={{ fontSize: 20 }}>🎯</Text>
+                </BlurView>
               </TouchableOpacity>
-              <TouchableOpacity style={s.headerBtnWhite}>
-                <Text style={{ fontSize: 20 }}>🔔</Text>
+              <TouchableOpacity style={s.headerBtnGlass} activeOpacity={0.8}>
+                <BlurView intensity={40} tint="light" style={s.headerBtnBlur}>
+                  <Text style={{ fontSize: 20 }}>🔔</Text>
+                </BlurView>
               </TouchableOpacity>
             </View>
           </View>
@@ -550,8 +555,8 @@ const s = StyleSheet.create({
   locationDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
   locationTxt: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   headerRight: { flexDirection: 'row', gap: 8 },
-  headerBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  headerBtnWhite: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  headerBtnGlass: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  headerBtnBlur: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   searchInput: { flex: 1, color: C.white, fontSize: 14, fontWeight: '500' },
   catsWrap: { backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.border },

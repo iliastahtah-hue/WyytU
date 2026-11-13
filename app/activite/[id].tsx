@@ -1,15 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import TabBar from '../../components/TabBar';
 import { supabase } from '../../lib/supabase';
@@ -54,34 +54,71 @@ export default function ActiviteDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [rejoindreLoading, setRejoindreLoading] = useState(false);
   const [dejaRejoint, setDejaRejoint] = useState(false);
+  const [statutDemande, setStatutDemande] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [nbDemandesEnAttente, setNbDemandesEnAttente] = useState(0);
 
-  useEffect(() => { chargerActivite(); checkUser(); }, []);
+  useEffect(() => { init(); }, []);
 
-  const checkUser = async () => {
+  const init = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setUserId(user.id);
+    await chargerActivite();
+    if (user) await checkParticipation(user.id);
   };
 
   const chargerActivite = async () => {
     try {
       const { data, error } = await supabase.from('activites').select('*').eq('id', id).single();
-      if (!error && data) setActivite(data);
+      if (!error && data) {
+        setActivite(data);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.id === data.createur_id) {
+          chargerNbDemandes();
+        }
+      }
     } catch (err) { console.log(err); }
     finally { setLoading(false); }
   };
 
+  const checkParticipation = async (uid: string) => {
+    const { data } = await supabase
+      .from('participations')
+      .select('statut')
+      .eq('activite_id', id)
+      .eq('user_id', uid)
+      .maybeSingle();
+    if (data) {
+      setStatutDemande(data.statut);
+      setDejaRejoint(true);
+    }
+  };
+
+  const chargerNbDemandes = async () => {
+    const { count } = await supabase
+      .from('participations')
+      .select('*', { count: 'exact', head: true })
+      .eq('activite_id', id)
+      .eq('statut', 'en_attente');
+    setNbDemandesEnAttente(count || 0);
+  };
+
   const rejoindre = async () => {
     if (!userId) { Alert.alert('Erreur', 'Tu dois être connecté !'); return; }
-    if (dejaRejoint) { Alert.alert('Info', 'Tu as déjà rejoint ce plan !'); return; }
+    if (dejaRejoint) return;
     setRejoindreLoading(true);
     try {
-      const { error } = await supabase.from('participations').insert({ activite_id: id, user_id: userId });
+      const { error } = await supabase.from('participations').insert({
+        activite_id: id,
+        user_id: userId,
+        statut: 'en_attente',
+      });
       if (!error) {
-        await supabase.from('activites').update({ participants_count: (activite?.participants_count || 0) + 1 }).eq('id', id);
         setDejaRejoint(true);
-        setActivite((prev) => prev ? { ...prev, participants_count: (prev.participants_count || 0) + 1 } : prev);
-        Alert.alert('🎉 Bravo !', 'Tu as rejoint le plan !');
+        setStatutDemande('en_attente');
+        Alert.alert('✅ Demande envoyée !', "L'organisateur va examiner ta demande.");
+      } else {
+        Alert.alert('Erreur', error.message);
       }
     } catch { Alert.alert('Erreur', 'Une erreur est survenue.'); }
     finally { setRejoindreLoading(false); }
@@ -136,6 +173,14 @@ export default function ActiviteDetailScreen() {
   const tauxRemplissage = activite.max_participants ? (activite.participants_count / activite.max_participants) * 100 : 0;
   const hasLocation = activite.latitude && activite.longitude;
 
+  const boutonRejoindreTexte = () => {
+    if (rejoindreLoading) return '⏳ En cours...';
+    if (statutDemande === 'accepte') return '✅ Tu participes !';
+    if (statutDemande === 'en_attente') return '⏳ Demande en attente';
+    if (statutDemande === 'refuse') return '❌ Demande refusée';
+    return `${emoji} Rejoindre ce plan`;
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -162,6 +207,27 @@ export default function ActiviteDetailScreen() {
         </View>
 
         <View style={styles.contenu}>
+
+          {/* BANNIÈRE DEMANDES EN ATTENTE — visible uniquement par le créateur */}
+          {estCreateur && nbDemandesEnAttente > 0 && (
+            <TouchableOpacity
+              style={[styles.demandesBanner, { backgroundColor: c1 }]}
+              onPress={() => router.push(`/activite/${id}/demandes` as any)}
+              activeOpacity={0.85}>
+              <View style={styles.demandesBannerLeft}>
+                <View style={styles.demandesBannerIcon}>
+                  <Text style={{ fontSize: 20 }}>🔔</Text>
+                </View>
+                <View>
+                  <Text style={styles.demandesBannerTitre}>
+                    {nbDemandesEnAttente} demande{nbDemandesEnAttente > 1 ? 's' : ''} en attente
+                  </Text>
+                  <Text style={styles.demandesBannerSub}>Touche pour examiner</Text>
+                </View>
+              </View>
+              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>→</Text>
+            </TouchableOpacity>
+          )}
 
           {/* STATS */}
           <View style={styles.statsRow}>
@@ -268,12 +334,13 @@ export default function ActiviteDetailScreen() {
           {/* BOUTONS */}
           {!estCreateur && (
             <TouchableOpacity
-              style={[styles.boutonRejoindre, { backgroundColor: dejaRejoint ? '#1DB954' : c1 }]}
+              style={[
+                styles.boutonRejoindre,
+                { backgroundColor: statutDemande === 'accepte' ? '#1DB954' : statutDemande === 'refuse' ? '#AAA' : c1 },
+              ]}
               onPress={rejoindre}
               disabled={rejoindreLoading || dejaRejoint}>
-              <Text style={styles.boutonRejoindreTexte}>
-                {rejoindreLoading ? '⏳ En cours...' : dejaRejoint ? '✅ Plan rejoint !' : `${emoji} Rejoindre ce plan`}
-              </Text>
+              <Text style={styles.boutonRejoindreTexte}>{boutonRejoindreTexte()}</Text>
             </TouchableOpacity>
           )}
 
@@ -319,6 +386,11 @@ const styles = StyleSheet.create({
   heroPill: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   heroPillTexte: { color: '#fff', fontSize: 12, fontWeight: '600' },
   contenu: { paddingHorizontal: 20, paddingTop: 24 },
+  demandesBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 18, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 4 },
+  demandesBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  demandesBannerIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  demandesBannerTitre: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  demandesBannerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   statCard: { flex: 1, borderRadius: 18, padding: 16, alignItems: 'center', borderWidth: 1.5 },
   statNombre: { fontSize: 24, fontWeight: '900' },

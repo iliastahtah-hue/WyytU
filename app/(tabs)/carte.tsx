@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -171,9 +172,11 @@ export default function CarteScreen() {
             <Text style={s.headerSub}>Explore autour de toi</Text>
             <Text style={s.headerTitle}>Carte 🗺️</Text>
           </View>
-          <View style={s.headerBadge}>
-            <Text style={s.headerBadgeNum}>{activitesFiltrees.length}</Text>
-            <Text style={s.headerBadgeLbl}>plans</Text>
+          <View style={s.headerBadgeGlass}>
+            <BlurView intensity={40} tint="light" style={s.headerBadgeBlur}>
+              <Text style={s.headerBadgeNum}>{activitesFiltrees.length}</Text>
+              <Text style={s.headerBadgeLbl}>plans</Text>
+            </BlurView>
           </View>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtresContent}>
@@ -193,9 +196,11 @@ export default function CarteScreen() {
 
       <View style={s.mapWrap}>
         <WebView source={{ html: mapHtml }} style={s.webview} scrollEnabled={false} javaScriptEnabled originWhitelist={['*']} />
-        <View style={s.mapBadge}>
-          <View style={s.mapBadgeDot} />
-          <Text style={s.mapBadgeTxt}>{activitesFiltrees.filter(a => a.latitude && a.longitude).length} sur la carte</Text>
+        <View style={s.mapBadgeGlass}>
+          <BlurView intensity={50} tint="dark" style={s.mapBadgeBlur}>
+            <View style={s.mapBadgeDot} />
+            <Text style={s.mapBadgeTxt}>{activitesFiltrees.filter(a => a.latitude && a.longitude).length} sur la carte</Text>
+          </BlurView>
         </View>
       </View>
 
@@ -256,7 +261,8 @@ const s = StyleSheet.create({
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, marginBottom: 14 },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginBottom: 2 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: C.white, letterSpacing: -0.8 },
-  headerBadge: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  headerBadgeGlass: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  headerBadgeBlur: { paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center' },
   headerBadgeNum: { fontSize: 20, fontWeight: '900', color: C.white },
   headerBadgeLbl: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
   filtresContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 4, alignItems: 'center' },
@@ -264,14 +270,15 @@ const s = StyleSheet.create({
   filtreTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
   mapWrap: { flex: 1, position: 'relative' },
   webview: { flex: 1 },
-  mapBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(26,26,46,0.85)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  mapBadgeGlass: { position: 'absolute', top: 12, left: 12, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  mapBadgeBlur: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6 },
   mapBadgeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
   mapBadgeTxt: { color: C.white, fontSize: 12, fontWeight: '700' },
   liste: { backgroundColor: C.white, paddingTop: 14, paddingBottom: 8, borderTopWidth: 1, borderTopColor: C.border },
   listeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
   listeTitre: { fontSize: 15, fontWeight: '800', color: C.text },
   listeCount: { fontSize: 12, fontWeight: '700', color: C.textLight },
-  listeContent: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
+  listeContent: { paddingHorizontal: 16, gap: 10, paddingBottom: 110 },
   emptyCard: { alignItems: 'center', justifyContent: 'center', width: 160, padding: 24, gap: 8 },
   emptyTxt: { fontSize: 13, color: C.textLight, fontWeight: '600' },
   card: { width: 165, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, backgroundColor: C.white, borderWidth: 1, borderColor: C.border },

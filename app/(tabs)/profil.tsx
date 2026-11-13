@@ -1,4 +1,5 @@
 import { decode } from 'base64-arraybuffer';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -168,11 +169,15 @@ export default function ProfilScreen() {
         <View style={s.topBar}>
           <Text style={s.logoTxt}>WyytU</Text>
           <View style={s.topActions}>
-            <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/mes-activites' as any)}>
-              <Text style={{ fontSize: 18 }}>📋</Text>
+            <TouchableOpacity style={s.iconBtnGlass} onPress={() => router.push('/mes-activites' as any)} activeOpacity={0.8}>
+              <BlurView intensity={40} tint="light" style={s.iconBtnBlur}>
+                <Text style={{ fontSize: 18 }}>📋</Text>
+              </BlurView>
             </TouchableOpacity>
-            <TouchableOpacity style={s.iconBtn}>
-              <Text style={{ fontSize: 18 }}>⚙️</Text>
+            <TouchableOpacity style={s.iconBtnGlass} activeOpacity={0.8}>
+              <BlurView intensity={40} tint="light" style={s.iconBtnBlur}>
+                <Text style={{ fontSize: 18 }}>⚙️</Text>
+              </BlurView>
             </TouchableOpacity>
           </View>
         </View>
@@ -383,7 +388,8 @@ const s = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 24 },
   logoTxt: { fontSize: 22, fontWeight: '900', color: C.white, letterSpacing: -0.5 },
   topActions: { flexDirection: 'row', gap: 8 },
-  iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  iconBtnGlass: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  iconBtnBlur: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // AVATAR
   avatarSection: { alignItems: 'center', width: '100%' },

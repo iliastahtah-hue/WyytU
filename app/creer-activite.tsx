@@ -30,9 +30,13 @@ const CATEGORIES = [
 ];
 
 const MOIS_LONG = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const MOIS = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
-const HEURES = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = ['00', '15', '30', '45'];
+const JOURS_SEMAINE = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const CRENEAUX = [
+  { label: 'Matin', heures: ['08', '09', '10', '11'] },
+  { label: 'Midi', heures: ['12', '13', '14'] },
+  { label: 'Après-midi', heures: ['15', '16', '17'] },
+  { label: 'Soir', heures: ['18', '19', '20', '21', '22'] },
+];
 
 type Suggestion = { display_name: string; lat: string; lon: string };
 
@@ -67,7 +71,19 @@ export default function CreerActiviteScreen() {
     setShowDatePicker(false);
   };
 
+  const choisirRapide = (offsetJours: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetJours);
+    setSelectedDay(d.getDate());
+    setSelectedMonth(d.getMonth());
+    setSelectedYear(d.getFullYear());
+  };
+
   const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
+  const getFirstWeekday = (m: number, y: number) => {
+    const day = new Date(y, m, 1).getDay();
+    return day === 0 ? 6 : day - 1; // lundi = 0
+  };
 
   const rechercherAdresse = async (texte: string) => {
     setVille(texte);
@@ -137,7 +153,27 @@ export default function CreerActiviteScreen() {
   };
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-  const years = Array.from({ length: 3 }, (_, i) => today.getFullYear() + i);
+  const firstWeekday = getFirstWeekday(selectedMonth, selectedYear);
+  const calendarCells = [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+
+  const isToday = (d: number) => d === today.getDate() && selectedMonth === today.getMonth() && selectedYear === today.getFullYear();
+  const isPast = (d: number) => {
+    const check = new Date(selectedYear, selectedMonth, d);
+    const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return check < t;
+  };
+
+  const goToMonth = (delta: number) => {
+    let m = selectedMonth + delta;
+    let y = selectedYear;
+    if (m < 0) { m = 11; y -= 1; }
+    if (m > 11) { m = 0; y += 1; }
+    setSelectedMonth(m);
+    setSelectedYear(y);
+  };
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -160,7 +196,6 @@ export default function CreerActiviteScreen() {
             </View>
           </View>
 
-          {/* Progress catégorie sélectionnée */}
           {categorieActive ? (
             <View style={s.catSelected}>
               <View style={[s.catSelectedDot, { backgroundColor: couleur }]} />
@@ -176,7 +211,7 @@ export default function CreerActiviteScreen() {
 
         <View style={s.form}>
 
-          {/* CATÉGORIE — en premier pour que la couleur change tout */}
+          {/* CATÉGORIE */}
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <Text style={s.sectionTitle}>Catégorie</Text>
@@ -188,7 +223,7 @@ export default function CreerActiviteScreen() {
                 return (
                   <TouchableOpacity
                     key={c.label}
-                    style={[s.catChip, active && { backgroundColor: c.couleur, borderColor: c.couleur }]}
+                    style={[s.catChip, active && { backgroundColor: c.couleur, borderColor: c.couleur, shadowColor: c.couleur, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
                     onPress={() => setCategorieActive(c.label)}
                     activeOpacity={0.8}>
                     <Text style={{ fontSize: 16 }}>{c.emoji}</Text>
@@ -362,72 +397,119 @@ export default function CreerActiviteScreen() {
         </View>
       </ScrollView>
 
-      {/* MODAL DATE */}
+      {/* MODAL DATE — REDESIGN MODERNE */}
       <Modal visible={showDatePicker} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <View style={s.modalHandle} />
             <View style={s.modalHeaderRow}>
-              <Text style={s.modalTitle}>📅 Date et heure</Text>
+              <Text style={s.modalTitle}>Quand ?</Text>
               <TouchableOpacity style={s.modalClose} onPress={() => setShowDatePicker(false)}>
                 <Text style={{ color: '#AAA', fontSize: 14, fontWeight: '700' }}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={s.modalLabel}>Jour</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerRow}>
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
-                <TouchableOpacity key={d} style={[s.pickerItem, selectedDay === d && { backgroundColor: couleur }]} onPress={() => setSelectedDay(d)}>
-                  <Text style={[s.pickerTxt, selectedDay === d && { color: '#fff' }]}>{d}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>
 
-            <Text style={s.modalLabel}>Mois</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerRow}>
-              {MOIS.map((m, i) => (
-                <TouchableOpacity key={m} style={[s.pickerItem, s.pickerWide, selectedMonth === i && { backgroundColor: couleur }]} onPress={() => setSelectedMonth(i)}>
-                  <Text style={[s.pickerTxt, selectedMonth === i && { color: '#fff' }]}>{m}</Text>
+              {/* RACCOURCIS RAPIDES */}
+              <View style={s.quickRow}>
+                <TouchableOpacity style={[s.quickChip, { borderColor: couleur }]} onPress={() => choisirRapide(0)}>
+                  <Text style={[s.quickChipTxt, { color: couleur }]}>Aujourd'hui</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={s.modalLabel}>Année</Text>
-            <View style={s.pickerRow}>
-              {years.map(y => (
-                <TouchableOpacity key={y} style={[s.pickerItem, s.pickerWide, selectedYear === y && { backgroundColor: couleur }]} onPress={() => setSelectedYear(y)}>
-                  <Text style={[s.pickerTxt, selectedYear === y && { color: '#fff' }]}>{y}</Text>
+                <TouchableOpacity style={[s.quickChip, { borderColor: couleur }]} onPress={() => choisirRapide(1)}>
+                  <Text style={[s.quickChipTxt, { color: couleur }]}>Demain</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+                <TouchableOpacity style={[s.quickChip, { borderColor: couleur }]} onPress={() => choisirRapide(7)}>
+                  <Text style={[s.quickChipTxt, { color: couleur }]}>Dans 1 semaine</Text>
+                </TouchableOpacity>
+              </View>
 
-            <Text style={s.modalLabel}>Heure</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerRow} style={{ flex: 1 }}>
-                {HEURES.map(h => (
-                  <TouchableOpacity key={h} style={[s.pickerItem, selectedHeure === h && { backgroundColor: couleur }]} onPress={() => setSelectedHeure(h)}>
-                    <Text style={[s.pickerTxt, selectedHeure === h && { color: '#fff' }]}>{h}h</Text>
-                  </TouchableOpacity>
+              {/* CALENDRIER */}
+              <View style={s.calendarNav}>
+                <TouchableOpacity style={s.calendarNavBtn} onPress={() => goToMonth(-1)}>
+                  <Text style={s.calendarNavTxt}>‹</Text>
+                </TouchableOpacity>
+                <Text style={s.calendarMonthTxt}>{MOIS_LONG[selectedMonth]} {selectedYear}</Text>
+                <TouchableOpacity style={s.calendarNavBtn} onPress={() => goToMonth(1)}>
+                  <Text style={s.calendarNavTxt}>›</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={s.weekRow}>
+                {JOURS_SEMAINE.map((j, i) => (
+                  <Text key={i} style={s.weekTxt}>{j}</Text>
                 ))}
-              </ScrollView>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {MINUTES.map(m => (
-                  <TouchableOpacity key={m} style={[s.pickerItem, selectedMinute === m && { backgroundColor: couleur }]} onPress={() => setSelectedMinute(m)}>
-                    <Text style={[s.pickerTxt, selectedMinute === m && { color: '#fff' }]}>{m}</Text>
+              </View>
+
+              <View style={s.calendarGrid}>
+                {calendarCells.map((d, i) => {
+                  if (d === null) return <View key={`e${i}`} style={s.calendarCell} />;
+                  const selected = d === selectedDay;
+                  const past = isPast(d);
+                  return (
+                    <TouchableOpacity
+                      key={d}
+                      style={s.calendarCell}
+                      disabled={past}
+                      onPress={() => setSelectedDay(d)}>
+                      <View style={[
+                        s.calendarDay,
+                        selected && { backgroundColor: couleur },
+                        isToday(d) && !selected && { borderWidth: 1.5, borderColor: couleur },
+                      ]}>
+                        <Text style={[
+                          s.calendarDayTxt,
+                          selected && { color: '#fff', fontWeight: '900' },
+                          past && { color: '#DDD4C4' },
+                        ]}>{d}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* HEURE — par créneaux */}
+              <Text style={s.modalLabel}>Heure</Text>
+              {CRENEAUX.map(creneau => (
+                <View key={creneau.label} style={{ marginBottom: 10 }}>
+                  <Text style={s.creneauLabel}>{creneau.label}</Text>
+                  <View style={s.heureRow}>
+                    {creneau.heures.map(h => (
+                      <TouchableOpacity
+                        key={h}
+                        style={[s.heureChip, selectedHeure === h && { backgroundColor: couleur, borderColor: couleur }]}
+                        onPress={() => setSelectedHeure(h)}>
+                        <Text style={[s.heureChipTxt, selectedHeure === h && { color: '#fff' }]}>{h}h</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+
+              <Text style={s.modalLabel}>Minutes</Text>
+              <View style={s.heureRow}>
+                {['00', '15', '30', '45'].map(m => (
+                  <TouchableOpacity
+                    key={m}
+                    style={[s.minuteChip, selectedMinute === m && { backgroundColor: couleur, borderColor: couleur }]}
+                    onPress={() => setSelectedMinute(m)}>
+                    <Text style={[s.heureChipTxt, selectedMinute === m && { color: '#fff' }]}>{m}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
 
-            <View style={[s.datePreview, { backgroundColor: couleur + '15', borderColor: couleur + '40' }]}>
-              <Text style={[s.datePreviewTxt, { color: couleur }]}>
-                📅 {selectedDay} {MOIS_LONG[selectedMonth]} {selectedYear} à {selectedHeure}h{selectedMinute}
-              </Text>
-            </View>
+              <View style={[s.datePreview, { backgroundColor: couleur + '15', borderColor: couleur + '40' }]}>
+                <Text style={[s.datePreviewTxt, { color: couleur }]}>
+                  📅 {selectedDay} {MOIS_LONG[selectedMonth]} {selectedYear} à {selectedHeure}h{selectedMinute}
+                </Text>
+              </View>
 
-            <TouchableOpacity style={[s.confirmerBtn, { backgroundColor: couleur }]} onPress={confirmerDate}>
-              <Text style={s.confirmerTxt}>✓ Confirmer</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={[s.confirmerBtn, { backgroundColor: couleur }]} onPress={confirmerDate}>
+                <Text style={s.confirmerTxt}>✓ Confirmer</Text>
+              </TouchableOpacity>
+
+              <View style={{ height: 20 }} />
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -438,7 +520,6 @@ export default function CreerActiviteScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FAF7F2' },
 
-  // HEADER
   header: { paddingTop: Platform.OS === 'ios' ? 58 : 32, paddingBottom: 20, paddingHorizontal: 20, overflow: 'hidden' },
   headerCircle1: { position: 'absolute', width: 280, height: 280, borderRadius: 140, backgroundColor: '#fff', opacity: 0.04, top: -100, right: -60 },
   headerCircle2: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: '#C9A84C', opacity: 0.06, bottom: -60, left: -40 },
@@ -453,26 +534,22 @@ const s = StyleSheet.create({
   catSelectedDot: { width: 8, height: 8, borderRadius: 4 },
   catSelectedTxt: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
 
-  // FORM
   form: { paddingHorizontal: 20, paddingTop: 20 },
   section: { marginBottom: 22 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1A1209', marginBottom: 10 },
   required: { color: '#E8000D', fontSize: 15, fontWeight: '900', marginBottom: 10 },
 
-  // INPUT
   inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 2, borderColor: '#EEE8DE', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   inputWrapMulti: { alignItems: 'flex-start', paddingTop: 10 },
   inputIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   input: { flex: 1, color: '#1A1209', fontSize: 15, paddingVertical: 12, fontWeight: '500' },
   checkIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#1DB954', alignItems: 'center', justifyContent: 'center', marginRight: 4 },
 
-  // CATS
   catsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   catChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: '#EEE8DE', borderWidth: 2, borderColor: 'transparent' },
   catChipTxt: { fontSize: 13, fontWeight: '700', color: '#5C4A2A' },
 
-  // ADRESSE
   adresseRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   locBtn: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   searchHint: { color: '#AAA', fontSize: 13, padding: 8 },
@@ -482,17 +559,14 @@ const s = StyleSheet.create({
   gpsBadge: { backgroundColor: '#EEF7EE', borderRadius: 12, padding: 8, marginTop: 8, borderWidth: 1, borderColor: '#1DB954' },
   gpsTxt: { color: '#1DB954', fontSize: 12, fontWeight: '700' },
 
-  // DATE
   dateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, padding: 14, borderWidth: 2, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   dateBtnIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   dateBtnTxt: { flex: 1, fontSize: 15, color: '#1A1209', fontWeight: '500' },
 
-  // PARTICIPANTS
   participantsRow: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   participantChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: '#EEE8DE' },
   participantChipTxt: { fontSize: 14, fontWeight: '800', color: '#5C4A2A' },
 
-  // APERÇU
   preview: { borderRadius: 24, padding: 20, overflow: 'hidden', position: 'relative' },
   previewBgEmoji: { position: 'absolute', right: -10, bottom: -10, fontSize: 100, opacity: 0.12 },
   previewTag: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 12 },
@@ -501,24 +575,43 @@ const s = StyleSheet.create({
   previewDesc: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 18 },
   previewMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600' },
 
-  // PUBLIER
   publishBtn: { borderRadius: 20, padding: 20, alignItems: 'center', marginTop: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6 },
   publishTxt: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.2 },
   publishNote: { color: '#AAA', fontSize: 12, textAlign: 'center', marginTop: 12 },
 
-  // MODAL
+  // MODAL DATE — nouveau design
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#FAF7F2', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 44 },
+  modalCard: { backgroundColor: '#FAF7F2', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 30, maxHeight: '88%' },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#DDD4C4', alignSelf: 'center', marginBottom: 20 },
   modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '900', color: '#1A1209' },
+  modalTitle: { fontSize: 20, fontWeight: '900', color: '#1A1209' },
   modalClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center' },
-  modalLabel: { fontSize: 12, fontWeight: '700', color: '#AAA', marginBottom: 8, marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  pickerRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
-  pickerItem: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: '#EEE8DE', minWidth: 44, alignItems: 'center' },
-  pickerWide: { minWidth: 70 },
-  pickerTxt: { fontSize: 14, fontWeight: '700', color: '#1A1209' },
-  datePreview: { borderRadius: 16, padding: 14, marginTop: 16, alignItems: 'center', borderWidth: 1 },
+  modalLabel: { fontSize: 12, fontWeight: '700', color: '#AAA', marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  quickRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  quickChip: { flex: 1, paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', backgroundColor: '#fff' },
+  quickChipTxt: { fontSize: 12, fontWeight: '800' },
+
+  calendarNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calendarNavBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center' },
+  calendarNavTxt: { fontSize: 18, fontWeight: '900', color: '#1A1209' },
+  calendarMonthTxt: { fontSize: 15, fontWeight: '800', color: '#1A1209' },
+
+  weekRow: { flexDirection: 'row', marginBottom: 6 },
+  weekTxt: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: '#C8C0B4' },
+
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calendarCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 },
+  calendarDay: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  calendarDayTxt: { fontSize: 14, fontWeight: '600', color: '#1A1209' },
+
+  creneauLabel: { fontSize: 11, fontWeight: '700', color: '#C8C0B4', marginBottom: 6 },
+  heureRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  heureChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#EEE8DE' },
+  minuteChip: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#EEE8DE' },
+  heureChipTxt: { fontSize: 13, fontWeight: '700', color: '#5C4A2A' },
+
+  datePreview: { borderRadius: 16, padding: 14, marginTop: 20, alignItems: 'center', borderWidth: 1 },
   datePreviewTxt: { fontSize: 15, fontWeight: '700' },
   confirmerBtn: { borderRadius: 18, padding: 16, alignItems: 'center', marginTop: 12 },
   confirmerTxt: { color: '#fff', fontSize: 16, fontWeight: '800' },

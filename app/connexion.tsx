@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
@@ -12,31 +11,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-const C = {
-  bg: '#F8F9FA',
-  white: '#FFFFFF',
-  text: '#1A1A2E',
-  textMid: '#4A4A6A',
-  textLight: '#9090A0',
-  border: '#EEEEEE',
-  green: '#00C853',
-  red: '#FF3B30',
-};
+import { supabase } from '../lib/supabase';
 
 const TEMOIGNAGES = [
-  { prenom: 'Youssef', ville: 'Tanger', texte: 'J\'ai trouvé mon crew en 10 min !', emoji: '⚽', gradient: ['#FF416C', '#FF4B2B'] as [string,string] },
-  { prenom: 'Léa', ville: 'Bruxelles', texte: 'Nouvelle en ville, sortie dès le soir 🔥', emoji: '🎉', gradient: ['#FC466B', '#3F5EFB'] as [string,string] },
-  { prenom: 'Mehdi', ville: 'Casablanca', texte: 'Le concept est génial, simple et efficace !', emoji: '🎮', gradient: ['#0072FF', '#00C6FF'] as [string,string] },
-];
-
-const ACTIVITES = [
-  { emoji: '⚽', label: 'Sport', color: '#FF416C' },
-  { emoji: '🍕', label: 'Resto', color: '#F7971E' },
-  { emoji: '🎉', label: 'Soirée', color: '#FC466B' },
-  { emoji: '🎮', label: 'Gaming', color: '#0072FF' },
-  { emoji: '🎵', label: 'Musique', color: '#11998E' },
-  { emoji: '✈️', label: 'Voyage', color: '#00B4DB' },
+  { prenom: 'Youssef', ville: 'Tanger', texte: 'J\'ai trouvé mon crew en 10 min !', emoji: '⚽' },
+  { prenom: 'Léa', ville: 'Bruxelles', texte: 'Nouvelle en ville, sortie dès le soir 🔥', emoji: '🎉' },
+  { prenom: 'Mehdi', ville: 'Casablanca', texte: 'Le concept est génial, simple et efficace !', emoji: '🎮' },
 ];
 
 export default function ConnexionScreen() {
@@ -52,100 +32,85 @@ export default function ConnexionScreen() {
 
   const nextTemo = () => {
     Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      setTemoIndex(prev => (prev + 1) % TEMOIGNAGES.length);
+      setTemoIndex((prev) => (prev + 1) % TEMOIGNAGES.length);
       Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     });
   };
 
   const seConnecter = async () => {
-    router.replace('/(tabs)/explore' as any); return;
+    if (!email || !motDePasse) { setErreur('Remplis tous les champs'); return; }
+    setLoading(true);
+    setErreur('');
+    const { error } = await supabase.auth.signInWithPassword({ email, password: motDePasse });
+    if (error) {
+      setErreur('Email ou mot de passe incorrect');
+      setLoading(false);
+    } else {
+      router.replace('/(tabs)/explore' as any);
+    }
   };
 
   const temo = TEMOIGNAGES[temoIndex];
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        {/* ── HERO ── */}
-        <LinearGradient colors={['#667EEA', '#764BA2']} style={s.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <View style={s.heroCircle1} />
-          <View style={s.heroCircle2} />
+        <View style={styles.bgCircle1} />
+        <View style={styles.bgCircle2} />
+        <View style={styles.bgCircle3} />
 
-          <View style={s.logoWrap}>
-            <View style={s.logoBox}>
-              <Text style={s.logoW}>W</Text>
+        {/* HERO */}
+        <View style={styles.hero}>
+          <View style={styles.logoWrapper}>
+            <Text style={styles.logoW}>W</Text>
+          </View>
+          <Text style={styles.logoTexte}>WyytU</Text>
+          <Text style={styles.tagline}>Content de te revoir 👋</Text>
+        </View>
+
+        {/* TÉMOIGNAGE */}
+        <TouchableOpacity onPress={nextTemo} activeOpacity={0.9}>
+          <Animated.View style={[styles.temoCard, { opacity: fadeAnim }]}>
+            <View style={styles.temoLeft}>
+              <View style={styles.temoAvatar}>
+                <Text style={styles.temoAvatarTexte}>{temo.prenom[0]}</Text>
+              </View>
+              <View>
+                <Text style={styles.temoPrenom}>{temo.prenom}</Text>
+                <Text style={styles.temoVille}>📍 {temo.ville}</Text>
+              </View>
             </View>
-          </View>
-          <Text style={s.appName}>WyytU</Text>
-          <Text style={s.tagline}>Ta communauté d'activités 🎉</Text>
-
-          {/* Activités preview */}
-          <View style={s.activitesRow}>
-            {ACTIVITES.map((a, i) => (
-              <View key={i} style={[s.activitePill, { backgroundColor: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.25)' }]}>
-                <Text style={{ fontSize: 16 }}>{a.emoji}</Text>
-                <Text style={s.activitePillTxt}>{a.label}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Stats */}
-          <View style={s.heroStats}>
-            {[
-              { nb: '2,400+', label: 'Membres', emoji: '👥' },
-              { nb: '890+', label: 'Plans/jour', emoji: '⚡' },
-              { nb: '12+', label: 'Villes', emoji: '🌍' },
-            ].map((st, i) => (
-              <View key={i} style={s.heroStat}>
-                <Text style={s.heroStatEmoji}>{st.emoji}</Text>
-                <Text style={s.heroStatNb}>{st.nb}</Text>
-                <Text style={s.heroStatLabel}>{st.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
-
-        {/* ── TÉMOIGNAGE ── */}
-        <TouchableOpacity onPress={nextTemo} activeOpacity={0.92} style={s.temoWrap}>
-          <Animated.View style={[s.temoCard, { opacity: fadeAnim }]}>
-            <View style={s.temoTop}>
-              <LinearGradient colors={temo.gradient} style={s.temoAvatar}>
-                <Text style={s.temoAvatarTxt}>{temo.prenom[0]}</Text>
-              </LinearGradient>
-              <View style={{ flex: 1 }}>
-                <Text style={s.temoPrenom}>{temo.prenom}</Text>
-                <Text style={s.temoVille}>📍 {temo.ville}</Text>
-              </View>
-              <Text style={{ fontSize: 26 }}>{temo.emoji}</Text>
-            </View>
-            <Text style={s.temoTexte}>"{temo.texte}"</Text>
-            <View style={s.temoDots}>
+            <Text style={styles.temoEmoji}>{temo.emoji}</Text>
+            <Text style={styles.temoTexte}>"{temo.texte}"</Text>
+            <View style={styles.temoDots}>
               {TEMOIGNAGES.map((_, i) => (
-                <View key={i} style={[s.temoDot, i === temoIndex && { width: 20, backgroundColor: temo.gradient[0] }]} />
+                <View key={i} style={[styles.temoDot, i === temoIndex && styles.temoDotActive]} />
               ))}
             </View>
           </Animated.View>
         </TouchableOpacity>
 
-        {/* ── CARD CONNEXION ── */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Connexion</Text>
-          <Text style={s.cardSub}>Rejoins ta communauté</Text>
+        {/* CARD CONNEXION */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitre}>Connexion</Text>
+          <Text style={styles.cardSub}>Retrouve ta communauté</Text>
 
           {erreur ? (
-            <View style={s.erreurBox}>
-              <Text style={s.erreurTxt}>⚠️ {erreur}</Text>
+            <View style={styles.erreurBox}>
+              <Text style={styles.erreurTexte}>⚠️ {erreur}</Text>
             </View>
           ) : null}
 
           {/* EMAIL */}
-          <View style={[s.field, focusField === 'email' && { borderColor: '#667EEA', backgroundColor: '#F0F2FF' }]}>
-            <View style={s.fieldIcon}><Text style={{ fontSize: 18 }}>✉️</Text></View>
+          <View style={[styles.fieldWrapper, focusField === 'email' && styles.fieldFocus]}>
+            <View style={styles.fieldIconBox}>
+              <Text style={styles.fieldIcon}>✉️</Text>
+            </View>
             <TextInput
-              style={s.fieldInput}
+              style={styles.fieldInput}
               placeholder="ton@email.com"
-              placeholderTextColor="#B0B8C8"
+              placeholderTextColor="#BBB"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -154,151 +119,137 @@ export default function ConnexionScreen() {
               onBlur={() => setFocusField('')}
             />
             {email.includes('@') && (
-              <View style={s.checkIcon}><Text style={{ color: C.white, fontSize: 12, fontWeight: '800' }}>✓</Text></View>
+              <View style={styles.fieldCheck}><Text style={styles.fieldCheckTexte}>✓</Text></View>
             )}
           </View>
 
           {/* MOT DE PASSE */}
-          <View style={[s.field, focusField === 'mdp' && { borderColor: '#667EEA', backgroundColor: '#F0F2FF' }]}>
-            <View style={s.fieldIcon}><Text style={{ fontSize: 18 }}>🔒</Text></View>
+          <View style={[styles.fieldWrapper, focusField === 'mdp' && styles.fieldFocus]}>
+            <View style={styles.fieldIconBox}>
+              <Text style={styles.fieldIcon}>🔒</Text>
+            </View>
             <TextInput
-              style={s.fieldInput}
+              style={styles.fieldInput}
               placeholder="Mot de passe"
-              placeholderTextColor="#B0B8C8"
+              placeholderTextColor="#BBB"
               secureTextEntry={!showPassword}
               value={motDePasse}
               onChangeText={setMotDePasse}
               onFocus={() => setFocusField('mdp')}
               onBlur={() => setFocusField('')}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 8 }}>
-              <Text style={{ fontSize: 18 }}>{showPassword ? '🙈' : '👁️'}</Text>
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={s.forgotBtn}>
-            <Text style={s.forgotTxt}>Mot de passe oublié ?</Text>
+          {/* MOT DE PASSE OUBLIÉ */}
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            onPress={() => router.push('/mot-de-passe-oublie' as any)}>
+            <Text style={styles.forgotTexte}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
 
-          {/* CONNEXION */}
-          <TouchableOpacity style={[s.btnPrimary, loading && { opacity: 0.6 }]} onPress={seConnecter} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={['#667EEA', '#764BA2']} style={s.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={s.btnTxt}>{loading ? '⏳ Connexion...' : 'Se connecter →'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* DÉMO */}
-          <TouchableOpacity style={s.btnDemo} onPress={() => router.replace('/(tabs)/explore' as any)} activeOpacity={0.85}>
-            <LinearGradient colors={['#FF416C', '#3F5EFB']} style={s.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={s.btnTxt}>⚡ Mode démo — accès direct</Text>
-            </LinearGradient>
+          {/* BOUTON */}
+          <TouchableOpacity
+            style={[styles.btnConnecter, loading && { opacity: 0.6 }]}
+            onPress={seConnecter}
+            disabled={loading}
+            activeOpacity={0.85}>
+            <Text style={styles.btnConnecterTexte}>
+              {loading ? '⏳ Connexion...' : 'Se connecter →'}
+            </Text>
           </TouchableOpacity>
 
           {/* DIVIDER */}
-          <View style={s.divider}>
-            <View style={s.dividerLine} />
-            <Text style={s.dividerTxt}>activités disponibles</Text>
-            <View style={s.dividerLine} />
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerTexte}>ou</Text>
+            <View style={styles.dividerLine} />
           </View>
 
-          {/* ACTIVITÉS COLORÉES */}
-          <View style={s.activitesGrid}>
-            {ACTIVITES.map((a, i) => (
-              <View key={i} style={[s.activiteChip, { borderColor: a.color + '50', backgroundColor: a.color + '12' }]}>
-                <Text style={{ fontSize: 18 }}>{a.emoji}</Text>
-                <Text style={[s.activiteChipTxt, { color: a.color }]}>{a.label}</Text>
-              </View>
-            ))}
+          {/* STATS */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNombre}>2,400+</Text>
+              <Text style={styles.statLabel}>Membres</Text>
+            </View>
+            <View style={styles.statSep} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNombre}>890+</Text>
+              <Text style={styles.statLabel}>Plans/jour</Text>
+            </View>
+            <View style={styles.statSep} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNombre}>12+</Text>
+              <Text style={styles.statLabel}>Villes</Text>
+            </View>
           </View>
         </View>
 
         {/* INSCRIPTION */}
-        <View style={s.inscriptionRow}>
-          <Text style={s.inscriptionTxt}>Pas encore membre ? </Text>
+        <View style={styles.inscriptionRow}>
+          <Text style={styles.inscriptionTexte}>Pas encore membre ?</Text>
           <TouchableOpacity onPress={() => router.push('/inscription' as any)}>
-            <Text style={s.inscriptionLien}>Rejoins-nous 🚀</Text>
+            <Text style={styles.inscriptionLien}> Rejoins-nous 🚀</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FAF7F2' },
   scroll: { paddingBottom: 40 },
-
-  // HERO
-  hero: { paddingTop: Platform.OS === 'ios' ? 70 : 50, paddingBottom: 32, paddingHorizontal: 24, alignItems: 'center', overflow: 'hidden' },
-  heroCircle1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,255,255,0.08)', top: -100, right: -80 },
-  heroCircle2: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)', bottom: -60, left: -60 },
-  logoWrap: { marginBottom: 14 },
-  logoBox: { width: 76, height: 76, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
-  logoW: { color: C.white, fontSize: 38, fontWeight: '900' },
-  appName: { fontSize: 34, fontWeight: '900', color: C.white, letterSpacing: -1, marginBottom: 6 },
-  tagline: { fontSize: 15, color: 'rgba(255,255,255,0.8)', fontWeight: '500', marginBottom: 20 },
-
-  // ACTIVITÉS PILLS HERO
-  activitesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 20 },
-  activitePill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
-  activitePillTxt: { color: C.white, fontSize: 12, fontWeight: '700' },
-
-  // STATS
-  heroStats: { flexDirection: 'row', gap: 0, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 8, width: '100%' },
-  heroStat: { flex: 1, alignItems: 'center', gap: 3 },
-  heroStatEmoji: { fontSize: 20 },
-  heroStatNb: { fontSize: 18, fontWeight: '900', color: C.white },
-  heroStatLabel: { fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
-
-  // TÉMO
-  temoWrap: { marginHorizontal: 20, marginTop: -16, marginBottom: 16 },
-  temoCard: { backgroundColor: C.white, borderRadius: 24, padding: 18, shadowColor: '#667EEA', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 4, borderWidth: 1, borderColor: C.border },
-  temoTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  temoAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  temoAvatarTxt: { color: C.white, fontSize: 18, fontWeight: '800' },
-  temoPrenom: { fontSize: 14, fontWeight: '800', color: C.text },
-  temoVille: { fontSize: 12, color: C.textLight, marginTop: 2 },
-  temoTexte: { fontSize: 14, color: C.textMid, lineHeight: 20, fontStyle: 'italic', marginBottom: 12 },
+  bgCircle1: { position: 'absolute', width: 320, height: 320, borderRadius: 160, backgroundColor: '#C9A84C', opacity: 0.05, top: -60, right: -80 },
+  bgCircle2: { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: '#C9A84C', opacity: 0.04, top: 200, left: -80 },
+  bgCircle3: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: '#0070F3', opacity: 0.04, top: 500, right: -40 },
+  hero: { alignItems: 'center', paddingTop: 80, paddingBottom: 24 },
+  logoWrapper: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#C9A84C', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#C9A84C', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 8 },
+  logoW: { color: '#fff', fontSize: 36, fontWeight: '900' },
+  logoTexte: { fontSize: 32, fontWeight: '900', color: '#1A1A1A', letterSpacing: -1, marginBottom: 6 },
+  tagline: { fontSize: 16, color: '#AAA', fontWeight: '500' },
+  temoCard: { marginHorizontal: 20, marginBottom: 20, backgroundColor: '#fff', borderRadius: 24, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3, borderWidth: 1, borderColor: '#F0EDE8' },
+  temoLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  temoAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#C9A84C', alignItems: 'center', justifyContent: 'center' },
+  temoAvatarTexte: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  temoPrenom: { fontSize: 14, fontWeight: '800', color: '#1A1A1A' },
+  temoVille: { fontSize: 12, color: '#AAA', marginTop: 1 },
+  temoEmoji: { fontSize: 28, marginBottom: 8 },
+  temoTexte: { fontSize: 14, color: '#555', lineHeight: 20, fontStyle: 'italic', marginBottom: 12 },
   temoDots: { flexDirection: 'row', gap: 6 },
-  temoDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.border },
-
-  // CARD
-  card: { marginHorizontal: 20, backgroundColor: C.white, borderRadius: 28, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.07, shadowRadius: 20, elevation: 5, gap: 14, borderWidth: 1, borderColor: C.border },
-  cardTitle: { fontSize: 24, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
-  cardSub: { fontSize: 14, color: C.textLight, marginTop: -8 },
-
-  erreurBox: { backgroundColor: '#FFF0F0', borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: C.red + '40' },
-  erreurTxt: { color: C.red, fontSize: 13, fontWeight: '700' },
-
-  // FIELDS
-  field: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderRadius: 18, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 2, borderColor: C.border },
-  fieldIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.white, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  fieldInput: { flex: 1, color: C.text, fontSize: 15, paddingVertical: 12, fontWeight: '500' },
-  checkIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
-
+  temoDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EEE8DE' },
+  temoDotActive: { width: 18, backgroundColor: '#C9A84C' },
+  card: { marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 28, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 6, gap: 14 },
+  cardTitre: { fontSize: 24, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5 },
+  cardSub: { fontSize: 14, color: '#AAA', marginTop: -8 },
+  erreurBox: { backgroundColor: '#FFF0F0', borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: '#E8000D30' },
+  erreurTexte: { color: '#C9A84C', fontSize: 13, fontWeight: '700' },
+  fieldWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F6F2', borderRadius: 18, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 2, borderColor: '#F0EDE8' },
+  fieldFocus: { borderColor: '#C9A84C', backgroundColor: '#FFF8F8' },
+  fieldIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  fieldIcon: { fontSize: 18 },
+  fieldInput: { flex: 1, color: '#1A1A1A', fontSize: 15, paddingVertical: 12, fontWeight: '500' },
+  fieldCheck: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1DB954', alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  fieldCheckTexte: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  eyeBtn: { padding: 8 },
+  eyeIcon: { fontSize: 18 },
   forgotBtn: { alignSelf: 'flex-end', marginTop: -4 },
-  forgotTxt: { fontSize: 13, color: '#667EEA', fontWeight: '700' },
-
-  // BTNS
-  btnPrimary: { borderRadius: 18, overflow: 'hidden', shadowColor: '#667EEA', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
-  btnDemo: { borderRadius: 18, overflow: 'hidden' },
-  btnGrad: { padding: 18, alignItems: 'center' },
-  btnTxt: { color: C.white, fontSize: 16, fontWeight: '900', letterSpacing: 0.2 },
-
-  // DIVIDER
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: C.border },
-  dividerTxt: { color: C.textLight, fontSize: 11, fontWeight: '600' },
-
-  // ACTIVITÉS GRID
-  activitesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  activiteChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1.5 },
-  activiteChipTxt: { fontSize: 12, fontWeight: '800' },
-
-  // INSCRIPTION
+  forgotTexte: { fontSize: 13, color: '#C9A84C', fontWeight: '700' },
+  btnConnecter: { backgroundColor: '#C9A84C', borderRadius: 18, padding: 18, alignItems: 'center', shadowColor: '#C9A84C', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
+  btnConnecterTexte: { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.2 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#F0EDE8' },
+  dividerTexte: { color: '#BBB', fontSize: 13, fontWeight: '600' },
+  statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  statItem: { flex: 1, alignItems: 'center', gap: 3 },
+  statNombre: { fontSize: 18, fontWeight: '900', color: '#C9A84C' },
+  statLabel: { fontSize: 11, color: '#AAA', fontWeight: '600' },
+  statSep: { width: 1, height: 36, backgroundColor: '#F0EDE8' },
   inscriptionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  inscriptionTxt: { color: C.textLight, fontSize: 14 },
-  inscriptionLien: { color: '#667EEA', fontSize: 14, fontWeight: '800' },
+  inscriptionTexte: { color: '#AAA', fontSize: 14 },
+  inscriptionLien: { color: '#C9A84C', fontSize: 14, fontWeight: '800' },
 });

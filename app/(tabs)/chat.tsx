@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,17 +16,15 @@ import {
 import { supabase } from '../../lib/supabase';
 
 const C = {
-  gold: '#C9A84C',
-  goldLight: '#E8C96A',
-  goldPale: '#FDF8EE',
-  beige: '#FAF7F2',
-  beigeDeep: '#EEE8DE',
-  brown: '#1A1209',
-  brownMid: '#5C4A2A',
+  purple: '#667EEA',
+  purpleDark: '#764BA2',
+  purplePale: '#F0EFFE',
+  bg: '#F8F9FA',
+  border: '#EEEEEE',
   white: '#FFFFFF',
-  grayLight: '#F0EDE8',
-  grayMid: '#C8C0B4',
-  grayText: '#8A7F72',
+  text: '#1A1A2E',
+  textMid: '#4A4A6A',
+  textLight: '#9090A0',
   green: '#2ECC71',
   red: '#E8000D',
 };
@@ -158,7 +157,7 @@ export default function ChatListScreen() {
 
       {/* HEADER */}
       <LinearGradient
-        colors={[C.brown, '#2C1F0A']}
+        colors={[C.purple, C.purpleDark]}
         style={s.header}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <View style={s.headerTop}>
@@ -172,30 +171,32 @@ export default function ChatListScreen() {
                 <Text style={s.globalBadgeTxt}>{totalNonLus}</Text>
               </View>
             )}
-            <TouchableOpacity style={s.composeBtn} activeOpacity={0.8}>
-              <LinearGradient colors={[C.goldLight, C.gold]} style={s.composeBtnGrad}>
+            <TouchableOpacity style={s.composeBtnGlass} activeOpacity={0.8}>
+              <BlurView intensity={40} tint="light" style={s.composeBtnBlur}>
                 <Text style={s.composeBtnIcon}>✏️</Text>
-              </LinearGradient>
+              </BlurView>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* STATS ROW */}
-        <View style={s.statsRow}>
-          <View style={s.statItem}>
-            <Text style={s.statNum}>{conversations.length}</Text>
-            <Text style={s.statLabel}>Groupes</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statItem}>
-            <Text style={s.statNum}>{totalNonLus}</Text>
-            <Text style={s.statLabel}>Non lus</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statItem}>
-            <Text style={[s.statNum, { color: C.green }]}>●</Text>
-            <Text style={s.statLabel}>En ligne</Text>
-          </View>
+        <View style={s.statsRowGlass}>
+          <BlurView intensity={35} tint="light" style={s.statsRowBlur}>
+            <View style={s.statItem}>
+              <Text style={s.statNum}>{conversations.length}</Text>
+              <Text style={s.statLabel}>Groupes</Text>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statItem}>
+              <Text style={s.statNum}>{totalNonLus}</Text>
+              <Text style={s.statLabel}>Non lus</Text>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statItem}>
+              <Text style={[s.statNum, { color: C.green }]}>●</Text>
+              <Text style={s.statLabel}>En ligne</Text>
+            </View>
+          </BlurView>
         </View>
       </LinearGradient>
 
@@ -206,7 +207,7 @@ export default function ChatListScreen() {
           <TextInput
             style={s.searchInput}
             placeholder="Rechercher..."
-            placeholderTextColor={C.grayMid}
+            placeholderTextColor={C.textLight}
             value={recherche}
             onChangeText={setRecherche}
           />
@@ -226,7 +227,7 @@ export default function ChatListScreen() {
         {['Tous', 'Non lus', 'Groupes'].map((f) => (
           <TouchableOpacity key={f} onPress={() => setFiltreActif(f)} activeOpacity={0.8}>
             {filtreActif === f ? (
-              <LinearGradient colors={[C.goldLight, C.gold]} style={s.filtreActif}>
+              <LinearGradient colors={[C.purple, C.purpleDark]} style={s.filtreActif}>
                 <Text style={s.filtreActifTxt}>{f}</Text>
                 {f === 'Non lus' && totalNonLus > 0 && (
                   <View style={s.filtreBadge}>
@@ -251,7 +252,7 @@ export default function ChatListScreen() {
       {/* CONTENU */}
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator size="large" color={C.gold} />
+          <ActivityIndicator size="large" color={C.purple} />
           <Text style={s.loadingTxt}>Chargement...</Text>
         </View>
       ) : convsFiltrees.length === 0 ? (
@@ -261,7 +262,7 @@ export default function ChatListScreen() {
           <Text style={s.emptySub}>{recherche ? 'Essaie un autre terme' : 'Rejoins un plan pour chatter !'}</Text>
           {!recherche && (
             <TouchableOpacity onPress={() => router.push('/(tabs)/explore' as any)} activeOpacity={0.85}>
-              <LinearGradient colors={[C.goldLight, C.gold]} style={s.emptyBtn}>
+              <LinearGradient colors={[C.purple, C.purpleDark]} style={s.emptyBtn}>
                 <Text style={s.emptyBtnTxt}>Explorer les plans →</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -275,11 +276,11 @@ export default function ChatListScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); chargerConversations(); }}
-              tintColor={C.gold} />
+              tintColor={C.purple} />
           }>
 
           {convsFiltrees.map((conv, index) => {
-            const cat = CATEGORIES[conv.categorie] || { couleur: C.brownMid, emoji: '💬' };
+            const cat = CATEGORIES[conv.categorie] || { couleur: C.textMid, emoji: '💬' };
             const initiales = conv.titre.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
             return (
@@ -315,7 +316,7 @@ export default function ChatListScreen() {
                     </Text>
                     <View style={s.convRight}>
                       {conv.nonLu && conv.nbNonLu! > 0 ? (
-                        <LinearGradient colors={[C.goldLight, C.gold]} style={s.unreadBadge}>
+                        <LinearGradient colors={[C.purple, C.purpleDark]} style={s.unreadBadge}>
                           <Text style={s.unreadBadgeTxt}>{conv.nbNonLu}</Text>
                         </LinearGradient>
                       ) : (
@@ -345,7 +346,7 @@ export default function ChatListScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.beige },
+  root: { flex: 1, backgroundColor: C.bg },
 
   // HEADER
   header: {
@@ -354,17 +355,18 @@ const s = StyleSheet.create({
     paddingBottom: 20,
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  headerSub: { fontSize: 13, color: C.goldLight, fontWeight: '600', marginBottom: 2 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 2 },
   headerTitle: { fontSize: 32, fontWeight: '900', color: C.white, letterSpacing: -1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   globalBadge: { backgroundColor: C.red, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, minWidth: 26, alignItems: 'center' },
   globalBadgeTxt: { color: C.white, fontSize: 12, fontWeight: '800' },
-  composeBtn: { borderRadius: 22, overflow: 'hidden', shadowColor: C.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
-  composeBtnGrad: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  composeBtnGlass: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  composeBtnBlur: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   composeBtnIcon: { fontSize: 18 },
 
   // STATS ROW
-  statsRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: 14, gap: 0 },
+  statsRowGlass: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  statsRowBlur: { flexDirection: 'row', padding: 14 },
   statItem: { flex: 1, alignItems: 'center', gap: 2 },
   statNum: { fontSize: 18, fontWeight: '900', color: C.white },
   statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
@@ -372,52 +374,52 @@ const s = StyleSheet.create({
 
   // SEARCH
   searchWrap: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 1.5, borderColor: C.beigeDeep, shadowColor: C.brown, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 1.5, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
   searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, fontSize: 15, color: C.brown, fontWeight: '500' },
-  searchClear: { fontSize: 16, color: C.grayMid },
+  searchInput: { flex: 1, fontSize: 15, color: C.text, fontWeight: '500' },
+  searchClear: { fontSize: 16, color: C.textLight },
 
   // FILTRES
   filtresScroll: { maxHeight: 50 },
   filtresContent: { paddingHorizontal: 20, gap: 8, paddingVertical: 8, alignItems: 'center' },
-  filtre: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.beigeDeep },
-  filtreTxt: { fontSize: 13, fontWeight: '700', color: C.grayText },
+  filtre: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.border },
+  filtreTxt: { fontSize: 13, fontWeight: '700', color: C.textMid },
   filtreActif: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   filtreActifTxt: { fontSize: 13, fontWeight: '800', color: C.white },
   filtreBadge: { backgroundColor: C.white, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1, minWidth: 18, alignItems: 'center' },
-  filtreBadgeTxt: { fontSize: 10, fontWeight: '900', color: C.brown },
+  filtreBadgeTxt: { fontSize: 10, fontWeight: '900', color: C.purple },
 
   // LOADING / EMPTY
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingTxt: { color: C.grayText, fontSize: 14, fontWeight: '600' },
+  loadingTxt: { color: C.textLight, fontSize: 14, fontWeight: '600' },
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 64 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: C.brown },
-  emptySub: { fontSize: 14, color: C.grayText, textAlign: 'center' },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: C.text },
+  emptySub: { fontSize: 14, color: C.textLight, textAlign: 'center' },
   emptyBtn: { borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
   emptyBtnTxt: { color: C.white, fontSize: 14, fontWeight: '700' },
 
   // LISTE
   liste: { flex: 1 },
-  convCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: C.grayLight },
-  convCardUnread: { backgroundColor: C.goldPale },
+  convCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: C.border },
+  convCardUnread: { backgroundColor: C.purplePale },
 
   // AVATAR
   avatarWrap: { position: 'relative' },
   avatar: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 3 },
   avatarEmoji: { fontSize: 24 },
-  onlineDot: { position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderWidth: 2.5, borderColor: C.beige },
+  onlineDot: { position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderWidth: 2.5, borderColor: C.bg },
 
   // INFO
   convInfo: { flex: 1, gap: 3 },
   convTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  convTitle: { fontSize: 15, fontWeight: '600', color: C.brownMid, flex: 1, marginRight: 8 },
-  convTitleUnread: { fontWeight: '800', color: C.brown },
-  convDate: { fontSize: 12, color: C.grayMid, fontWeight: '500' },
-  convDateUnread: { color: C.gold, fontWeight: '700' },
+  convTitle: { fontSize: 15, fontWeight: '600', color: C.textMid, flex: 1, marginRight: 8 },
+  convTitleUnread: { fontWeight: '800', color: C.text },
+  convDate: { fontSize: 12, color: C.textLight, fontWeight: '500' },
+  convDateUnread: { color: C.purple, fontWeight: '700' },
   convBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  convMsg: { fontSize: 13, color: C.grayText, flex: 1, marginRight: 8 },
-  convMsgUnread: { color: C.brownMid, fontWeight: '600' },
+  convMsg: { fontSize: 13, color: C.textLight, flex: 1, marginRight: 8 },
+  convMsgUnread: { color: C.textMid, fontWeight: '600' },
   convRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   catBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   catBadgeTxt: { fontSize: 11, fontWeight: '700' },

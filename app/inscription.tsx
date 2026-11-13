@@ -1,26 +1,28 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  Animated,
-  Dimensions,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  Switch,
-} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { supabase } from '../lib/supabase';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { decode } from 'base64-arraybuffer';
+import { supabase } from '../lib/supabase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,7 +43,7 @@ const C = {
 };
 
 // ─── ÉTAPES ──────────────────────────────────────────────────────────────────
-const TOTAL_STEPS = 14;
+const TOTAL_STEPS = 13;
 
 // ─── DONNÉES ─────────────────────────────────────────────────────────────────
 const MODES = [
@@ -273,172 +275,7 @@ const splash = StyleSheet.create({
   tagline: { fontSize: 16, color: C.grayText, marginTop: 10, fontWeight: '500' },
 });
 
-// STEP 1: Téléphone
-function StepPhone({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (phone: string) => void }) {
-  const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState({ code: 'MA', dial: '+212', flag: '🇲🇦' });
-
-  const countries = [
-    { code: 'MA', dial: '+212', flag: '🇲🇦', name: 'Maroc' },
-    { code: 'BE', dial: '+32', flag: '🇧🇪', name: 'Belgique' },
-    { code: 'FR', dial: '+33', flag: '🇫🇷', name: 'France' },
-    { code: 'NL', dial: '+31', flag: '🇳🇱', name: 'Pays-Bas' },
-  ];
-
-  const [showCountry, setShowCountry] = useState(false);
-
-  return (
-    <StepLayout step={step} onBack={onBack}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={ph.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={ph.title}>Quel est ton numéro ?</Text>
-          <Text style={ph.sub}>Ton numéro est uniquement utilisé pour vérifier ton identité.</Text>
-
-          <View style={ph.row}>
-            <TouchableOpacity style={ph.countryBtn} onPress={() => setShowCountry(true)}>
-              <Text style={ph.flag}>{country.flag}</Text>
-              <Text style={ph.dial}>{country.dial}</Text>
-              <Text style={ph.chevron}>▾</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={ph.input}
-              placeholder="06 64 68 35 62"
-              placeholderTextColor={C.grayMid}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              autoFocus
-            />
-          </View>
-
-          <View style={ph.noteRow}>
-            <Text style={ph.lock}>🔒</Text>
-            <Text style={ph.note}>Ton numéro ne sera jamais visible sur ton profil.</Text>
-          </View>
-        </ScrollView>
-
-        <NextButton onPress={() => phone.length >= 8 && onNext(country.dial + phone)} disabled={phone.length < 8} />
-      </KeyboardAvoidingView>
-
-      <Modal visible={showCountry} transparent animationType="slide">
-        <View style={ph.modalOverlay}>
-          <View style={ph.modalCard}>
-            <Text style={ph.modalTitle}>Choisir un pays</Text>
-            {countries.map(c => (
-              <TouchableOpacity key={c.code} style={ph.countryItem} onPress={() => { setCountry(c); setShowCountry(false); }}>
-                <Text style={ph.flag}>{c.flag}</Text>
-                <Text style={ph.countryName}>{c.name}</Text>
-                <Text style={ph.dial}>{c.dial}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity onPress={() => setShowCountry(false)} style={ph.closeModal}>
-              <Text style={ph.closeModalTxt}>Fermer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </StepLayout>
-  );
-}
-
-const ph = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 120 },
-  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10, lineHeight: 36 },
-  sub: { fontSize: 15, color: C.grayText, marginBottom: 36, lineHeight: 22 },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  countryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 16, borderWidth: 1.5, borderColor: C.beigeDeep },
-  flag: { fontSize: 20 },
-  dial: { fontSize: 15, fontWeight: '700', color: C.brown },
-  chevron: { fontSize: 11, color: C.grayText },
-  input: { flex: 1, backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16, fontSize: 18, fontWeight: '600', color: C.brown, borderWidth: 1.5, borderColor: C.gold },
-  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 8 },
-  lock: { fontSize: 14, marginTop: 2 },
-  note: { fontSize: 13, color: C.grayText, flex: 1, lineHeight: 18 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: C.beige, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, paddingBottom: 40 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: C.brown, marginBottom: 20 },
-  countryItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.beigeDeep },
-  countryName: { flex: 1, fontSize: 16, fontWeight: '600', color: C.brown },
-  closeModal: { marginTop: 24, alignItems: 'center', padding: 14, backgroundColor: C.grayLight, borderRadius: 14 },
-  closeModalTxt: { fontSize: 16, fontWeight: '700', color: C.brownMid },
-});
-
-// STEP 2: OTP
-function StepOTP({ step, phone, onBack, onNext }: { step: number; phone: string; onBack: () => void; onNext: () => void }) {
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(30);
-  const inputs = useRef<(TextInput | null)[]>([]);
-
-  useEffect(() => {
-    const id = setInterval(() => setTimer(t => (t > 0 ? t - 1 : 0)), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const handleChange = (val: string, idx: number) => {
-    const newCode = [...code];
-    newCode[idx] = val;
-    setCode(newCode);
-    if (val && idx < 5) inputs.current[idx + 1]?.focus();
-    if (!val && idx > 0) inputs.current[idx - 1]?.focus();
-  };
-
-  const full = code.join('').length === 6;
-
-  return (
-    <StepLayout step={step} onBack={onBack}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={otp.container}>
-          <Text style={otp.title}>Vérifie ton numéro</Text>
-          <Text style={otp.sub}>Code envoyé au <Text style={otp.phone}>{phone}</Text></Text>
-
-          <View style={otp.boxes}>
-            {code.map((c, i) => (
-              <TextInput
-                key={i}
-                ref={r => (inputs.current[i] = r)}
-                style={[otp.box, c !== '' && otp.boxFilled]}
-                value={c}
-                onChangeText={v => handleChange(v.slice(-1), i)}
-                keyboardType="number-pad"
-                maxLength={1}
-                autoFocus={i === 0}
-              />
-            ))}
-          </View>
-
-          <View style={otp.resendRow}>
-            <Text style={otp.resendLabel}>Code non reçu ? </Text>
-            {timer > 0 ? (
-              <Text style={otp.timer}>Renvoyer dans {timer}s</Text>
-            ) : (
-              <TouchableOpacity onPress={() => setTimer(30)}>
-                <Text style={otp.resendLink}>Renvoyer</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <NextButton onPress={onNext} disabled={!full} />
-      </KeyboardAvoidingView>
-    </StepLayout>
-  );
-}
-
-const otp = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
-  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 10 },
-  sub: { fontSize: 15, color: C.grayText, marginBottom: 40 },
-  phone: { fontWeight: '700', color: C.brownMid },
-  boxes: { flexDirection: 'row', gap: 10, marginBottom: 28 },
-  box: { flex: 1, aspectRatio: 1, borderRadius: 16, backgroundColor: C.white, borderWidth: 2, borderColor: C.beigeDeep, textAlign: 'center', fontSize: 24, fontWeight: '700', color: C.brown },
-  boxFilled: { borderColor: C.gold, backgroundColor: '#FDF8EE' },
-  resendRow: { flexDirection: 'row', alignItems: 'center' },
-  resendLabel: { fontSize: 14, color: C.grayText },
-  timer: { fontSize: 14, color: C.grayMid, fontWeight: '600' },
-  resendLink: { fontSize: 14, color: C.gold, fontWeight: '700' },
-});
-
-// STEP 3: Prénom
+// STEP 1: Prénom
 function StepPrenom({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (prenom: string) => void }) {
   const [prenom, setPrenom] = useState('');
   return (
@@ -479,7 +316,7 @@ const pr = StyleSheet.create({
   hint: { fontSize: 13, color: C.grayText, marginTop: 6 },
 });
 
-// STEP 4: Date de naissance
+// STEP 2: Date de naissance
 function StepDateNaissance({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (dob: string) => void }) {
   const [jour, setJour] = useState('');
   const [mois, setMois] = useState('');
@@ -592,7 +429,7 @@ const dn = StyleSheet.create({
   btnConfTxt: { fontSize: 15, fontWeight: '700', color: C.white },
 });
 
-// STEP 5: Genre
+// STEP 3: Genre
 function StepGenre({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (genre: string, afficher: boolean) => void }) {
   const [selected, setSelected] = useState('');
   const [afficher, setAfficher] = useState(true);
@@ -654,7 +491,7 @@ const gn = StyleSheet.create({
   toggleSub: { fontSize: 12, color: C.grayText, marginTop: 2 },
 });
 
-// STEP 6: Mode / Ambiance
+// STEP 4: Mode / Ambiance
 function StepMode({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (mode: string) => void }) {
   const [selected, setSelected] = useState('');
 
@@ -704,7 +541,7 @@ const md = StyleSheet.create({
   checkMark: { fontSize: 13, color: C.white, fontWeight: '800' },
 });
 
-// STEP 7: Centres d'intérêt
+// STEP 5: Centres d'intérêt
 function StepInterets({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (interets: string[]) => void }) {
   const [selected, setSelected] = useState<string[]>([]);
   const MAX = 10;
@@ -782,7 +619,7 @@ const int = StyleSheet.create({
   nextTxtDis: { color: C.grayText },
 });
 
-// STEP 8: Lifestyle
+// STEP 6: Lifestyle
 function StepLifestyle({ step, prenom, onBack, onNext }: { step: number; prenom: string; onBack: () => void; onNext: (data: Record<string, string>) => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const set = (qid: string, val: string) => setAnswers(prev => ({ ...prev, [qid]: val }));
@@ -839,7 +676,7 @@ const ls = StyleSheet.create({
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.beige, paddingTop: 12, paddingBottom: 40, borderTopWidth: 1, borderTopColor: C.beigeDeep },
 });
 
-// STEP 9: Bio
+// STEP 7: Bio
 function StepBio({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (bio: string) => void }) {
   const [bio, setBio] = useState('');
   const MAX = 300;
@@ -906,15 +743,17 @@ const bio_ = StyleSheet.create({
   nextTxt: { fontSize: 26, color: C.white, fontWeight: '700' },
 });
 
-// STEP 10: Photos
-function StepPhotos({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (photos: string[]) => void }) {
-  const [photos, setPhotos] = useState<(string | null)[]>([null, null, null, null, null, null]);
+// STEP 8: Photos
+export type PickedPhoto = { uri: string; base64: string };
+
+function StepPhotos({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (photos: PickedPhoto[]) => void }) {
+  const [photos, setPhotos] = useState<(PickedPhoto | null)[]>([null, null, null, null, null, null]);
 
   const pick = async (idx: number) => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [3, 4], quality: 0.8 });
-    if (!res.canceled) {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [3, 4], quality: 0.8, base64: true });
+    if (!res.canceled && res.assets[0].base64) {
       const newPhotos = [...photos];
-      newPhotos[idx] = res.assets[0].uri;
+      newPhotos[idx] = { uri: res.assets[0].uri, base64: res.assets[0].base64 };
       setPhotos(newPhotos);
     }
   };
@@ -932,9 +771,7 @@ function StepPhotos({ step, onBack, onNext }: { step: number; onBack: () => void
             <TouchableOpacity key={i} style={ph2.slot} onPress={() => pick(i)} activeOpacity={0.8}>
               {p ? (
                 <>
-                  <View style={ph2.photoFill}>
-                    <Text style={ph2.photoPlaceholder}>📷</Text>
-                  </View>
+                  <Image source={{ uri: p.uri }} style={ph2.photoFill} resizeMode="cover" />
                   <View style={ph2.checkCircle}>
                     <Text style={ph2.checkMark}>✓</Text>
                   </View>
@@ -955,7 +792,7 @@ function StepPhotos({ step, onBack, onNext }: { step: number; onBack: () => void
       </View>
 
       <View style={ph2.footer}>
-        <BigButton label="Continuer" onPress={() => onNext(photos.filter(Boolean) as string[])} disabled={filled < 2} />
+        <BigButton label="Continuer" onPress={() => onNext(photos.filter(Boolean) as PickedPhoto[])} disabled={filled < 2} />
       </View>
     </StepLayout>
   );
@@ -967,7 +804,7 @@ const ph2 = StyleSheet.create({
   sub: { fontSize: 14, color: C.grayText, marginBottom: 24 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   slot: { width: (width - 68) / 3, aspectRatio: 3 / 4, borderRadius: 16, backgroundColor: C.white, borderWidth: 2, borderColor: C.beigeDeep, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
-  photoFill: { ...StyleSheet.absoluteFillObject, backgroundColor: C.beigeDeep, justifyContent: 'center', alignItems: 'center' },
+  photoFill: { ...StyleSheet.absoluteFill, backgroundColor: C.beigeDeep, justifyContent: 'center', alignItems: 'center' },
   photoPlaceholder: { fontSize: 32 },
   checkCircle: { position: 'absolute', bottom: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: C.gold, justifyContent: 'center', alignItems: 'center' },
   checkMark: { fontSize: 13, color: C.white, fontWeight: '800' },
@@ -979,7 +816,7 @@ const ph2 = StyleSheet.create({
   footer: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 },
 });
 
-// STEP 11: Distance
+// STEP 9: Distance
 function StepDistance({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (km: number) => void }) {
   const [km, setKm] = useState(30);
   const sliderRef = useRef<View>(null);
@@ -1051,7 +888,7 @@ const dist = StyleSheet.create({
   footer: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 },
 });
 
-// STEP 12: Géolocalisation
+// STEP 10: Géolocalisation
 function StepGeo({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: () => void }) {
   const requestGeo = async () => {
     await Location.requestForegroundPermissionsAsync();
@@ -1103,7 +940,7 @@ const geo = StyleSheet.create({
   laterTxt: { fontSize: 15, color: C.grayText, fontWeight: '600' },
 });
 
-// STEP 13: Notifications
+// STEP 11: Notifications
 function StepNotifs({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: () => void }) {
   const requestNotifs = async () => {
     await Notifications.requestPermissionsAsync();
@@ -1138,12 +975,113 @@ const notif = StyleSheet.create({
   laterTxt: { fontSize: 15, color: C.grayText, fontWeight: '600' },
 });
 
+// STEP 12: Création du compte (email + mot de passe)
+function StepEmailPassword({ step, onBack, onNext }: { step: number; onBack: () => void; onNext: (userId: string, email: string) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState('');
+
+  const emailValide = /^\S+@\S+\.\S+$/.test(email);
+  const valid = emailValide && password.length >= 6;
+
+  const creerCompte = async () => {
+    if (!valid || loading) return;
+    setLoading(true);
+    setErreur('');
+    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+    if (error) {
+      const msg = error.message.toLowerCase();
+      setErreur(
+        msg.includes('already') || msg.includes('registered')
+          ? 'Cet email est déjà utilisé.'
+          : msg.includes('password')
+          ? 'Mot de passe trop faible (6 caractères minimum).'
+          : 'Impossible de créer le compte. Réessaie.'
+      );
+      setLoading(false);
+      return;
+    }
+    if (!data.user) {
+      setErreur('Impossible de créer le compte. Réessaie.');
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+    onNext(data.user.id, email.trim());
+  };
+
+  return (
+    <StepLayout step={step} onBack={onBack}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={em.scroll} keyboardShouldPersistTaps="handled">
+          <Text style={em.title}>Crée ton compte</Text>
+          <Text style={em.sub}>Dernière étape ! Ton email te sert à te reconnecter.</Text>
+
+          {erreur ? (
+            <View style={em.erreurBox}>
+              <Text style={em.erreurTxt}>⚠️ {erreur}</Text>
+            </View>
+          ) : null}
+
+          <View style={em.fieldWrap}>
+            <Text style={em.label}>Email</Text>
+            <TextInput
+              style={em.input}
+              placeholder="ton@email.com"
+              placeholderTextColor={C.grayMid}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              autoFocus
+            />
+          </View>
+
+          <View style={em.fieldWrap}>
+            <Text style={em.label}>Mot de passe</Text>
+            <View style={em.passwordRow}>
+              <TextInput
+                style={em.passwordInput}
+                placeholder="6 caractères minimum"
+                placeholderTextColor={C.grayMid}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={em.eyeBtn}>
+                <Text style={{ fontSize: 16 }}>{showPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+
+        <NextButton onPress={creerCompte} disabled={!valid || loading} />
+      </KeyboardAvoidingView>
+    </StepLayout>
+  );
+}
+
+const em = StyleSheet.create({
+  scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 120, gap: 18 },
+  title: { fontSize: 30, fontWeight: '800', color: C.brown, marginBottom: 2, lineHeight: 36 },
+  sub: { fontSize: 15, color: C.grayText, marginBottom: 8, lineHeight: 22 },
+  erreurBox: { backgroundColor: '#FDEDEA', borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: C.error + '40' },
+  erreurTxt: { color: C.error, fontSize: 13, fontWeight: '700' },
+  fieldWrap: { gap: 8 },
+  label: { fontSize: 13, fontWeight: '700', color: C.brownMid, letterSpacing: 0.3 },
+  input: { backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, fontWeight: '600', color: C.brown, borderWidth: 1.5, borderColor: C.beigeDeep },
+  passwordRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderRadius: 14, borderWidth: 1.5, borderColor: C.beigeDeep },
+  passwordInput: { flex: 1, paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, fontWeight: '600', color: C.brown },
+  eyeBtn: { paddingHorizontal: 14 },
+});
+
 // ─── ÉCRAN PRINCIPAL ──────────────────────────────────────────────────────────
 export default function Inscription() {
   const [step, setStep] = useState(0);
 
   // Données collectées
-  const [phone, setPhone] = useState('');
   const [prenom, setPrenom] = useState('');
   const [dob, setDob] = useState('');
   const [genre, setGenre] = useState('');
@@ -1152,19 +1090,34 @@ export default function Inscription() {
   const [interets, setInterets] = useState<string[]>([]);
   const [lifestyle, setLifestyle] = useState<Record<string, string>>({});
   const [bio, setBio] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [distance, setDistance] = useState(30);
 
   const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep(s => Math.max(s - 1, 0));
 
-  const finishOnboarding = async () => { require('expo-router').router.replace('/(tabs)/explore'); return; require('expo-router').router.replace('/(tabs)/explore'); return;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  const uploadPhotos = async (userId: string) => {
+    // Même convention que l'écran Profil : avatar.jpg pour la photo principale,
+    // album_<timestamp>_<i>.jpg pour les suivantes, dans le bucket photos-wyytu.
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i];
+      const fileName = i === 0 ? 'avatar.jpg' : `album_${Date.now()}_${i}.jpg`;
+      try {
+        const { error } = await supabase.storage
+          .from('photos-wyytu')
+          .upload(`${userId}/${fileName}`, decode(photo.base64), { contentType: 'image/jpeg', upsert: true });
+        if (error) console.log('Erreur upload photo', fileName, error.message);
+      } catch (e) {
+        console.log('Erreur upload photo', fileName, e);
+      }
+    }
+  };
 
-      await supabase.from('utilisateurs').upsert({
-        id: user.id,
+  const finishOnboarding = async (userId: string, userEmail: string) => {
+    try {
+      const { error } = await supabase.from('utilisateurs').upsert({
+        id: userId,
+        email: userEmail,
         prenom,
         date_naissance: dob,
         genre,
@@ -1177,10 +1130,18 @@ export default function Inscription() {
         onboarding_complete: true,
         created_at: new Date().toISOString(),
       });
+      if (error) throw error;
 
-      router.replace('/(tabs)/explorer');
+      await uploadPhotos(userId);
+
+      router.replace('/(tabs)/explore' as any);
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible de sauvegarder ton profil. Réessaie.');
+      console.log('Erreur finishOnboarding', e);
+      Alert.alert(
+        'Profil incomplet',
+        'Ton compte a bien été créé mais on n\'a pas pu enregistrer ton profil. Tu pourras le compléter depuis l\'app.'
+      );
+      router.replace('/(tabs)/explore' as any);
     }
   };
 
@@ -1193,19 +1154,18 @@ export default function Inscription() {
   const renderStep = () => {
     switch (step) {
       case 0: return <SplashScreen onNext={next} />;
-      case 1: return <StepPhone step={step} onBack={back} onNext={p => { setPhone(p); next(); }} />;
-      case 2: return <StepOTP step={step} phone={phone} onBack={back} onNext={next} />;
-      case 3: return <StepPrenom step={step} onBack={back} onNext={p => { setPrenom(p); next(); }} />;
-      case 4: return <StepDateNaissance step={step} prenom={prenom} onBack={back} onNext={d => { setDob(d); next(); }} />;
-      case 5: return <StepGenre step={step} prenom={prenom} onBack={back} onNext={(g, a) => { setGenre(g); setAfficherGenre(a); next(); }} />;
-      case 6: return <StepMode step={step} prenom={prenom} onBack={back} onNext={m => { setMode(m); next(); }} />;
-      case 7: return <StepInterets step={step} onBack={back} onNext={i => { setInterets(i); next(); }} />;
-      case 8: return <StepLifestyle step={step} prenom={prenom} onBack={back} onNext={l => { setLifestyle(l); next(); }} />;
-      case 9: return <StepBio step={step} onBack={back} onNext={b => { setBio(b); next(); }} />;
-      case 10: return <StepPhotos step={step} onBack={back} onNext={p => { setPhotos(p); next(); }} />;
-      case 11: return <StepDistance step={step} onBack={back} onNext={d => { setDistance(d); next(); }} />;
-      case 12: return <StepGeo step={step} onBack={back} onNext={next} />;
-      case 13: return <StepNotifs step={step} onBack={back} onNext={finishOnboarding} />;
+      case 1: return <StepPrenom step={step} onBack={back} onNext={p => { setPrenom(p); next(); }} />;
+      case 2: return <StepDateNaissance step={step} prenom={prenom} onBack={back} onNext={d => { setDob(d); next(); }} />;
+      case 3: return <StepGenre step={step} prenom={prenom} onBack={back} onNext={(g, a) => { setGenre(g); setAfficherGenre(a); next(); }} />;
+      case 4: return <StepMode step={step} prenom={prenom} onBack={back} onNext={m => { setMode(m); next(); }} />;
+      case 5: return <StepInterets step={step} onBack={back} onNext={i => { setInterets(i); next(); }} />;
+      case 6: return <StepLifestyle step={step} prenom={prenom} onBack={back} onNext={l => { setLifestyle(l); next(); }} />;
+      case 7: return <StepBio step={step} onBack={back} onNext={b => { setBio(b); next(); }} />;
+      case 8: return <StepPhotos step={step} onBack={back} onNext={p => { setPhotos(p); next(); }} />;
+      case 9: return <StepDistance step={step} onBack={back} onNext={d => { setDistance(d); next(); }} />;
+      case 10: return <StepGeo step={step} onBack={back} onNext={next} />;
+      case 11: return <StepNotifs step={step} onBack={back} onNext={next} />;
+      case 12: return <StepEmailPassword step={step} onBack={back} onNext={(userId, userEmail) => finishOnboarding(userId, userEmail)} />;
       default: return null;
     }
   };

@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { COLORS } from '../constants/theme';
 import { supabase } from '../lib/supabase';
 
 export default function MotDePasseOublieScreen() {
@@ -96,28 +97,28 @@ export default function MotDePasseOublieScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F2' },
-  bgCircle1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: '#E8000D', opacity: 0.05, top: -60, right: -80 },
-  bgCircle2: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: '#7B2FBE', opacity: 0.04, bottom: 100, left: -60 },
-  backBtn: { position: 'absolute', top: 60, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: '#EEE8DE', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  backIcon: { fontSize: 20, color: '#1A1A1A', fontWeight: '700' },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  bgCircle1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: COLORS.gold, opacity: 0.08, top: -60, right: -80 },
+  bgCircle2: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: COLORS.gold, opacity: 0.05, bottom: 100, left: -60 },
+  backBtn: { position: 'absolute', top: 60, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.bgDeep, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  backIcon: { fontSize: 20, color: COLORS.text, fontWeight: '700' },
   content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center', gap: 16 },
-  iconWrapper: { width: 80, height: 80, borderRadius: 28, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 8 },
+  iconWrapper: { width: 80, height: 80, borderRadius: 28, backgroundColor: '#FDF8EE', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 8 },
   icon: { fontSize: 40 },
-  titre: { fontSize: 28, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5, textAlign: 'center' },
-  sub: { fontSize: 15, color: '#AAA', textAlign: 'center', lineHeight: 22 },
-  erreurBox: { backgroundColor: '#FFF0F0', borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: '#E8000D30' },
-  erreurTexte: { color: '#E8000D', fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  fieldWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 2, borderColor: '#F0EDE8', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  fieldIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FAF7F2', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  titre: { fontSize: 28, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5, textAlign: 'center' },
+  sub: { fontSize: 15, color: COLORS.textLight, textAlign: 'center', lineHeight: 22 },
+  erreurBox: { backgroundColor: '#FFF0F0', borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: COLORS.red + '30' },
+  erreurTexte: { color: COLORS.red, fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  fieldWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: 18, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 2, borderColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  fieldIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   fieldIcon: { fontSize: 18 },
-  fieldInput: { flex: 1, color: '#1A1A1A', fontSize: 15, paddingVertical: 12, fontWeight: '500' },
-  btnEnvoyer: { backgroundColor: '#E8000D', borderRadius: 18, padding: 18, alignItems: 'center', shadowColor: '#E8000D', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
-  btnEnvoyerTexte: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  succesCard: { backgroundColor: '#fff', borderRadius: 24, padding: 28, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 4 },
+  fieldInput: { flex: 1, color: COLORS.text, fontSize: 15, paddingVertical: 12, fontWeight: '500' },
+  btnEnvoyer: { backgroundColor: COLORS.gold, borderRadius: 18, padding: 18, alignItems: 'center', shadowColor: COLORS.gold, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
+  btnEnvoyerTexte: { color: COLORS.white, fontSize: 16, fontWeight: '900' },
+  succesCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 28, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 4 },
   succesEmoji: { fontSize: 48 },
-  succesTitre: { fontSize: 22, fontWeight: '900', color: '#1A1A1A' },
-  succesSub: { fontSize: 14, color: '#AAA', textAlign: 'center', lineHeight: 22 },
-  btnRetour: { backgroundColor: '#1A1A1A', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 8 },
-  btnRetourTexte: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  succesTitre: { fontSize: 22, fontWeight: '900', color: COLORS.text },
+  succesSub: { fontSize: 14, color: COLORS.textLight, textAlign: 'center', lineHeight: 22 },
+  btnRetour: { backgroundColor: COLORS.text, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 8 },
+  btnRetourTexte: { color: COLORS.white, fontSize: 14, fontWeight: '800' },
 });
