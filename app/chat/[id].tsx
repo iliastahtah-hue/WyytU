@@ -8,6 +8,7 @@ import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
 import type { Message } from '@/src/lib/database.types';
 import { readableError, supabase } from '@/src/lib/supabase';
+import { fmtTime } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, fonts, radius, TOUCH } from '@/src/theme/tokens';
 
@@ -44,7 +45,7 @@ export default function ChatScreen() {
         const list = (data ?? []).reverse();
         setMessages(list);
         const found = await fetchMiniProfiles([...new Set(list.map((m) => m.sender_id))]);
-        setPeople(found);
+        setPeople((p) => ({ ...p, ...found }));
       });
 
     // Nouveaux messages en temps réel
@@ -94,7 +95,7 @@ export default function ChatScreen() {
       <View style={{ paddingHorizontal: 8 }}>
         <TopBar title={title} />
       </View>
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+      <KeyboardAvoidingView style={styles.fill} behavior="padding" keyboardVerticalOffset={0}>
         <FlatList
           ref={listRef}
           data={messages}
@@ -121,7 +122,7 @@ export default function ChatScreen() {
                   {showName ? <AppText variant="tag" color={colors.coralDark}>{who?.first_name ?? ''}</AppText> : null}
                   <AppText color={mine ? colors.white : colors.ink}>{item.body}</AppText>
                   <AppText variant="small" color={mine ? 'rgba(255,255,255,0.7)' : colors.muted} style={{ fontSize: 11, alignSelf: 'flex-end' }}>
-                    {new Date(item.created_at).toLocaleTimeString(localeOf(lang), { hour: '2-digit', minute: '2-digit' })}
+                    {fmtTime(item.created_at, localeOf(lang))}
                   </AppText>
                 </Pressable>
               </View>

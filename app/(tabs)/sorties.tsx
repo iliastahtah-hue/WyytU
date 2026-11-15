@@ -9,6 +9,7 @@ import { localeOf, relativeStart } from '@/src/features/groups/time';
 import { confirmPresence, fetchMyOutings, type MyOuting } from '@/src/features/outings/api';
 import { useI18n } from '@/src/i18n';
 import { readableError } from '@/src/lib/supabase';
+import { fmtDate } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius, TOUCH, universeColors } from '@/src/theme/tokens';
 
@@ -51,7 +52,7 @@ function OutingCard({ o, past, onChanged, onQr }: { o: MyOuting; past: boolean; 
         <View style={styles.row}>
           <AppText variant="tag" color={colors.sub} style={{ flex: 1 }}>
             {past
-              ? new Date(o.starts_at).toLocaleDateString(localeOf(lang), { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
+              ? fmtDate(o.starts_at, localeOf(lang), { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
               : relativeStart(o.starts_at, t, lang).toUpperCase()}
           </AppText>
           <View style={[styles.badge, { backgroundColor: accepted ? colors.limeSoft : colors.sand }]}>

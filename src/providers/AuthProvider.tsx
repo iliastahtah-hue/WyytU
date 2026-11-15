@@ -8,6 +8,8 @@ type AuthValue = {
   profile: Profile | null;
   /** true tant que la session et le profil ne sont pas encore chargés */
   loading: boolean;
+  /** true si le profil n'a pas pu être chargé (réseau) : l'app propose de réessayer */
+  profileError: boolean;
   refreshProfile: () => Promise<Profile | null>;
   signOut: () => Promise<void>;
 };
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // id de l'utilisateur dont le profil est chargé (évite un mauvais routage
   // pendant le court instant où la session existe mais pas encore le profil)
   const [profileFor, setProfileFor] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState(false);
 
   const loadProfile = useCallback(async (userId: string | undefined) => {
     if (!userId) {
@@ -28,11 +31,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileFor(null);
       return null;
     }
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (error) console.warn('[WyytU] profil', error.message);
-    setProfile(data ?? null);
+    // Le profil complet (avec date de naissance, selfie) n'est lisible que par
+    // son propriétaire, via cette fonction.
+    const { data, error } = await supabase.rpc('get_my_profile');
+    if (error) {
+      // Erreur réseau : on ne conclut surtout pas « pas de profil »
+      console.warn('[WyytU] profil', error.message);
+      setProfileError(true);
+      return null;
+    }
+    const mine = data?.[0] ?? null;
+    setProfileError(false);
+    setProfile(mine);
     setProfileFor(userId);
-    return data ?? null;
+    return mine;
   }, []);
 
   useEffect(() => {
@@ -68,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const busy = loading || (!!session && profileFor !== session.user.id);
 
   const value = useMemo(
-    () => ({ session, profile, loading: busy, refreshProfile, signOut }),
-    [session, profile, busy, refreshProfile, signOut],
+    () => ({ session, profile, loading: busy, profileError, refreshProfile, signOut }),
+    [session, profile, busy, profileError, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

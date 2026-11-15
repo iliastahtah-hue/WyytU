@@ -1,6 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { parseQr } from '@/src/components/QrModal';
 import { AppText, Button, Screen, TopBar } from '@/src/components/ui';
 import { readableError, supabase } from '@/src/lib/supabase';
 import { colors, radius } from '@/src/theme/tokens';
@@ -14,10 +15,10 @@ export default function ScannerScreen() {
 
   const onScan = async (data: string) => {
     if (busy.current || result) return;
-    const match = /^wyytu:group:([0-9a-f-]{36})$/i.exec(data.trim());
-    if (!match) return; // QR qui n'est pas un QR WyytU : on ignore
+    const qr = parseQr(data);
+    if (!qr) return; // QR qui n'est pas un QR WyytU : on ignore
     busy.current = true;
-    const { data: res, error } = await supabase.rpc('partner_check_in', { p_group: match[1] });
+    const { data: res, error } = await supabase.rpc('partner_check_in', { p_group: qr.groupId, p_code: qr.code });
     busy.current = false;
     if (error || !res) setResult({ ok: false, message: readableError(error, 'QR non valide.') });
     else setResult({ ok: true, title: res.title, members: res.members, discount: res.discount_pct });

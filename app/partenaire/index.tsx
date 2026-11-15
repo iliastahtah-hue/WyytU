@@ -8,6 +8,7 @@ import { fetchMyPartner, fetchPartnerAgenda } from '@/src/features/partners/api'
 import { useI18n } from '@/src/i18n';
 import type { Group, Partner, PartnerOffer, Universe } from '@/src/lib/database.types';
 import { readableError, supabase } from '@/src/lib/supabase';
+import { atTime, fmtDate, fmtDateTime, startOfDayPlus } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius, TOUCH, UNIVERSES, universeColors } from '@/src/theme/tokens';
 
@@ -83,16 +84,10 @@ function NewOffer({ partner, onDone }: { partner: Partner; onDone: () => void })
   const [capacity, setCapacity] = useState(4);
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
-  const days = useMemo(() => Array.from({ length: 14 }, (_, i) => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + i);
-    return d;
-  }), []);
+  const days = useMemo(() => Array.from({ length: 14 }, (_, i) => startOfDayPlus(i)), []);
 
   const submit = async () => {
-    const start = new Date(days[dayIndex]);
-    start.setHours(hour, minute, 0, 0);
+    const start = atTime(days[dayIndex], hour, minute);
     if (start.getTime() < Date.now()) return Alert.alert('Choisis un créneau à venir.');
     setLoading(true);
     const { error } = await supabase.from('partner_offers').insert({
@@ -122,7 +117,7 @@ function NewOffer({ partner, onDone }: { partner: Partner; onDone: () => void })
       <TextField label="Intitulé" value={title} onChangeText={setTitle} placeholder="Ex. : Terrain 2 · padel" maxLength={80} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {days.map((d, i) => (
-          <Chip key={i} label={i === 0 ? 'Auj.' : d.toLocaleDateString(localeOf(lang), { weekday: 'short', day: 'numeric' })} selected={dayIndex === i} onPress={() => setDayIndex(i)} />
+          <Chip key={i} label={i === 0 ? 'Auj.' : fmtDate(d, localeOf(lang), { weekday: 'short', day: 'numeric' })} selected={dayIndex === i} onPress={() => setDayIndex(i)} />
         ))}
       </ScrollView>
       <View style={styles.row}>
@@ -215,7 +210,7 @@ export default function PartenaireScreen() {
             <View key={g.id} style={styles.line}>
               <AppText variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>{g.title}</AppText>
               <AppText variant="small" color={colors.sub}>
-                {new Date(g.starts_at).toLocaleString(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                {fmtDateTime(g.starts_at, locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
               </AppText>
             </View>
           )) : <AppText color={colors.sub}>Aucun groupe pour l’instant.</AppText>}
@@ -226,7 +221,7 @@ export default function PartenaireScreen() {
               <View style={{ flex: 1 }}>
                 <AppText variant="bodyStrong" numberOfLines={1}>{o.title}</AppText>
                 <AppText variant="small" color={colors.sub}>
-                  {new Date(o.starts_at).toLocaleString(locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {fmtDateTime(o.starts_at, locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   {o.booked ? ' · Réservé ✓' : ''}
                 </AppText>
               </View>

@@ -5,12 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '@/src/components/ui';
 import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
-import type { Group, Message } from '@/src/lib/database.types';
+import type { Group } from '@/src/lib/database.types';
 import { supabase } from '@/src/lib/supabase';
+import { fmtTime } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius, UNIVERSES, universeColors } from '@/src/theme/tokens';
 
-type Conversation = Group & { last: Message | null };
+type Last = { group_id: string; body: string; created_at: string };
+type Conversation = Group & { last: Last | null };
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -28,9 +30,10 @@ export default function MessagesScreen() {
       setLoading(false);
       return;
     }
+    // dernier message de chaque groupe, calculé par la base
     const [{ data: groups }, { data: msgs }] = await Promise.all([
       supabase.from('groups').select('*').in('id', ids).neq('status', 'cancelled'),
-      supabase.from('group_messages').select('*').in('group_id', ids).order('created_at', { ascending: false }).limit(300),
+      supabase.rpc('my_conversations'),
     ]);
     const conv = (groups ?? []).map((g) => ({ ...g, last: (msgs ?? []).find((m) => m.group_id === g.id) ?? null }));
     conv.sort((a, b) => (b.last?.created_at ?? b.created_at).localeCompare(a.last?.created_at ?? a.created_at));
@@ -66,7 +69,7 @@ export default function MessagesScreen() {
               </View>
               {item.last ? (
                 <AppText variant="small" color={colors.muted}>
-                  {new Date(item.last.created_at).toLocaleTimeString(localeOf(lang), { hour: '2-digit', minute: '2-digit' })}
+                  {fmtTime(item.last.created_at, localeOf(lang))}
                 </AppText>
               ) : null}
             </Pressable>

@@ -21,10 +21,13 @@ export async function fetchMiniProfiles(ids: string[]): Promise<Record<string, M
   if (!unique.length) return {};
   const [{ data: profiles }, { data: photos }] = await Promise.all([
     supabase.from('profiles').select(PROFILE_FIELDS).in('id', unique),
-    supabase.from('profile_photos').select('user_id, path, position').in('user_id', unique).eq('position', 0),
+    supabase.from('profile_photos').select('user_id, path, position').in('user_id', unique).order('position'),
   ]);
-  const urls = await signedUrls('photos', (photos ?? []).map((p) => p.path));
-  const photoOf = Object.fromEntries((photos ?? []).map((p) => [p.user_id, urls[p.path] ?? null]));
+  // première photo de chaque personne (la plus petite position)
+  const firstPath: Record<string, string> = {};
+  for (const p of photos ?? []) if (!firstPath[p.user_id]) firstPath[p.user_id] = p.path;
+  const urls = await signedUrls('photos', Object.values(firstPath));
+  const photoOf = Object.fromEntries(Object.entries(firstPath).map(([uid, path]) => [uid, urls[path] ?? null]));
   return Object.fromEntries(
     (profiles ?? []).map((p) => [p.id, { ...(p as Omit<MiniProfile, 'photo'>), photo: photoOf[p.id] ?? null }]),
   );
@@ -38,7 +41,7 @@ export async function fetchUpcomingGroups(userId: string, filters: Filters = {})
     .from('groups')
     .select('*')
     .in('status', ['open', 'full'])
-    .gte('starts_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+    .gte('starts_at', new Date().toISOString())
     .order('starts_at', { ascending: true })
     .limit(50);
   if (filters.universe) query = query.eq('universe', filters.universe);

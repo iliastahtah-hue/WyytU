@@ -83,9 +83,14 @@ export default function ProfilScreen() {
               {profile.city}
               {profile.show_age ? ` · ${ageFrom(profile.birth_date)} ans` : ''}
             </AppText>
-            <View style={[styles.badge, { backgroundColor: status.bg }]}>
+            <Pressable
+              accessibilityRole={profile.verification_status === 'rejected' ? 'button' : 'text'}
+              disabled={profile.verification_status !== 'rejected'}
+              onPress={() => router.push('/selfie')}
+              style={[styles.badge, { backgroundColor: status.bg }]}
+            >
               <AppText variant="label">{status.label}</AppText>
-            </View>
+            </Pressable>
           </View>
         </View>
 

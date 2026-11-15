@@ -7,6 +7,7 @@ import { localeOf } from '@/src/features/groups/time';
 import { fetchOpenOffers, type OfferWithPartner } from '@/src/features/partners/api';
 import { useI18n } from '@/src/i18n';
 import type { Universe } from '@/src/lib/database.types';
+import { fmtDateTime } from '@/src/lib/tz';
 import { colors, radius, UNIVERSES, universeColors } from '@/src/theme/tokens';
 
 export default function PlansScreen() {
@@ -70,7 +71,7 @@ export default function PlansScreen() {
                 </View>
                 <AppText variant="bodyStrong" numberOfLines={1}>{item.title}</AppText>
                 <AppText variant="small" color={colors.sub}>
-                  {new Date(item.starts_at).toLocaleString(locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {fmtDateTime(item.starts_at, locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   {' · '}{item.duration_min} min · {item.capacity} pers.
                   {item.price_mad != null ? ` · ${item.price_mad} DH` : ''}
                 </AppText>

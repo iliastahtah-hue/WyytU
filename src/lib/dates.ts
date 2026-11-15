@@ -28,11 +28,3 @@ export function maskFrDate(raw: string): string {
 export function toIsoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
-
-export function formatTime(iso: string, locale = 'fr-FR') {
-  return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-}
-
-export function formatDay(iso: string, locale = 'fr-FR') {
-  return new Date(iso).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
-}

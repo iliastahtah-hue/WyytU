@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -21,6 +21,7 @@ function SwipeCard({ group, onDone }: { group: GroupCardData; onDone: (liked: bo
   const u = universeColors[group.universe];
 
   const fling = (liked: boolean) => {
+    if (Math.abs(x.value) > 1) return; // déjà en mouvement
     x.value = withTiming(liked ? width * 1.4 : -width * 1.4, { duration: 220 }, () => runOnJS(onDone)(liked));
   };
 
@@ -100,6 +101,9 @@ export default function SwipeScreen() {
   const [deck, setDeck] = useState<GroupCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const deckRef = useRef<GroupCardData[]>([]);
+  deckRef.current = deck;
+  const handled = useRef(new Set<string>());
 
   useEffect(() => {
     if (!session) return;
@@ -109,9 +113,12 @@ export default function SwipeScreen() {
   }, [session]);
 
   const onDone = async (liked: boolean) => {
-    const [current, ...rest] = deck;
-    setDeck(rest);
-    if (!liked || !current) return;
+    const current = deckRef.current[0];
+    // une carte n'est traitée qu'une fois (double appui pendant l'animation)
+    if (!current || handled.current.has(current.id)) return;
+    handled.current.add(current.id);
+    setDeck((d) => d.filter((g) => g.id !== current.id));
+    if (!liked) return;
     try {
       await requestJoin(current.id);
       setToast(`⏳ Demande envoyée à ${current.organizer?.first_name ?? 'l’organisateur'}`);

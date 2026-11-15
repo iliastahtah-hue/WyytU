@@ -5,7 +5,7 @@ import { AppText, Avatar, Button, Screen, TopBar, VerifiedBadge } from '@/src/co
 import { fetchGroupDetail, leaveGroup, requestJoin, respondJoin, type GroupDetail } from '@/src/features/groups/api';
 import { localeOf, relativeStart } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
-import { formatDay } from '@/src/lib/dates';
+import { fmtDate, fmtTime } from '@/src/lib/tz';
 import { readableError } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, fonts, radius, universeColors } from '@/src/theme/tokens';
@@ -165,7 +165,7 @@ export default function GroupeScreen() {
       <View style={styles.card}>
         <AppText variant="label" color={colors.sub}>{t('group.when')}</AppText>
         <AppText variant="bodyStrong">
-          {formatDay(group.starts_at, locale)} · {new Date(group.starts_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+          {fmtDate(group.starts_at, locale, { weekday: 'long', day: 'numeric', month: 'long' })} · {fmtTime(group.starts_at, locale)}
         </AppText>
         <AppText variant="label" color={colors.sub} style={{ marginTop: 10 }}>{t('group.where')}</AppText>
         <AppText variant="bodyStrong">{group.place_name}</AppText>
@@ -219,8 +219,8 @@ export default function GroupeScreen() {
                 </AppText>
                 {p.note ? <AppText variant="small" color={colors.sub}>💬 {p.note}</AppText> : null}
               </View>
-              <Button small kind="outline" label="✕" accessibilityHint="Refuser" onPress={() => run(() => respondJoin(group.id, p.user_id, false))} />
-              <Button small kind="dark" label="✓" accessibilityHint="Accepter" onPress={() => run(() => respondJoin(group.id, p.user_id, true))} />
+              <Button small kind="outline" label="✕" accessibilityHint="Refuser" disabled={busy} onPress={() => run(() => respondJoin(group.id, p.user_id, false))} />
+              <Button small kind="dark" label="✓" accessibilityHint="Accepter" disabled={busy} onPress={() => run(() => respondJoin(group.id, p.user_id, true))} />
             </View>
           ))}
         </View>

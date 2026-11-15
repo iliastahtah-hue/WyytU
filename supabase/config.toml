@@ -1,0 +1,9 @@
+# Réglages des fonctions Edge (utilisés par `supabase functions deploy`)
+[functions.send-push]
+# appelée par un trigger de la base ; elle ne fait que pousser une
+# notification existante à son destinataire, une seule fois
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+# protégée par l'en-tête Authorization (secret REVENUECAT_WEBHOOK_SECRET)
+verify_jwt = false

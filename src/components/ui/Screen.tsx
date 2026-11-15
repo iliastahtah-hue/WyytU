@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { colors } from '@/src/theme/tokens';
 
@@ -28,7 +28,8 @@ export function Screen({ children, scroll, footer, bg = colors.bg, edges = ['top
 
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: bg }]} edges={edges}>
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Android en plein écran (edge-to-edge) ne redimensionne plus la fenêtre : padding partout */}
+      <KeyboardAvoidingView style={styles.fill} behavior="padding">
         {body}
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </KeyboardAvoidingView>

@@ -61,7 +61,7 @@ export default function NoterScreen() {
       <TopBar title="Noter la sortie" />
       <AppText variant="title">{detail?.group.title ?? ''}</AppText>
       <AppText color={colors.sub} style={{ marginBottom: 16 }}>
-        Note les membres présents. Ta note reste anonyme ; un avis écrit est relu avant publication.
+        Note les membres présents. Seule la moyenne des notes est affichée ; un avis écrit est publié avec ton prénom, après relecture par l’équipe.
       </AppText>
       <View style={{ gap: 12 }}>
         {others.map((m) => {

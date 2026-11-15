@@ -22,6 +22,12 @@ export default function ReglagesScreen() {
   const { lang, setLang, t } = useI18n();
   const { profile, signOut } = useAuth();
 
+  const leave = async () => {
+    await signOut();
+    if (router.canDismiss()) router.dismissAll();
+    router.replace('/');
+  };
+
   const deleteAccount = () =>
     Alert.alert(
       'Supprimer mon compte',
@@ -39,7 +45,7 @@ export default function ReglagesScreen() {
             }
             const { error } = await supabase.rpc('delete_my_account');
             if (error) return Alert.alert(readableError(error, t('common.error')));
-            await signOut();
+            await leave();
           },
         },
       ],
@@ -70,7 +76,7 @@ export default function ReglagesScreen() {
 
       <AppText variant="label" color={colors.sub} style={styles.section}>COMPTE</AppText>
       <View style={styles.group}>
-        <Row label="Se déconnecter" onPress={signOut} />
+        <Row label="Se déconnecter" onPress={leave} />
         <Row label="Supprimer mon compte" onPress={deleteAccount} danger />
       </View>
       <AppText variant="small" color={colors.muted} center style={{ marginTop: 24 }}>WyytU · version 1.0.0</AppText>

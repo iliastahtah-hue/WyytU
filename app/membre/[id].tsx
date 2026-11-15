@@ -4,12 +4,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText, Button, Screen, TopBar, VerifiedBadge } from '@/src/components/ui';
 import { fetchMiniProfiles, type MiniProfile } from '@/src/features/groups/api';
-import { ageFrom } from '@/src/lib/dates';
 import type { Profile, ProfilePrivate, Rating } from '@/src/lib/database.types';
+
 import { signedUrls } from '@/src/lib/storage';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius } from '@/src/theme/tokens';
+
+type PublicProfile = Omit<Profile, 'birth_date' | 'selfie_path' | 'selfie_consent_at'>;
+const PUBLIC_FIELDS =
+  'id, first_name, show_age, gender, city, bio, studies, job, lifestyle, interests, app_language, verification_status, is_premium, rating_avg, rating_count, outings_count, attendance_rate, created_at, updated_at';
 
 const RELATION: Record<string, string> = {
   celibataire: 'Célibataire',
@@ -33,7 +37,8 @@ export default function ProfilPublicScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { session } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [age, setAge] = useState<number | null>(null);
   const [priv, setPriv] = useState<ProfilePrivate | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [reviews, setReviews] = useState<(Rating & { author?: MiniProfile })[]>([]);
@@ -42,14 +47,16 @@ export default function ProfilPublicScreen() {
 
   const load = useCallback(async () => {
     if (!id || !session) return;
-    const [{ data: p }, { data: pr }, { data: ph }, { data: rv }, { data: bl }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
+    const [{ data: p }, { data: a }, { data: pr }, { data: ph }, { data: rv }, { data: bl }] = await Promise.all([
+      supabase.from('profiles').select(PUBLIC_FIELDS).eq('id', id).maybeSingle<PublicProfile>(),
+      supabase.rpc('public_age', { p_user: id }),
       supabase.from('profile_private').select('*').eq('user_id', id).maybeSingle(),
       supabase.from('profile_photos').select('path, position').eq('user_id', id).order('position'),
       supabase.from('ratings').select('*').eq('rated_id', id).eq('moderation_status', 'approved').not('comment', 'is', null).order('created_at', { ascending: false }).limit(10),
       supabase.from('blocks').select('blocked_id').eq('blocker_id', session.user.id).eq('blocked_id', id),
     ]);
     setProfile(p ?? null);
+    setAge(typeof a === 'number' ? a : null);
     setPriv(pr ?? null);
     setBlocked(!!bl?.length);
     const urls = await signedUrls('photos', (ph ?? []).map((x) => x.path));
@@ -121,7 +128,7 @@ export default function ProfilPublicScreen() {
 
       <View style={styles.head}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <AppText variant="title">{profile.first_name}{profile.show_age ? `, ${ageFrom(profile.birth_date)}` : ''}</AppText>
+          <AppText variant="title">{profile.first_name}{age != null ? `, ${age}` : ''}</AppText>
           {profile.verification_status === 'verified' ? <VerifiedBadge withLabel size={18} /> : null}
         </View>
         <AppText color={colors.sub}>📍 {profile.city}</AppText>

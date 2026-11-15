@@ -38,7 +38,8 @@ export default function SelfieScreen() {
     setLoading(true);
     setError(null);
     try {
-      const path = await uploadImage('selfies', userId, shot.base64, { name: 'selfie' });
+      // un nouveau fichier à chaque essai : un selfie refusé peut être refait
+      const path = await uploadImage('selfies', userId, shot.base64);
       const { error: err } = await supabase
         .from('profiles')
         .update({ selfie_path: path, selfie_consent_at: new Date().toISOString() })

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Avatar, VerifiedBadge } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
 import { colors, radius, universeColors } from '@/src/theme/tokens';
+import { fmtTime } from '@/src/lib/tz';
 import type { GroupCardData } from './api';
 import { localeOf, relativeStart } from './time';
 
@@ -14,7 +15,7 @@ export function GroupCard({ group }: { group: GroupCardData }) {
   const tag = group.subcategory
     ? `${t(`universes.${group.universe}`)} · ${t(`sports.${group.subcategory}`)}`
     : t(`universes.${group.universe}`);
-  const time = new Date(group.starts_at).toLocaleTimeString(localeOf(lang), { hour: '2-digit', minute: '2-digit' });
+  const time = fmtTime(group.starts_at, localeOf(lang));
 
   let action: { label: string; bg: string } | null = null;
   if (group.myStatus === 'pending') action = { label: t('group.pending'), bg: colors.sand };

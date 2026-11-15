@@ -7,6 +7,7 @@ import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
 import type { AppNotification } from '@/src/lib/database.types';
 import { supabase } from '@/src/lib/supabase';
+import { fmtDateTime } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius } from '@/src/theme/tokens';
 
@@ -76,7 +77,7 @@ export default function NotificationsScreen() {
             <View style={{ flex: 1, gap: 2 }}>
               <AppText variant={item.read_at ? 'body' : 'bodyStrong'}>{item.text}</AppText>
               <AppText variant="small" color={colors.muted}>
-                {new Date(item.created_at).toLocaleString(localeOf(lang), { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                {fmtDateTime(item.created_at, localeOf(lang), { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
               </AppText>
             </View>
           </Pressable>

@@ -62,20 +62,27 @@ export default function CreationProfilScreen() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('profiles').insert({
-        id: userId,
-        first_name: firstName.trim(),
-        birth_date: toIsoDate(date),
-        show_age: showAge,
-        gender,
-        app_language: lang ?? 'fr',
-      });
+      // 1. Les photos d'abord : si l'envoi échoue, rien n'est créé et on peut réessayer
+      const paths = await Promise.all(photos.map((p) => uploadImage('photos', userId, p.base64, { mime: p.mime })));
+
+      // 2. Le profil (ignoré s'il existe déjà après une tentative interrompue)
+      const { error } = await supabase.from('profiles').upsert(
+        {
+          id: userId,
+          first_name: firstName.trim(),
+          birth_date: toIsoDate(date),
+          show_age: showAge,
+          gender,
+          app_language: lang ?? 'fr',
+        },
+        { onConflict: 'id', ignoreDuplicates: true },
+      );
       if (error) throw error;
 
-      const paths = await Promise.all(photos.map((p) => uploadImage('photos', userId, p.base64, { mime: p.mime })));
+      // 3. Les photos du profil (remplace une tentative précédente)
       const { error: photoError } = await supabase
         .from('profile_photos')
-        .insert(paths.map((path, position) => ({ user_id: userId, path, position })));
+        .upsert(paths.map((path, position) => ({ user_id: userId, path, position })), { onConflict: 'user_id,position' });
       if (photoError) throw photoError;
 
       await refreshProfile();

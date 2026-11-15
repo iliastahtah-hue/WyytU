@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, Chip, TextField } from '@/src/components/ui';
 import { countMyGroupsThisWeek } from '@/src/features/create/api';
@@ -9,18 +9,17 @@ import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
 import type { Level, Universe } from '@/src/lib/database.types';
 import { readableError, supabase } from '@/src/lib/supabase';
+import { atTime, dayKey, fmtDate, fmtTime, fromWall, startOfDayPlus, wall } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, fonts, LEVELS, radius, SPORTS, TOUCH, UNIVERSES, universeColors } from '@/src/theme/tokens';
 
 const BUDGETS = ['< 50 DH', '50–100 DH', '100–200 DH', '200 DH +'];
 const STEP_MIN = 15;
 
-/** Prochaine heure ronde + 1 h (ex. il est 17:20 → 19:00) */
+/** Heure ronde dans 2 h, heure de Tanger (ex. il est 17:20 → 19:00) */
 function defaultStart() {
-  const d = new Date();
-  d.setMinutes(0, 0, 0);
-  d.setHours(d.getHours() + 2);
-  return d;
+  const w = wall(new Date());
+  return fromWall(w.y, w.m, w.d, w.h + 2, 0);
 }
 
 function Stepper({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange: (v: number) => void; label: string }) {
@@ -91,30 +90,22 @@ export default function CreerScreen() {
     }, [session]),
   );
 
-  const days = useMemo(() => {
-    const base = new Date();
-    base.setHours(0, 0, 0, 0);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      return d;
-    });
-  }, []);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => startOfDayPlus(i)), []);
+  const locked = !!offerId; // créneau partenaire : jour, heure et lieu imposés
 
   const setDay = (day: Date) => {
-    const next = new Date(day);
-    next.setHours(start.getHours(), start.getMinutes(), 0, 0);
-    setStart(next);
+    const w = wall(start);
+    setStart(atTime(day, w.h, w.min));
   };
 
   const shiftTime = (deltaMin: number) => {
     const next = new Date(start.getTime() + deltaMin * 60000);
-    if (next.toDateString() !== start.toDateString()) return; // reste sur le même jour
+    if (dayKey(next) !== dayKey(start)) return; // reste sur le même jour
     setStart(next);
   };
 
   const dayLabel = (d: Date, i: number) =>
-    i === 0 ? t('create.today') : i === 1 ? t('create.tomorrow') : d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
+    i === 0 ? t('create.today') : i === 1 ? t('create.tomorrow') : fmtDate(d, locale, { weekday: 'short', day: 'numeric' });
 
   const suggestedTitle =
     universe === 'sport' && sport
@@ -167,7 +158,8 @@ export default function CreerScreen() {
 
   return (
     <SafeAreaView style={styles.fill} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={styles.fill} behavior="padding">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <AppText variant="display">{t('create.title')}</AppText>
         <View style={[styles.quota, quotaReached && { backgroundColor: colors.coralSoft }]}>
           <AppText variant="label">
@@ -185,6 +177,7 @@ export default function CreerScreen() {
                 color={universeColors[x.id].bg}
                 soft={universeColors[x.id].soft}
                 onPress={() => {
+                  if (locked) return;
                   setUniverse(x.id);
                   if (x.id !== 'sport') setLevel(null);
                   if (place?.partnerId) placeStore.set(null); // le partenaire dépend de l'univers
@@ -212,27 +205,41 @@ export default function CreerScreen() {
         <Section title={t('create.when')}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {days.map((d, i) => (
-              <Chip key={d.toISOString()} label={dayLabel(d, i)} selected={d.toDateString() === start.toDateString()} onPress={() => setDay(d)} />
+              <Chip key={d.toISOString()} label={dayLabel(d, i)} selected={dayKey(d) === dayKey(start)} onPress={() => !locked && setDay(d)} />
             ))}
           </ScrollView>
           <View style={styles.timeRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel="−15 min" onPress={() => shiftTime(-STEP_MIN)} style={styles.stepBtn}>
+            <Pressable accessibilityRole="button" accessibilityLabel="−15 min" disabled={locked} onPress={() => shiftTime(-STEP_MIN)} style={[styles.stepBtn, locked && { opacity: 0.35 }]}>
               <AppText variant="heading">−</AppText>
             </Pressable>
             <View style={[styles.timeBox, { backgroundColor: u.soft }]}>
               <AppText style={styles.time} center>
-                {start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                {fmtTime(start, locale)}
               </AppText>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="+15 min" onPress={() => shiftTime(STEP_MIN)} style={styles.stepBtn}>
+            <Pressable accessibilityRole="button" accessibilityLabel="+15 min" disabled={locked} onPress={() => shiftTime(STEP_MIN)} style={[styles.stepBtn, locked && { opacity: 0.35 }]}>
               <AppText variant="heading">+</AppText>
             </Pressable>
           </View>
         </Section>
 
         <Section title={t('create.where')}>
+          {locked ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint="Retirer le créneau partenaire pour choisir librement"
+              onPress={() => {
+                setOfferId(null);
+                router.setParams({ offerId: undefined });
+              }}
+              style={styles.lockedChip}
+            >
+              <AppText variant="small">🔒 Créneau partenaire : jour, heure et lieu fixés · Toucher pour le retirer</AppText>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityRole="button"
+            disabled={locked}
             onPress={() => router.push({ pathname: '/lieu', params: { universe } })}
             style={[styles.place, place && { borderColor: colors.ink }]}
           >
@@ -305,6 +312,7 @@ export default function CreerScreen() {
 
         <Button label={`🚀 ${t('create.publish')}`} onPress={publish} loading={loading} disabled={quotaReached} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -312,6 +320,7 @@ export default function CreerScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: 150, gap: 18 },
+  lockedChip: { backgroundColor: colors.limeSoft, borderRadius: radius.md, padding: 10 },
   quota: { alignSelf: 'flex-start', backgroundColor: colors.limeSoft, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill },
   section: { gap: 10 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
