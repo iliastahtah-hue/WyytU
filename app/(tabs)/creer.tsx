@@ -159,7 +159,7 @@ export default function CreerScreen() {
   return (
     <SafeAreaView style={styles.fill} edges={['top']}>
       <KeyboardAvoidingView style={styles.fill} behavior="padding">
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <AppText variant="display">{t('create.title')}</AppText>
         <View style={[styles.quota, quotaReached && { backgroundColor: colors.coralSoft }]}>
           <AppText variant="label">

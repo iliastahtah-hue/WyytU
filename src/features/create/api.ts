@@ -16,7 +16,6 @@ export async function countMyGroupsThisWeek(userId: string): Promise<number> {
     .from('groups')
     .select('id', { count: 'exact', head: true })
     .eq('organizer_id', userId)
-    .neq('status', 'cancelled')
-    .gte('created_at', since);
+    .gte('created_at', since); // même règle que le serveur : les groupes annulés comptent
   return count ?? 0;
 }
