@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { parseQr } from '@/src/components/QrModal';
 import { AppText, Button, Screen, TopBar } from '@/src/components/ui';
+import { useI18n } from '@/src/i18n';
 import { readableError, supabase } from '@/src/lib/supabase';
 import { colors, radius } from '@/src/theme/tokens';
 
@@ -10,6 +11,7 @@ type Result = { ok: true; title: string; members: number; discount: number } | {
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
+  const { t } = useI18n();
   const [result, setResult] = useState<Result | null>(null);
   const busy = useRef(false);
 
@@ -20,34 +22,34 @@ export default function ScannerScreen() {
     busy.current = true;
     const { data: res, error } = await supabase.rpc('partner_check_in', { p_group: qr.groupId, p_code: qr.code });
     busy.current = false;
-    if (error || !res) setResult({ ok: false, message: readableError(error, 'QR non valide.') });
+    if (error || !res) setResult({ ok: false, message: readableError(error, t('scanner.invalid')) });
     else setResult({ ok: true, title: res.title, members: res.members, discount: res.discount_pct });
   };
 
   return (
     <Screen>
-      <TopBar title="Scanner un groupe" />
+      <TopBar title={t('scanner.title')} />
       {result ? (
         <View style={[styles.result, { backgroundColor: result.ok ? colors.successSoft : colors.coralSoft }]}>
           <AppText style={{ fontSize: 56 }} center>{result.ok ? '✅' : '❌'}</AppText>
           {result.ok ? (
             <>
               <AppText variant="title" center>{result.title}</AppText>
-              <AppText variant="bodyStrong" center>{result.members} personnes · présence validée</AppText>
+              <AppText variant="bodyStrong" center>{t('scanner.validated', { n: result.members })}</AppText>
               <View style={styles.discount}>
                 <AppText variant="title" center>−{result.discount} %</AppText>
-                <AppText variant="small" center>à appliquer sur l’addition du groupe</AppText>
+                <AppText variant="small" center>{t('scanner.applyOnBill')}</AppText>
               </View>
             </>
           ) : (
             <AppText variant="bodyStrong" center>{result.message}</AppText>
           )}
-          <Button kind="dark" label="Scanner un autre QR" onPress={() => setResult(null)} />
+          <Button kind="dark" label={t('scanner.again')} onPress={() => setResult(null)} />
         </View>
       ) : !permission?.granted ? (
         <View style={{ gap: 16, marginTop: 24 }}>
-          <AppText center color={colors.sub}>La caméra sert à lire le QR du chef de groupe.</AppText>
-          <Button label="Autoriser la caméra" onPress={requestPermission} />
+          <AppText center color={colors.sub}>{t('scanner.why')}</AppText>
+          <Button label={t('scanner.allow')} onPress={requestPermission} />
         </View>
       ) : (
         <View style={styles.frame}>
@@ -58,7 +60,7 @@ export default function ScannerScreen() {
             onBarcodeScanned={({ data }) => onScan(data)}
           />
           <View style={styles.target} pointerEvents="none" />
-          <AppText variant="label" color={colors.white} center style={styles.hint}>Vise le QR affiché par le chef de groupe</AppText>
+          <AppText variant="label" color={colors.white} center style={styles.hint}>{t('scanner.aim')}</AppText>
         </View>
       )}
     </Screen>

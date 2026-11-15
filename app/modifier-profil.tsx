@@ -7,17 +7,13 @@ import { AppText, Button, Chip, Screen, TextField, TopBar } from '@/src/componen
 import type { ProfilePrivate } from '@/src/lib/database.types';
 import { signedUrls, uploadImage } from '@/src/lib/storage';
 import { readableError, supabase } from '@/src/lib/supabase';
+import { useI18n } from '@/src/i18n';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, fonts, radius } from '@/src/theme/tokens';
 
 const LIFESTYLE = ['🏃 Sportif', '🌙 Couche-tard', '☀️ Lève-tôt', '🚭 Non-fumeur', '🍔 Gourmand', '🎧 Musique', '📚 Lecture', '✈️ Voyageur', '🐾 Animaux'];
 const INTERESTS = ['Padel', 'Foot', 'Muscu', 'Pilates', 'Cinéma', 'Brunch', 'Street-food', 'Concerts', 'Jeux de société', 'Randonnée', 'Surf', 'Photo', 'Art', 'Tech'];
-const RELATIONS: { id: NonNullable<ProfilePrivate['relationship_status']>; label: string }[] = [
-  { id: 'celibataire', label: 'Célibataire' },
-  { id: 'en_couple', label: 'En couple' },
-  { id: 'marie', label: 'Marié·e' },
-  { id: 'non_precise', label: 'Je préfère ne pas dire' },
-];
+const RELATIONS: NonNullable<ProfilePrivate['relationship_status']>[] = ['celibataire', 'en_couple', 'marie', 'non_precise'];
 
 type Photo = { id: string; path: string; position: number; url?: string };
 
@@ -28,6 +24,7 @@ function toggle(list: string[], v: string, max = 8) {
 export default function ModifierProfilScreen() {
   const router = useRouter();
   const { profile, refreshProfile } = useAuth();
+  const { t } = useI18n();
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [studies, setStudies] = useState(profile?.studies ?? '');
   const [job, setJob] = useState(profile?.job ?? '');
@@ -72,16 +69,16 @@ export default function ModifierProfilScreen() {
       if (error) throw error;
       loadPhotos();
     } catch (e) {
-      Alert.alert(readableError(e, 'Impossible d’ajouter la photo.'));
+      Alert.alert(readableError(e, t('editProfile.addPhotoError')));
     }
   };
 
   const removePhoto = (p: Photo) => {
-    if (photos.length <= 3) return Alert.alert('3 photos minimum', 'Ajoute une autre photo avant d’en retirer une.');
-    Alert.alert('Retirer cette photo ?', '', [
-      { text: 'Annuler', style: 'cancel' },
+    if (photos.length <= 3) return Alert.alert(t('editProfile.minPhotosTitle'), t('editProfile.minPhotosBody'));
+    Alert.alert(t('editProfile.removeTitle'), '', [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Retirer',
+        text: t('editProfile.remove'),
         style: 'destructive',
         onPress: async () => {
           await supabase.from('profile_photos').delete().eq('id', p.id);
@@ -95,7 +92,7 @@ export default function ModifierProfilScreen() {
   const save = async () => {
     if (!profile) return;
     const h = height ? Number(height) : null;
-    if (h !== null && (h < 120 || h > 230)) return Alert.alert('Taille entre 120 et 230 cm.');
+    if (h !== null && (h < 120 || h > 230)) return Alert.alert(t('editProfile.heightRange'));
     setSaving(true);
     const [{ error: e1 }, { error: e2 }] = await Promise.all([
       supabase.from('profiles').update({
@@ -114,69 +111,69 @@ export default function ModifierProfilScreen() {
       }),
     ]);
     setSaving(false);
-    if (e1 || e2) return Alert.alert(readableError(e1 ?? e2, 'Impossible d’enregistrer.'));
+    if (e1 || e2) return Alert.alert(readableError(e1 ?? e2, t('attendance.saveError')));
     await refreshProfile();
     router.back();
   };
 
   return (
-    <Screen scroll footer={<Button label="Enregistrer" onPress={save} loading={saving} />}>
-      <TopBar title="Modifier mon profil" />
+    <Screen scroll footer={<Button label={t('common.save')} onPress={save} loading={saving} />}>
+      <TopBar title={t('profile.edit')} />
 
-      <AppText variant="heading">Mes photos ({photos.length}/6)</AppText>
+      <AppText variant="heading">{t('editProfile.photos', { n: photos.length })}</AppText>
       <View style={styles.grid}>
         {photos.map((p) => (
-          <Pressable key={p.id} accessibilityRole="button" accessibilityLabel="Retirer la photo" onPress={() => removePhoto(p)} style={styles.slot}>
+          <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={t('editProfile.removeA11y')} onPress={() => removePhoto(p)} style={styles.slot}>
             {p.url ? <Image source={{ uri: p.url }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
             <View style={styles.remove}><AppText variant="label" color={colors.white}>×</AppText></View>
           </Pressable>
         ))}
         {photos.length < 6 ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Ajouter une photo" onPress={addPhoto} style={[styles.slot, styles.add]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('editProfile.addA11y')} onPress={addPhoto} style={[styles.slot, styles.add]}>
             <AppText variant="title">+</AppText>
           </Pressable>
         ) : null}
       </View>
 
       <View style={styles.block}>
-        <AppText variant="heading">À propos</AppText>
+        <AppText variant="heading">{t('editProfile.about')}</AppText>
         <TextInput
           value={bio}
           onChangeText={setBio}
-          placeholder="Quelques mots sur toi, ce que tu aimes faire…"
+          placeholder={t('editProfile.bioPh')}
           placeholderTextColor={colors.muted}
           multiline
           maxLength={300}
           style={styles.textarea}
           accessibilityLabel="Bio"
         />
-        <TextField label="🎓 Études" value={studies} onChangeText={setStudies} placeholder="Ex. : ENCG Tanger" maxLength={80} />
-        <TextField label="💼 Travail" value={job} onChangeText={setJob} placeholder="Ex. : Développeur" maxLength={80} />
+        <TextField label={`🎓 ${t('member.studies')}`} value={studies} onChangeText={setStudies} placeholder={t('editProfile.studiesPh')} maxLength={80} />
+        <TextField label={`💼 ${t('member.job')}`} value={job} onChangeText={setJob} placeholder={t('editProfile.jobPh')} maxLength={80} />
       </View>
 
       <View style={styles.block}>
-        <AppText variant="heading">Mode de vie</AppText>
+        <AppText variant="heading">{t('member.lifestyle')}</AppText>
         <View style={styles.wrap}>
           {LIFESTYLE.map((l) => <Chip key={l} label={l} selected={lifestyle.includes(l)} onPress={() => setLifestyle((x) => toggle(x, l, 5))} />)}
         </View>
-        <AppText variant="heading" style={{ marginTop: 8 }}>Centres d’intérêt</AppText>
+        <AppText variant="heading" style={{ marginTop: 8 }}>{t('editProfile.interests')}</AppText>
         <View style={styles.wrap}>
           {INTERESTS.map((l) => <Chip key={l} label={l} selected={interests.includes(l)} onPress={() => setInterests((x) => toggle(x, l))} />)}
         </View>
       </View>
 
       <View style={styles.block}>
-        <AppText variant="heading">🔒 Infos privées</AppText>
-        <AppText variant="small" color={colors.sub}>Visibles seulement par les membres d’un groupe que tu as rejoint.</AppText>
-        <TextField label="🏠 Quartier" value={residence} onChangeText={setResidence} placeholder="Ex. : Malabata" maxLength={80} />
-        <TextField label="📏 Taille (cm)" value={height} onChangeText={(v) => setHeight(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" placeholder="Ex. : 178" />
-        <AppText variant="label" color={colors.sub}>💬 Situation</AppText>
+        <AppText variant="heading">{t('editProfile.private')}</AppText>
+        <AppText variant="small" color={colors.sub}>{t('editProfile.privateHint')}</AppText>
+        <TextField label={`🏠 ${t('member.residence')}`} value={residence} onChangeText={setResidence} placeholder={t('editProfile.residencePh')} maxLength={80} />
+        <TextField label={t('editProfile.height')} value={height} onChangeText={(v) => setHeight(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" placeholder={t('editProfile.heightPh')} />
+        <AppText variant="label" color={colors.sub}>💬 {t('member.relationship')}</AppText>
         <View style={styles.wrap}>
-          {RELATIONS.map((r) => <Chip key={r.id} label={r.label} selected={relation === r.id} onPress={() => setRelation(relation === r.id ? null : r.id)} />)}
+          {RELATIONS.map((r) => <Chip key={r} label={t(`relationship.${r}`)} selected={relation === r} onPress={() => setRelation(relation === r ? null : r)} />)}
         </View>
         <View style={styles.switchRow}>
-          <AppText variant="bodyStrong" style={{ flex: 1 }}>Afficher mon âge</AppText>
-          <Switch value={showAge} onValueChange={setShowAge} trackColor={{ true: colors.coral, false: colors.line }} accessibilityLabel="Afficher mon âge" />
+          <AppText variant="bodyStrong" style={{ flex: 1 }}>{t('editProfile.showAge')}</AppText>
+          <Switch value={showAge} onValueChange={setShowAge} trackColor={{ true: colors.coral, false: colors.line }} accessibilityLabel={t('editProfile.showAge')} />
         </View>
       </View>
     </Screen>

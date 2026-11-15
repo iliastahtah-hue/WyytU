@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, TextInput, View } from 'react-native';
 import { Stars } from '@/src/components/Stars';
 import { AppText, Avatar, Button, Screen, TopBar } from '@/src/components/ui';
+import { useI18n } from '@/src/i18n';
 import { fetchGroupDetail, type GroupDetail } from '@/src/features/groups/api';
 import { readableError, supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -14,6 +15,7 @@ export default function NoterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session } = useAuth();
+  const { t } = useI18n();
   const [detail, setDetail] = useState<GroupDetail | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(false);
@@ -48,20 +50,20 @@ export default function NoterScreen() {
     });
     const { error } = await supabase.from('ratings').insert(rows);
     setLoading(false);
-    if (error) return Alert.alert(readableError(error, 'Impossible d’envoyer tes notes.'));
-    Alert.alert('Merci ! 🙌', 'Tes notes sont prises en compte. Les avis écrits sont relus par l’équipe avant d’être publiés.');
+    if (error) return Alert.alert(readableError(error, t('rate.sendError')));
+    Alert.alert(t('rate.thanksTitle'), t('rate.thanksBody'));
     router.back();
   };
 
   return (
     <Screen
       scroll
-      footer={<Button label={`Envoyer ${rated.length ? `(${rated.length})` : ''}`} onPress={submit} loading={loading} disabled={!rated.length || missingReason} />}
+      footer={<Button label={rated.length ? t('rate.sendCount', { n: rated.length }) : t('rate.send')} onPress={submit} loading={loading} disabled={!rated.length || missingReason} />}
     >
-      <TopBar title="Noter la sortie" />
+      <TopBar title={t('rate.title')} />
       <AppText variant="title">{detail?.group.title ?? ''}</AppText>
       <AppText color={colors.sub} style={{ marginBottom: 16 }}>
-        Note les membres présents. Seule la moyenne des notes est affichée ; un avis écrit est publié avec ton prénom, après relecture par l’équipe.
+        {t('rate.intro')}
       </AppText>
       <View style={{ gap: 12 }}>
         {others.map((m) => {
@@ -72,28 +74,28 @@ export default function NoterScreen() {
                 <Avatar name={m.profile?.first_name ?? '?'} uri={m.profile?.photo} seed={m.user_id} size={44} />
                 <AppText variant="heading" style={{ flex: 1 }}>{m.profile?.first_name}</AppText>
               </View>
-              <Stars value={d.stars} onChange={(v) => set(m.user_id, { stars: v })} label={`Note pour ${m.profile?.first_name ?? ''}`} />
+              <Stars value={d.stars} onChange={(v) => set(m.user_id, { stars: v })} label={t('rate.starsFor', { name: m.profile?.first_name ?? '' })} />
               {d.stars > 0 && d.stars <= 2 ? (
                 <TextInput
                   value={d.reason}
                   onChangeText={(v) => set(m.user_id, { reason: v })}
-                  placeholder="Que s’est-il passé ? (obligatoire)"
+                  placeholder={t('rate.reasonPh')}
                   placeholderTextColor={colors.muted}
                   maxLength={200}
                   style={[styles.input, { borderColor: colors.coral }]}
-                  accessibilityLabel="Motif de la note"
+                  accessibilityLabel={t('rate.reasonA11y')}
                 />
               ) : null}
               {d.stars > 0 ? (
                 <TextInput
                   value={d.comment}
                   onChangeText={(v) => set(m.user_id, { comment: v })}
-                  placeholder="Un petit avis (facultatif)"
+                  placeholder={t('rate.commentPh')}
                   placeholderTextColor={colors.muted}
                   maxLength={400}
                   multiline
                   style={styles.input}
-                  accessibilityLabel="Avis écrit"
+                  accessibilityLabel={t('rate.commentA11y')}
                 />
               ) : null}
             </View>

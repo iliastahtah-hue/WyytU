@@ -30,12 +30,12 @@ export default function ReglagesScreen() {
 
   const deleteAccount = () =>
     Alert.alert(
-      'Supprimer mon compte',
-      'Ton profil, tes photos, tes groupes et tes messages seront supprimés définitivement. Cette action est irréversible.',
+      t('settings.deleteTitle'),
+      t('settings.deleteBody'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('settings.deleteConfirm'),
           style: 'destructive',
           onPress: async () => {
             if (!profile) return;
@@ -53,31 +53,31 @@ export default function ReglagesScreen() {
 
   return (
     <Screen scroll>
-      <TopBar title="Réglages" />
+      <TopBar title={t('settings.title')} />
 
-      <AppText variant="label" color={colors.sub} style={styles.section}>LANGUE</AppText>
+      <AppText variant="label" color={colors.sub} style={styles.section}>{t('settings.language')}</AppText>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {LANGS.map((l) => (
           <Button key={l.id} small kind={lang === l.id ? 'dark' : 'outline'} label={l.native} onPress={() => setLang(l.id)} />
         ))}
       </View>
 
-      <AppText variant="label" color={colors.sub} style={styles.section}>SÉCURITÉ</AppText>
+      <AppText variant="label" color={colors.sub} style={styles.section}>{t('settings.safety')}</AppText>
       <View style={styles.group}>
-        <Row label="Personnes bloquées" onPress={() => router.push('/bloques')} />
-        <Row label="Signaler un problème" onPress={() => router.push('/signaler')} />
+        <Row label={t('blocked.title')} onPress={() => router.push('/bloques')} />
+        <Row label={t('settings.reportProblem')} onPress={() => router.push('/signaler')} />
       </View>
 
-      <AppText variant="label" color={colors.sub} style={styles.section}>AIDE ET INFOS</AppText>
+      <AppText variant="label" color={colors.sub} style={styles.section}>{t('settings.help')}</AppText>
       <View style={styles.group}>
-        <Row label="Nous contacter" onPress={() => Linking.openURL(CONTACT)} />
-        <Row label="Conditions et confidentialité" onPress={() => router.push('/legal')} />
+        <Row label={t('settings.contact')} onPress={() => Linking.openURL(CONTACT)} />
+        <Row label={t('settings.legal')} onPress={() => router.push('/legal')} />
       </View>
 
-      <AppText variant="label" color={colors.sub} style={styles.section}>COMPTE</AppText>
+      <AppText variant="label" color={colors.sub} style={styles.section}>{t('settings.account')}</AppText>
       <View style={styles.group}>
-        <Row label="Se déconnecter" onPress={leave} />
-        <Row label="Supprimer mon compte" onPress={deleteAccount} danger />
+        <Row label={t('settings.signOut')} onPress={leave} />
+        <Row label={t('settings.deleteTitle')} onPress={deleteAccount} danger />
       </View>
       <AppText variant="small" color={colors.muted} center style={{ marginTop: 24 }}>WyytU · version 1.0.0</AppText>
     </Screen>

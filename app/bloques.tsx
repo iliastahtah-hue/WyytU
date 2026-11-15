@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { AppText, Avatar, Button, Screen, TopBar } from '@/src/components/ui';
+import { useI18n } from '@/src/i18n';
 import { fetchMiniProfiles, type MiniProfile } from '@/src/features/groups/api';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -8,6 +9,7 @@ import { colors, radius } from '@/src/theme/tokens';
 
 export default function BloquesScreen() {
   const { session } = useAuth();
+  const { t } = useI18n();
   const [people, setPeople] = useState<MiniProfile[]>([]);
   const [ids, setIds] = useState<string[]>([]);
 
@@ -33,17 +35,17 @@ export default function BloquesScreen() {
 
   return (
     <Screen>
-      <TopBar title="Personnes bloquées" />
+      <TopBar title={t('blocked.title')} />
       <FlatList
         data={people}
         keyExtractor={(p) => p.id}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        ListEmptyComponent={<AppText color={colors.sub} center style={{ marginTop: 40 }}>{ids.length ? '' : 'Tu n’as bloqué personne.'}</AppText>}
+        ListEmptyComponent={<AppText color={colors.sub} center style={{ marginTop: 40 }}>{ids.length ? '' : t('blocked.empty')}</AppText>}
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Avatar name={item.first_name} uri={item.photo} seed={item.id} size={44} />
             <AppText variant="bodyStrong" style={{ flex: 1 }}>{item.first_name}</AppText>
-            <Button small kind="outline" label="Débloquer" onPress={() => unblock(item.id)} />
+            <Button small kind="outline" label={t('blocked.unblock')} onPress={() => unblock(item.id)} />
           </View>
         )}
       />

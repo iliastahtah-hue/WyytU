@@ -234,7 +234,7 @@ export default function CreerScreen() {
               }}
               style={styles.lockedChip}
             >
-              <AppText variant="small">🔒 Créneau partenaire : jour, heure et lieu fixés · Toucher pour le retirer</AppText>
+              <AppText variant="small">{t('createLock.partnerSlot')}</AppText>
             </Pressable>
           ) : null}
           <Pressable

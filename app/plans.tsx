@@ -55,7 +55,7 @@ export default function PlansScreen() {
         ListEmptyComponent={
           loading ? null : (
             <View style={styles.empty}>
-              <AppText color={colors.sub} center>Pas encore de plan ici. Les premiers partenaires arrivent bientôt !</AppText>
+              <AppText color={colors.sub} center>{t('plans.empty')}</AppText>
             </View>
           )
         }

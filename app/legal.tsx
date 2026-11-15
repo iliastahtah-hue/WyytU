@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText, Screen, TopBar } from '@/src/components/ui';
+import { useI18n } from '@/src/i18n';
 import { colors, radius } from '@/src/theme/tokens';
 
 /**
@@ -18,10 +19,12 @@ const SECTIONS: [string, string][] = [
 ];
 
 export default function LegalScreen() {
+  const { t, lang } = useI18n();
   return (
     <Screen scroll>
-      <TopBar title="Conditions et confidentialité" />
+      <TopBar title={t('settings.legal')} />
       <AppText variant="small" color={colors.sub} style={{ marginBottom: 12 }}>Dernière mise à jour : [DATE]</AppText>
+      {lang !== 'fr' ? <AppText variant="small" color={colors.sub} style={{ marginBottom: 12 }}>{t('legalNote.frenchOnly')}</AppText> : null}
       <View style={{ gap: 10 }}>
         {SECTIONS.map(([title, body]) => (
           <View key={title} style={styles.card}>

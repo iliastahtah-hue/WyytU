@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, VerifiedBadge } from '@/src/components/ui';
+import { useI18n } from '@/src/i18n';
 import { ageFrom } from '@/src/lib/dates';
 import { signedUrls } from '@/src/lib/storage';
 import { supabase } from '@/src/lib/supabase';
@@ -26,6 +27,7 @@ function Row({ emoji, label, hint, onPress }: { emoji: string; label: string; hi
 export default function ProfilScreen() {
   const router = useRouter();
   const { profile, refreshProfile } = useAuth();
+  const { t } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -51,10 +53,10 @@ export default function ProfilScreen() {
   if (!profile) return null;
 
   const status = {
-    verified: { label: '✓ Profil vérifié', bg: colors.successSoft },
-    pending: { label: '⏳ Vérification en cours', bg: colors.sand },
-    rejected: { label: '⚠️ Selfie à refaire', bg: colors.coralSoft },
-    none: { label: 'Non vérifié', bg: colors.sand },
+    verified: { label: t('profile.verified'), bg: colors.successSoft },
+    pending: { label: t('profile.pending'), bg: colors.sand },
+    rejected: { label: t('profile.rejected'), bg: colors.coralSoft },
+    none: { label: t('profile.none'), bg: colors.sand },
   }[profile.verification_status];
 
   const filled = [profile.bio, profile.studies, profile.job, profile.lifestyle.length, profile.interests.length, photos.length >= 3].filter(Boolean).length;
@@ -83,7 +85,7 @@ export default function ProfilScreen() {
             </View>
             <AppText>
               {profile.city}
-              {profile.show_age ? ` · ${ageFrom(profile.birth_date)} ans` : ''}
+              {profile.show_age ? ` · ${t('profile.age', { n: ageFrom(profile.birth_date) })}` : ''}
             </AppText>
             <Pressable
               accessibilityRole={profile.verification_status === 'rejected' ? 'button' : 'text'}
@@ -98,9 +100,9 @@ export default function ProfilScreen() {
 
         <View style={styles.stats}>
           {[
-            [profile.rating_count ? `${Number(profile.rating_avg).toFixed(1)} ★` : '—', 'Note'],
-            [String(profile.outings_count), 'Sorties'],
-            [`${Math.round(Number(profile.attendance_rate))} %`, 'Présence'],
+            [profile.rating_count ? `${Number(profile.rating_avg).toFixed(1)} ★` : '—', t('profile.rating')],
+            [String(profile.outings_count), t('member.outings')],
+            [`${Math.round(Number(profile.attendance_rate))} %`, t('member.attendance')],
           ].map(([value, label]) => (
             <View key={label} style={styles.stat}>
               <AppText variant="heading">{value}</AppText>
@@ -112,19 +114,19 @@ export default function ProfilScreen() {
         {completion < 100 ? (
           <Pressable accessibilityRole="button" onPress={() => router.push('/modifier-profil')} style={styles.complete}>
             <View style={{ flex: 1, gap: 6 }}>
-              <AppText variant="bodyStrong">Complète ton profil · {completion} %</AppText>
+              <AppText variant="bodyStrong">{t('profile.complete', { n: completion })}</AppText>
               <View style={styles.track}><View style={[styles.bar, { width: `${completion}%` }]} /></View>
-              <AppText variant="small" color={colors.sub}>Un profil complet inspire confiance et se fait accepter plus vite.</AppText>
+              <AppText variant="small" color={colors.sub}>{t('profile.completeHint')}</AppText>
             </View>
           </Pressable>
         ) : null}
 
         <View style={styles.group}>
-          <Row emoji="✏️" label="Modifier mon profil" hint="Photos, à propos, infos privées 🔒" onPress={() => router.push('/modifier-profil')} />
-          <Row emoji="👀" label="Voir mon profil public" onPress={() => router.push({ pathname: '/membre/[id]', params: { id: profile.id } })} />
-          <Row emoji="⭐" label="WyytU Premium" hint="Groupes illimités, sorties en avant" onPress={() => router.push('/premium')} />
-          <Row emoji="🏪" label="Espace partenaire" hint="Tu as un club, un resto, un studio ?" onPress={() => router.push('/partenaire')} />
-          <Row emoji="⚙️" label="Réglages" hint="Langue, sécurité, compte" onPress={() => router.push('/reglages')} />
+          <Row emoji="✏️" label={t('profile.edit')} hint={t('profile.editHint')} onPress={() => router.push('/modifier-profil')} />
+          <Row emoji="👀" label={t('profile.viewPublic')} onPress={() => router.push({ pathname: '/membre/[id]', params: { id: profile.id } })} />
+          <Row emoji="⭐" label="WyytU Premium" hint={t('profile.premiumHint')} onPress={() => router.push('/premium')} />
+          <Row emoji="🏪" label={t('profile.partner')} hint={t('profile.partnerHint')} onPress={() => router.push('/partenaire')} />
+          <Row emoji="⚙️" label={t('settings.title')} hint={t('profile.settingsHint')} onPress={() => router.push('/reglages')} />
           {isAdmin ? <Row emoji="🛡️" label="Modération" hint="Selfies, avis, signalements, partenaires" onPress={() => router.push('/moderation')} /> : null}
         </View>
       </ScrollView>

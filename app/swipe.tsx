@@ -78,12 +78,12 @@ function SwipeCard({ group, onDone }: { group: GroupCardData; onDone: (liked: bo
               </View>
             ) : null}
           </View>
-          <Animated.View style={[styles.stamp, styles.stampYes, yes]}><AppText variant="heading" color={colors.success}>JE VEUX ✓</AppText></Animated.View>
-          <Animated.View style={[styles.stamp, styles.stampNo, no]}><AppText variant="heading" color={colors.danger}>PASSER ✕</AppText></Animated.View>
+          <Animated.View style={[styles.stamp, styles.stampYes, yes]}><AppText variant="heading" color={colors.success}>{t('swipe.yes')}</AppText></Animated.View>
+          <Animated.View style={[styles.stamp, styles.stampNo, no]}><AppText variant="heading" color={colors.danger}>{t('swipe.no')}</AppText></Animated.View>
         </Animated.View>
       </GestureDetector>
       <View style={styles.buttons}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Passer" onPress={() => fling(false)} style={[styles.round, { borderColor: colors.danger }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('common.skip')} onPress={() => fling(false)} style={[styles.round, { borderColor: colors.danger }]}>
           <AppText variant="title" color={colors.danger}>✕</AppText>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={t('group.join')} onPress={() => fling(true)} style={[styles.round, { backgroundColor: colors.coral, borderColor: colors.coral }]}>
@@ -121,7 +121,7 @@ export default function SwipeScreen() {
     if (!liked) return;
     try {
       await requestJoin(current.id);
-      setToast(`⏳ Demande envoyée à ${current.organizer?.first_name ?? 'l’organisateur'}`);
+      setToast(t('swipe.sent', { name: current.organizer?.first_name ?? t('swipe.organizer') }));
     } catch (e) {
       setToast(readableError(e, t('common.error')));
     }
@@ -130,15 +130,15 @@ export default function SwipeScreen() {
 
   return (
     <Screen>
-      <TopBar title="Je sais pas quoi faire" />
+      <TopBar title={t('swipe.title')} />
       <View style={{ flex: 1 }}>
         {deck[0] ? (
           <SwipeCard key={deck[0].id} group={deck[0]} onDone={onDone} />
         ) : loading ? null : (
           <View style={styles.empty}>
             <Image source={img3d.die} style={{ width: 96, height: 96 }} />
-            <AppText variant="heading" center>Tu as tout vu pour l’instant !</AppText>
-            <AppText color={colors.sub} center>Reviens plus tard ou lance ta propre sortie.</AppText>
+            <AppText variant="heading" center>{t('swipe.doneTitle')}</AppText>
+            <AppText color={colors.sub} center>{t('swipe.doneBody')}</AppText>
             <Button label={t('explore.createOne')} onPress={() => router.replace('/creer')} style={{ alignSelf: 'stretch' }} />
           </View>
         )}

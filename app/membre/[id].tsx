@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText, Button, Screen, TopBar, VerifiedBadge } from '@/src/components/ui';
 import { fetchMiniProfiles, type MiniProfile } from '@/src/features/groups/api';
+import { useI18n } from '@/src/i18n';
 import type { Profile, ProfilePrivate, Rating } from '@/src/lib/database.types';
 
 import { signedUrls } from '@/src/lib/storage';
@@ -15,12 +16,6 @@ type PublicProfile = Omit<Profile, 'birth_date' | 'selfie_path' | 'selfie_consen
 const PUBLIC_FIELDS =
   'id, first_name, show_age, gender, city, bio, studies, job, lifestyle, interests, app_language, verification_status, is_premium, rating_avg, rating_count, outings_count, attendance_rate, created_at, updated_at';
 
-const RELATION: Record<string, string> = {
-  celibataire: 'Célibataire',
-  en_couple: 'En couple',
-  marie: 'Marié·e',
-  non_precise: 'Non précisé',
-};
 
 export function InfoTile({ emoji, label, value, locked }: { emoji: string; label: string; value: string; locked?: boolean }) {
   return (
@@ -37,6 +32,7 @@ export default function ProfilPublicScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { session } = useAuth();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [priv, setPriv] = useState<ProfilePrivate | null>(null);
@@ -76,12 +72,12 @@ export default function ProfilPublicScreen() {
       return;
     }
     Alert.alert(
-      `Bloquer ${profile?.first_name ?? ''} ?`,
-      'Vous ne verrez plus vos profils ni vos groupes respectifs. La personne n’est pas prévenue.',
+      t('member.blockTitle', { name: profile?.first_name ?? '' }),
+      t('member.blockBody'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Bloquer',
+          text: t('member.block'),
           style: 'destructive',
           onPress: async () => {
             await supabase.from('blocks').insert({ blocker_id: session.user.id, blocked_id: id });
@@ -97,18 +93,18 @@ export default function ProfilPublicScreen() {
     return (
       <Screen>
         <TopBar />
-        <AppText color={colors.sub} center style={{ marginTop: 40 }}>Profil indisponible.</AppText>
+        <AppText color={colors.sub} center style={{ marginTop: 40 }}>{t('member.unavailable')}</AppText>
       </Screen>
     );
   }
 
   const tiles = [
-    profile.studies ? { emoji: '🎓', label: 'Études', value: profile.studies } : null,
-    profile.job ? { emoji: '💼', label: 'Travail', value: profile.job } : null,
-    priv?.residence ? { emoji: '🏠', label: 'Quartier', value: priv.residence, locked: true } : null,
-    priv?.height_cm ? { emoji: '📏', label: 'Taille', value: `${priv.height_cm} cm`, locked: true } : null,
-    priv?.relationship_status ? { emoji: '💬', label: 'Situation', value: RELATION[priv.relationship_status], locked: true } : null,
-    profile.lifestyle.length ? { emoji: '🌱', label: 'Mode de vie', value: profile.lifestyle.join(' · ') } : null,
+    profile.studies ? { emoji: '🎓', label: t('member.studies'), value: profile.studies } : null,
+    profile.job ? { emoji: '💼', label: t('member.job'), value: profile.job } : null,
+    priv?.residence ? { emoji: '🏠', label: t('member.residence'), value: priv.residence, locked: true } : null,
+    priv?.height_cm ? { emoji: '📏', label: t('member.height'), value: `${priv.height_cm} cm`, locked: true } : null,
+    priv?.relationship_status ? { emoji: '💬', label: t('member.relationship'), value: t(`relationship.${priv.relationship_status}`), locked: true } : null,
+    profile.lifestyle.length ? { emoji: '🌱', label: t('member.lifestyle'), value: profile.lifestyle.join(' · ') } : null,
   ].filter(Boolean) as { emoji: string; label: string; value: string; locked?: boolean }[];
 
   const photoW = width - 40;
@@ -136,9 +132,9 @@ export default function ProfilPublicScreen() {
 
       <View style={styles.stats}>
         {[
-          [profile.rating_count ? `${Number(profile.rating_avg).toFixed(1)} ★` : '—', `${profile.rating_count} avis`],
-          [String(profile.outings_count), 'Sorties'],
-          [`${Math.round(Number(profile.attendance_rate))} %`, 'Présence'],
+          [profile.rating_count ? `${Number(profile.rating_avg).toFixed(1)} ★` : '—', t('member.reviewsCount', { n: profile.rating_count })],
+          [String(profile.outings_count), t('member.outings')],
+          [`${Math.round(Number(profile.attendance_rate))} %`, t('member.attendance')],
         ].map(([v, l]) => (
           <View key={l} style={styles.stat}>
             <AppText variant="heading">{v}</AppText>
@@ -163,22 +159,22 @@ export default function ProfilPublicScreen() {
         </View>
       ) : null}
 
-      <AppText variant="heading" style={{ marginTop: 16, marginBottom: 8 }}>Avis</AppText>
+      <AppText variant="heading" style={{ marginTop: 16, marginBottom: 8 }}>{t('member.reviews')}</AppText>
       {reviews.length ? (
         reviews.map((r) => (
           <View key={r.id} style={styles.review}>
-            <AppText variant="label">{'★'.repeat(r.stars)}{'☆'.repeat(5 - r.stars)} · {r.author?.first_name ?? 'Membre'}</AppText>
+            <AppText variant="label">{'★'.repeat(r.stars)}{'☆'.repeat(5 - r.stars)} · {r.author?.first_name ?? t('member.member')}</AppText>
             <AppText>{r.comment}</AppText>
           </View>
         ))
       ) : (
-        <AppText color={colors.sub}>Pas encore d’avis publié.</AppText>
+        <AppText color={colors.sub}>{t('member.noReviews')}</AppText>
       )}
 
       {!isMe ? (
         <View style={{ gap: 8, marginTop: 20 }}>
-          <Button kind="outline" label="Signaler" onPress={() => router.push({ pathname: '/signaler', params: { userId: profile.id } })} />
-          <Button kind="ghost" label={blocked ? 'Débloquer' : 'Bloquer'} onPress={toggleBlock} />
+          <Button kind="outline" label={t('report.title')} onPress={() => router.push({ pathname: '/signaler', params: { userId: profile.id } })} />
+          <Button kind="ghost" label={blocked ? t('blocked.unblock') : t('member.block')} onPress={toggleBlock} />
         </View>
       ) : null}
     </Screen>
