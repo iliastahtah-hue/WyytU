@@ -18,6 +18,8 @@ export function PushRegistrar() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as { type?: string; group_id?: string | null };
+      if (data?.type === 'verify_rejected') return router.push('/selfie');
+      if (data?.type?.startsWith('partner_')) return router.push('/partenaire');
       if (!data?.group_id) return router.push('/notifications');
       if (data.type === 'no_show') router.push({ pathname: '/contester/[id]', params: { id: data.group_id } });
       else router.push({ pathname: '/groupe/[id]', params: { id: data.group_id } });

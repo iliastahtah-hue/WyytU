@@ -245,6 +245,12 @@ const fr = {
     now_co_organizer: 'L’organisateur est parti : tu deviens co-organisateur de « {group} »',
     no_show: 'Absence enregistrée pour « {group} ». Tu peux contester sous 72 h.',
     confirm_reminder: 'Tu viens toujours ? Confirme ta venue pour « {group} » ⏰',
+    verified: 'Ton profil est vérifié ✅ Ton badge bleu est actif.',
+    verify_rejected: 'Ton selfie n’a pas pu être vérifié : reprends-en un.',
+    dispute_accepted: 'Contestation acceptée : ton absence pour « {group} » est retirée.',
+    dispute_rejected: 'Contestation refusée pour « {group} ».',
+    partner_approved: 'Ton établissement est validé 🏪 Publie tes premiers créneaux !',
+    partner_rejected: 'Ta candidature partenaire n’a pas été retenue.',
     default: 'Nouvelle activité',
   },
   soon: {

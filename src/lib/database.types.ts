@@ -209,6 +209,7 @@ export type Database = {
       blocks: Table<Block, 'blocker_id' | 'blocked_id'>;
       notifications: Table<AppNotification, 'user_id' | 'type', 'payload' | 'read_at'>;
       push_tokens: Table<PushToken, 'token' | 'user_id', 'platform'>;
+      admins: Table<{ user_id: string; created_at: string }, 'user_id'>;
       group_secrets: Table<{ group_id: string; check_in_code: string }, 'group_id'>;
       attendance_disputes: Table<AttendanceDispute, 'group_id' | 'user_id' | 'message'>;
     };
@@ -222,6 +223,12 @@ export type Database = {
       register_push_token: { Args: { p_token: string; p_platform: 'ios' | 'android' }; Returns: undefined };
       mark_attendance: { Args: { p_group: string; p_user: string; p_present: boolean }; Returns: undefined };
       contest_no_show: { Args: { p_group: string; p_message: string }; Returns: undefined };
+      admin_pending_selfies: { Args: Record<string, never>; Returns: { id: string; first_name: string; selfie_path: string; updated_at: string }[] };
+      admin_review_selfie: { Args: { p_user: string; p_approve: boolean }; Returns: string | null };
+      admin_review_rating: { Args: { p_rating: string; p_approve: boolean }; Returns: undefined };
+      admin_resolve_report: { Args: { p_report: string; p_valid: boolean }; Returns: undefined };
+      admin_resolve_dispute: { Args: { p_dispute: string; p_accept: boolean }; Returns: undefined };
+      admin_review_partner: { Args: { p_partner: string; p_approve: boolean }; Returns: undefined };
       get_my_profile: { Args: Record<string, never>; Returns: Profile[] };
       public_age: { Args: { p_user: string }; Returns: number | null };
       my_conversations: { Args: Record<string, never>; Returns: { group_id: string; body: string; created_at: string }[] };

@@ -27,11 +27,13 @@ export default function ProfilScreen() {
   const router = useRouter();
   const { profile, refreshProfile } = useAuth();
   const [photos, setPhotos] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
       refreshProfile();
+      supabase.from('admins').select('user_id').eq('user_id', profile.id).maybeSingle().then(({ data }) => setIsAdmin(!!data));
       supabase
         .from('profile_photos')
         .select('path, position')
@@ -123,6 +125,7 @@ export default function ProfilScreen() {
           <Row emoji="⭐" label="WyytU Premium" hint="Groupes illimités, sorties en avant" onPress={() => router.push('/premium')} />
           <Row emoji="🏪" label="Espace partenaire" hint="Tu as un club, un resto, un studio ?" onPress={() => router.push('/partenaire')} />
           <Row emoji="⚙️" label="Réglages" hint="Langue, sécurité, compte" onPress={() => router.push('/reglages')} />
+          {isAdmin ? <Row emoji="🛡️" label="Modération" hint="Selfies, avis, signalements, partenaires" onPress={() => router.push('/moderation')} /> : null}
         </View>
       </ScrollView>
     </SafeAreaView>

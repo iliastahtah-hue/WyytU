@@ -19,7 +19,9 @@ export function nextRoute(s: State): Href {
   if (!s.tutoDone) return '/tuto';
   if (!s.session) return '/inscription';
   if (!s.profile) return '/creation-profil';
-  if (!s.profile.selfie_path || s.profile.verification_status === 'rejected') return '/selfie';
+  // selfie jamais envoyé, ou refusé par la modération (après validation, le
+  // fichier est supprimé : selfie_path redevient vide mais le statut est « verified »)
+  if (s.profile.verification_status === 'none' || s.profile.verification_status === 'rejected') return '/selfie';
   if (!s.permissionsDone) return '/autorisations';
   return '/explorer';
 }

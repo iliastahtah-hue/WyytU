@@ -1,7 +1,9 @@
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Screen } from '@/src/components/ui';
 import { LANGS, useI18n, type Lang } from '@/src/i18n';
+import { logoMark } from '@/src/theme/images';
 import { colors, radius } from '@/src/theme/tokens';
 
 export default function LangueScreen() {
@@ -16,7 +18,10 @@ export default function LangueScreen() {
   return (
     <Screen>
       <View style={styles.top}>
-        <AppText style={styles.wordmark}>wyytu</AppText>
+        <View style={styles.brand}>
+          <Image source={logoMark} style={{ width: 56, height: 56 }} accessibilityLabel="WyytU" />
+          <AppText style={styles.wordmark}>wyytu</AppText>
+        </View>
         <AppText variant="title">{t('language.title')}</AppText>
         <AppText color={colors.sub}>{t('language.subtitle')}</AppText>
       </View>
@@ -50,7 +55,8 @@ export default function LangueScreen() {
 
 const styles = StyleSheet.create({
   top: { marginTop: 48, gap: 10, marginBottom: 32 },
-  wordmark: { fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 44, lineHeight: 48, letterSpacing: -1.5, color: colors.coral, marginBottom: 20 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  wordmark: { fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 44, lineHeight: 48, letterSpacing: -1.5, color: colors.coral },
   list: { gap: 12 },
   option: {
     flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 76, paddingHorizontal: 20,

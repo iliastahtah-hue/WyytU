@@ -23,9 +23,11 @@ npx expo start            # scanne le QR code avec Expo Go
    par e-mail (déjà prévue dans l'app) ou des numéros de test (Authentication › Phone › Test OTP).
 3. **Connexion par e-mail** : Authentication › Email templates › « Magic Link » : mets
    `{{ .Token }}` dans le modèle pour envoyer un code à 6 chiffres.
-4. **Modération** : depuis le tableau de bord, passer `profiles.verification_status` à
-   `verified` après contrôle du selfie, et `ratings.moderation_status` à `approved` pour publier
-   un avis (la note moyenne se recalcule toute seule).
+4. **Modération dans l'app** : après ta propre inscription, nomme-toi administrateur une fois
+   (Supabase › SQL Editor) :
+   `insert into public.admins (user_id) select id from auth.users where email = 'ton@email' or phone = '212XXXXXXXXX';`
+   Un bouton « 🛡️ Modération » apparaît alors dans ton Profil : selfies (comparés aux photos,
+   supprimés après validation), avis à publier, signalements, contestations d'absence, partenaires.
 
 ## Ce qui est en place (blocs 1 à 7)
 
@@ -98,7 +100,6 @@ eas submit --platform ios                         # envoi sur TestFlight / App S
 
 ## Reste à faire avant la publication
 
-- **Modération** : valider selfies, avis, partenaires et contestations depuis le tableau de bord Supabase (ou un petit back-office).
 - **Textes** : relecture de la darija ; traduction anglaise/darija des derniers écrans (le français s'affiche en secours) ; CGU par un avocat.
 - **Connexion SMS** : brancher Twilio dans Supabase.
 

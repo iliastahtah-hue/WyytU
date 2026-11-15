@@ -20,6 +20,18 @@ function text(n: Notif, group: string, name: string): { title: string; body: str
       return { title: 'Absence enregistrée', body: `Pour « ${group} ». Tu peux contester sous 72 h.` };
     case 'confirm_reminder':
       return { title: 'Tu viens toujours ? ⏰', body: `Confirme ta venue pour « ${group} »` };
+    case 'verified':
+      return { title: 'Profil vérifié ✅', body: 'Ton badge bleu est actif. Bonnes sorties !' };
+    case 'verify_rejected':
+      return { title: 'Selfie à refaire', body: 'On n’a pas pu vérifier ton selfie. Reprends-en un dans l’app.' };
+    case 'dispute_accepted':
+      return { title: 'Contestation acceptée', body: `Ton absence pour « ${group} » a été retirée.` };
+    case 'dispute_rejected':
+      return { title: 'Contestation refusée', body: `L’absence pour « ${group} » est maintenue.` };
+    case 'partner_approved':
+      return { title: 'Bienvenue chez les partenaires 🏪', body: 'Ton établissement est validé : publie tes premiers créneaux.' };
+    case 'partner_rejected':
+      return { title: 'Candidature partenaire', body: 'Ta candidature n’a pas été retenue. Contacte-nous pour en savoir plus.' };
     default:
       return { title: 'WyytU', body: 'Nouvelle activité sur ton compte' };
   }

@@ -18,6 +18,12 @@ const ICONS: Record<string, string> = {
   now_co_organizer: '👑',
   no_show: '⚠️',
   confirm_reminder: '⏰',
+  verified: '✅',
+  verify_rejected: '📸',
+  dispute_accepted: '👍',
+  dispute_rejected: '👎',
+  partner_approved: '🏪',
+  partner_rejected: '🏪',
 };
 
 export default function NotificationsScreen() {
@@ -59,7 +65,9 @@ export default function NotificationsScreen() {
 
   const open = (n: AppNotification) => {
     const groupId = n.payload.group_id as string | undefined;
-    if (n.type === 'no_show' && groupId) router.push({ pathname: '/contester/[id]', params: { id: groupId } });
+    if (n.type === 'verify_rejected') router.push('/selfie');
+    else if (n.type.startsWith('partner_')) router.push('/partenaire');
+    else if (n.type === 'no_show' && groupId) router.push({ pathname: '/contester/[id]', params: { id: groupId } });
     else if (groupId) router.push({ pathname: '/groupe/[id]', params: { id: groupId } });
   };
 

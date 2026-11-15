@@ -1,4 +1,6 @@
 /* Icônes 3D Fluent Emoji (licence MIT, voir assets/3d/LICENSE.md) */
+export const logoMark = require('@/assets/brand/logo-mark.png');
+
 export const img3d = {
   tennis: require('@/assets/3d/tennis_3d.png'),
   popcorn: require('@/assets/3d/popcorn_3d.png'),
