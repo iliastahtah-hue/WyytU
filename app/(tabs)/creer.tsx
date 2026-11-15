@@ -1,5 +1,5 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, Chip, TextField } from '@/src/components/ui';
@@ -52,6 +52,9 @@ export default function CreerScreen() {
   const { t, lang } = useI18n();
   const { session, profile } = useAuth();
   const place = usePickedPlace();
+  // Pré-remplissage quand on vient d'un plan partenaire
+  const params = useLocalSearchParams<{ offerId?: string; startsAt?: string; universe?: Universe; subcategory?: string; capacity?: string; title?: string }>();
+  const [offerId, setOfferId] = useState<string | null>(null);
 
   const [universe, setUniverse] = useState<Universe>('sport');
   const [sport, setSport] = useState<string | null>('padel');
@@ -65,6 +68,16 @@ export default function CreerScreen() {
   const [weekCount, setWeekCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!params.offerId) return;
+    setOfferId(params.offerId);
+    if (params.universe) setUniverse(params.universe);
+    if (params.subcategory) setSport(params.subcategory);
+    if (params.startsAt) setStart(new Date(params.startsAt));
+    if (params.capacity) setCapacity(Math.min(Math.max(Number(params.capacity) || 4, 2), 20));
+    if (params.title) setTitle(params.title);
+  }, [params.offerId, params.universe, params.subcategory, params.startsAt, params.capacity, params.title]);
 
   const isWoman = profile?.gender === 'femme';
   const premium = !!profile?.is_premium;
@@ -128,6 +141,7 @@ export default function CreerScreen() {
         starts_at: start.toISOString(),
         place_name: place.name,
         partner_id: place.partnerId,
+        offer_id: offerId && place.partnerId ? offerId : null,
         lat: place.lat,
         lng: place.lng,
         capacity,
@@ -143,6 +157,8 @@ export default function CreerScreen() {
 
     // on remet le formulaire à zéro pour la prochaine fois
     placeStore.set(null);
+    setOfferId(null);
+    router.setParams({ offerId: undefined, startsAt: undefined, universe: undefined, subcategory: undefined, capacity: undefined, title: undefined });
     setTitle('');
     setDescription('');
     setStart(defaultStart());
@@ -172,6 +188,7 @@ export default function CreerScreen() {
                   setUniverse(x.id);
                   if (x.id !== 'sport') setLevel(null);
                   if (place?.partnerId) placeStore.set(null); // le partenaire dépend de l'univers
+                  setOfferId(null);
                 }}
               />
             ))}

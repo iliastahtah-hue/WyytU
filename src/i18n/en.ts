@@ -1,6 +1,6 @@
-import type { Dictionary } from './fr';
+import type { PartialDictionary } from './fr';
 
-const en: Dictionary = {
+const en: PartialDictionary = {
   common: {
     next: 'Next',
     skip: 'Skip',

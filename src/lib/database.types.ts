@@ -121,6 +121,7 @@ export type GroupMember = {
   note: string | null;
   confirmed_at: string | null;
   checked_in: boolean;
+  no_show: boolean;
   requested_at: string;
   decided_at: string | null;
 };
@@ -153,6 +154,15 @@ export type Report = {
   message_id: string | null;
   reason: 'comportement' | 'faux_profil' | 'harcelement' | 'absence' | 'contenu' | 'autre';
   details: string | null;
+  status: ModerationStatus;
+  created_at: string;
+};
+
+export type AttendanceDispute = {
+  id: string;
+  group_id: string;
+  user_id: string;
+  message: string;
   status: ModerationStatus;
   created_at: string;
 };
@@ -195,6 +205,7 @@ export type Database = {
       reports: Table<Report, 'reporter_id' | 'reason', 'reported_user_id' | 'group_id' | 'message_id' | 'details'>;
       blocks: Table<Block, 'blocker_id' | 'blocked_id'>;
       notifications: Table<AppNotification, 'user_id' | 'type', 'payload' | 'read_at'>;
+      attendance_disputes: Table<AttendanceDispute, 'group_id' | 'user_id' | 'message'>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -203,6 +214,12 @@ export type Database = {
       leave_group: { Args: { p_group: string }; Returns: undefined };
       confirm_presence: { Args: { p_group: string }; Returns: undefined };
       delete_my_account: { Args: Record<string, never>; Returns: undefined };
+      mark_attendance: { Args: { p_group: string; p_user: string; p_present: boolean }; Returns: undefined };
+      contest_no_show: { Args: { p_group: string; p_message: string }; Returns: undefined };
+      partner_check_in: {
+        Args: { p_group: string };
+        Returns: { title: string; starts_at: string; members: number; discount_pct: number };
+      };
     };
     Enums: {
       gender: Gender;

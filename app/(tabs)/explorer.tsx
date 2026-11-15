@@ -5,6 +5,7 @@ import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, Chip } from '@/src/components/ui';
 import { fetchUpcomingGroups, type GroupCardData } from '@/src/features/groups/api';
+import { unreadCount } from '@/src/features/outings/api';
 import { GroupCard } from '@/src/features/groups/GroupCard';
 import { useI18n } from '@/src/i18n';
 import type { Universe } from '@/src/lib/database.types';
@@ -23,10 +24,12 @@ export default function ExplorerScreen() {
   const [groups, setGroups] = useState<GroupCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unread, setUnread] = useState(0);
 
   const load = useCallback(async () => {
     if (!session) return;
     setError(null);
+    unreadCount(session.user.id).then(setUnread).catch(() => undefined);
     try {
       setGroups(await fetchUpcomingGroups(session.user.id, { universe, subcategory: universe === 'sport' ? sport : null }));
     } catch (e) {
@@ -61,12 +64,28 @@ export default function ExplorerScreen() {
             <AppText variant="display">{t('explore.title2')}</AppText>
           </View>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Notifications${unread ? `, ${unread} non lues` : ''}`}
+          onPress={() => router.push('/notifications')}
+          style={styles.bell}
+        >
+          <AppText style={{ fontSize: 20 }}>🔔</AppText>
+          {unread ? (
+            <View style={styles.dot}><AppText variant="tag" color={colors.white} style={{ fontSize: 10 }}>{unread > 9 ? '9+' : unread}</AppText></View>
+          ) : null}
+        </Pressable>
       </View>
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/sorties')} style={styles.swipe}>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/swipe')} style={styles.swipe}>
         <Image source={img3d.die} style={{ width: 26, height: 26 }} />
         <AppText variant="label" color={colors.white}>{t('explore.swipe')}</AppText>
       </Pressable>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/plans')} style={[styles.swipe, { backgroundColor: colors.lime }]}>
+        <AppText variant="label">🔥 Plans</AppText>
+      </Pressable>
+      </View>
 
       <View style={styles.search}>
         <AppText color={colors.sub}>🔍</AppText>
@@ -143,6 +162,11 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 130, gap: 0 },
   top: { flexDirection: 'row', alignItems: 'flex-start' },
   highlight: { alignSelf: 'flex-start', backgroundColor: colors.lime, borderRadius: 10, paddingHorizontal: 6, marginLeft: -6 },
+  bell: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  dot: {
+    position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
+    backgroundColor: colors.coral, alignItems: 'center', justifyContent: 'center',
+  },
   swipe: {
     flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', minHeight: TOUCH,
     paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.ink,

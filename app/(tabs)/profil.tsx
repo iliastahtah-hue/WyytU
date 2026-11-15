@@ -1,24 +1,37 @@
 import { Image } from 'expo-image';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, VerifiedBadge } from '@/src/components/ui';
-import { LANGS, useI18n } from '@/src/i18n';
+import { AppText, VerifiedBadge } from '@/src/components/ui';
 import { ageFrom } from '@/src/lib/dates';
 import { signedUrls } from '@/src/lib/storage';
-import { readableError, supabase } from '@/src/lib/supabase';
+import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius } from '@/src/theme/tokens';
 
+function Row({ emoji, label, hint, onPress }: { emoji: string; label: string; hint?: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
+      <AppText style={{ fontSize: 22 }}>{emoji}</AppText>
+      <View style={{ flex: 1 }}>
+        <AppText variant="bodyStrong">{label}</AppText>
+        {hint ? <AppText variant="small" color={colors.sub}>{hint}</AppText> : null}
+      </View>
+      <AppText variant="heading" color={colors.sub}>›</AppText>
+    </Pressable>
+  );
+}
+
 export default function ProfilScreen() {
-  const { t, lang, setLang } = useI18n();
-  const { profile, signOut } = useAuth();
+  const router = useRouter();
+  const { profile, refreshProfile } = useAuth();
   const [photos, setPhotos] = useState<string[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
+      refreshProfile();
       supabase
         .from('profile_photos')
         .select('path, position')
@@ -29,53 +42,44 @@ export default function ProfilScreen() {
           const urls = await signedUrls('photos', paths);
           setPhotos(paths.map((p) => urls[p]).filter(Boolean));
         });
-    }, [profile]),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [profile?.id]),
   );
 
   if (!profile) return null;
 
   const status = {
-    verified: { label: t('common.verified'), bg: colors.successSoft },
-    pending: { label: 'Vérification en cours', bg: colors.sand },
-    rejected: { label: 'Selfie à refaire', bg: colors.coralSoft },
+    verified: { label: '✓ Profil vérifié', bg: colors.successSoft },
+    pending: { label: '⏳ Vérification en cours', bg: colors.sand },
+    rejected: { label: '⚠️ Selfie à refaire', bg: colors.coralSoft },
     none: { label: 'Non vérifié', bg: colors.sand },
   }[profile.verification_status];
 
-  const confirmDelete = () =>
-    Alert.alert(
-      'Supprimer mon compte',
-      'Ton profil, tes photos et tes messages seront supprimés définitivement. Cette action est irréversible.',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            // 1. supprimer ses fichiers (photos, selfie) via l'API Storage
-            for (const bucket of ['photos', 'selfies'] as const) {
-              const { data: files } = await supabase.storage.from(bucket).list(profile.id);
-              if (files?.length) await supabase.storage.from(bucket).remove(files.map((f) => `${profile.id}/${f.name}`));
-            }
-            // 2. supprimer le compte et toutes ses données
-            const { error } = await supabase.rpc('delete_my_account');
-            if (error) return Alert.alert(readableError(error, t('common.error')));
-            await signOut();
-          },
-        },
-      ],
-    );
+  const filled = [profile.bio, profile.studies, profile.job, profile.lifestyle.length, profile.interests.length, photos.length >= 3].filter(Boolean).length;
+  const completion = Math.round((filled / 6) * 100);
 
   return (
     <SafeAreaView style={styles.fill} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          {photos[0] ? <Image source={{ uri: photos[0] }} style={styles.cover} contentFit="cover" /> : <View style={styles.cover} />}
+          <View style={styles.stack}>
+            {photos.slice(0, 3).reverse().map((uri, i, arr) => (
+              <Image
+                key={uri}
+                source={{ uri }}
+                style={[styles.cover, { transform: [{ rotate: `${(arr.length - 1 - i) * -6 + 4}deg` }], left: (arr.length - 1 - i) * 6 }]}
+                contentFit="cover"
+              />
+            ))}
+            {!photos.length ? <View style={styles.cover} /> : null}
+          </View>
           <View style={{ flex: 1, gap: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <AppText variant="title">{profile.first_name}</AppText>
               {profile.verification_status === 'verified' ? <VerifiedBadge size={20} /> : null}
+              {profile.is_premium ? <AppText variant="tag">⭐ PREMIUM</AppText> : null}
             </View>
-            <AppText color={colors.ink}>
+            <AppText>
               {profile.city}
               {profile.show_age ? ` · ${ageFrom(profile.birth_date)} ans` : ''}
             </AppText>
@@ -87,7 +91,7 @@ export default function ProfilScreen() {
 
         <View style={styles.stats}>
           {[
-            [profile.rating_count ? Number(profile.rating_avg).toFixed(1) + ' ★' : '—', 'Note'],
+            [profile.rating_count ? `${Number(profile.rating_avg).toFixed(1)} ★` : '—', 'Note'],
             [String(profile.outings_count), 'Sorties'],
             [`${Math.round(Number(profile.attendance_rate))} %`, 'Présence'],
           ].map(([value, label]) => (
@@ -98,23 +102,22 @@ export default function ProfilScreen() {
           ))}
         </View>
 
-        <AppText variant="heading">Mes photos</AppText>
-        <View style={styles.grid}>
-          {photos.map((uri) => (
-            <Image key={uri} source={{ uri }} style={styles.photo} contentFit="cover" />
-          ))}
-        </View>
+        {completion < 100 ? (
+          <Pressable accessibilityRole="button" onPress={() => router.push('/modifier-profil')} style={styles.complete}>
+            <View style={{ flex: 1, gap: 6 }}>
+              <AppText variant="bodyStrong">Complète ton profil · {completion} %</AppText>
+              <View style={styles.track}><View style={[styles.bar, { width: `${completion}%` }]} /></View>
+              <AppText variant="small" color={colors.sub}>Un profil complet inspire confiance et se fait accepter plus vite.</AppText>
+            </View>
+          </Pressable>
+        ) : null}
 
-        <AppText variant="heading" style={{ marginTop: 8 }}>Langue</AppText>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {LANGS.map((l) => (
-            <Button key={l.id} small kind={lang === l.id ? 'dark' : 'outline'} label={l.native} onPress={() => setLang(l.id)} />
-          ))}
-        </View>
-
-        <View style={{ gap: 10, marginTop: 16 }}>
-          <Button kind="outline" label="Se déconnecter" onPress={signOut} />
-          <Button kind="ghost" label="Supprimer mon compte" onPress={confirmDelete} />
+        <View style={styles.group}>
+          <Row emoji="✏️" label="Modifier mon profil" hint="Photos, à propos, infos privées 🔒" onPress={() => router.push('/modifier-profil')} />
+          <Row emoji="👀" label="Voir mon profil public" onPress={() => router.push({ pathname: '/membre/[id]', params: { id: profile.id } })} />
+          <Row emoji="⭐" label="WyytU Premium" hint="Groupes illimités, sorties en avant" onPress={() => router.push('/premium')} />
+          <Row emoji="🏪" label="Espace partenaire" hint="Tu as un club, un resto, un studio ?" onPress={() => router.push('/partenaire')} />
+          <Row emoji="⚙️" label="Réglages" hint="Langue, sécurité, compte" onPress={() => router.push('/reglages')} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -124,11 +127,15 @@ export default function ProfilScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: 140, gap: 14 },
-  hero: { flexDirection: 'row', gap: 16, alignItems: 'center', backgroundColor: colors.coral, borderRadius: radius.xl, padding: 18 },
-  cover: { width: 96, height: 120, borderRadius: radius.md, backgroundColor: colors.coralSoft, transform: [{ rotate: '-4deg' }] },
+  hero: { flexDirection: 'row', gap: 18, alignItems: 'center', backgroundColor: colors.coral, borderRadius: radius.xl, padding: 18 },
+  stack: { width: 110, height: 128 },
+  cover: { position: 'absolute', width: 96, height: 120, borderRadius: radius.md, backgroundColor: colors.coralSoft, borderWidth: 3, borderColor: colors.white },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill },
   stats: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, backgroundColor: colors.card, borderRadius: radius.lg, padding: 14, gap: 2 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  photo: { width: '31%', aspectRatio: 0.8, borderRadius: radius.md, backgroundColor: colors.card },
+  complete: { flexDirection: 'row', backgroundColor: colors.limeSoft, borderRadius: radius.lg, padding: 16 },
+  track: { height: 8, borderRadius: 4, backgroundColor: colors.white, overflow: 'hidden' },
+  bar: { height: 8, borderRadius: 4, backgroundColor: colors.ink },
+  group: { backgroundColor: colors.card, borderRadius: radius.lg, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: colors.bg },
 });

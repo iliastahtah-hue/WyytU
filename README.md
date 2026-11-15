@@ -27,13 +27,20 @@ npx expo start            # scanne le QR code avec Expo Go
    `verified` après contrôle du selfie, et `ratings.moderation_status` à `approved` pour publier
    un avis (la note moyenne se recalcule toute seule).
 
-## Ce qui est en place (blocs 1 à 3)
+## Ce qui est en place (blocs 1 à 7)
 
 | Parcours | Écrans |
 |---|---|
 | Premier lancement | Choix de la langue (darija, français, anglais) → tutoriel en 4 écrans |
 | Inscription | Numéro marocain +212 ou e-mail → code à 6 chiffres → profil (prénom, date de naissance 18+, âge affiché ou non, genre, 3 photos minimum) → selfie avec consentement explicite → autorisations |
 | Créer | Univers et sport, nom (proposé automatiquement), jour et heure, lieu via l'écran « Où ? » (carte des partenaires avec réductions ou lieu libre), nombre de places, niveau C à A+, budget resto, « Femmes uniquement » réservé aux organisatrices, quota de 2 groupes par semaine affiché |
+| Mes sorties | À venir / passées, confirmation de présence, QR du chef de groupe (sorties chez un partenaire), « je ne peux plus venir », noter le groupe, pointer les présences, contester une absence |
+| Messages | Liste des conversations de groupe et chat en temps réel (appui long pour signaler un message) |
+| Notifications | Cloche avec compteur dans Explorer : demande reçue, acceptation, refus, passage co-organisateur, absence |
+| Confiance | Notation 1 à 5 ★ avec avis écrit (motif obligatoire si ≤ 2 ★), profil public avec avis publiés et infos privées 🔒, signaler, bloquer/débloquer |
+| Partenaires | Plans (créneaux libres avec réduction) → créer un groupe pré-rempli ; espace partenaire : candidature, créneaux, booster, groupes attendus, scanner de QR |
+| Découverte | Mode swipe « Je sais pas quoi faire » (droite = demande pour rejoindre) |
+| Profil | Complétion du profil, modifier (photos 3 à 6, bio, études, travail, mode de vie, intérêts, quartier/taille/situation privés), Premium, réglages (langue, bloqués, contact, infos légales, déconnexion, suppression du compte) |
 | App | Barre du bas sable · Explorer (univers, sports, recherche) · fiche d'un groupe (membres, demande pour rejoindre avec un mot, annulation, salle d'attente de l'organisateur avec accepter/refuser) · Profil (photos, langue, déconnexion, suppression du compte) |
 
 ### Sécurité côté base (testée)
@@ -66,11 +73,12 @@ src/
 supabase/migrations/     schéma SQL
 ```
 
-## Prochains blocs
+## Reste à faire avant la publication
 
-4. Mes sorties, confirmation de présence, chat en temps réel, notifications
-5. Notation et avis, signalement, blocage, contestation
-6. Plans partenaires, scan du QR, espace partenaire
-7. Mode swipe, Premium (achats intégrés), profil complet
+- **Achats intégrés Premium** : nécessitent une version compilée (EAS Build) + RevenueCat ; l'écran est prêt.
+- **Notifications push** (téléphone verrouillé) : Expo Push + une Edge Function Supabase ; les notifications dans l'app marchent déjà.
+- **Modération** : valider selfies, avis, partenaires et contestations depuis le tableau de bord Supabase (ou un petit back-office).
+- **Textes** : relecture de la darija ; traduction anglaise/darija des derniers écrans (le français s'affiche en secours) ; CGU par un avocat.
+- **Connexion SMS** : brancher Twilio dans Supabase.
 
 Icônes 3D : Microsoft Fluent Emoji (MIT), voir `assets/3d/LICENSE.md`.

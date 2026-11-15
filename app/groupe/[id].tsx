@@ -1,6 +1,6 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { AppText, Avatar, Button, Screen, TopBar, VerifiedBadge } from '@/src/components/ui';
 import { fetchGroupDetail, leaveGroup, requestJoin, respondJoin, type GroupDetail } from '@/src/features/groups/api';
 import { localeOf, relativeStart } from '@/src/features/groups/time';
@@ -12,6 +12,7 @@ import { colors, fonts, radius, universeColors } from '@/src/theme/tokens';
 
 export default function GroupeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { t, lang } = useI18n();
   const { session, profile } = useAuth();
   const [detail, setDetail] = useState<GroupDetail | null>(null);
@@ -76,11 +77,11 @@ export default function GroupeScreen() {
 
   let footer: React.ReactNode;
   if (isOrganizer) {
-    footer = <Button kind="lime" label={`👑 ${t('group.youOrganize')}`} disabled />;
+    footer = <Button kind="dark" label={`💬 ${t('outings.chat')} · 👑 ${t('group.youOrganize')}`} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: group.id } })} />;
   } else if (mine?.status === 'accepted') {
     footer = (
       <>
-        <Button kind="lime" label={t('group.accepted')} disabled />
+        <Button kind="dark" label={`💬 ${t('outings.chat')}`} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: group.id } })} />
         <Button
           kind="ghost"
           label={t('group.leave')}
@@ -140,12 +141,17 @@ export default function GroupeScreen() {
         </View>
         <View style={styles.members}>
           {members.map((m) => (
-            <View key={m.user_id} style={styles.member}>
+            <Pressable
+              key={m.user_id}
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/membre/[id]', params: { id: m.user_id } })}
+              style={styles.member}
+            >
               <Avatar name={m.profile?.first_name ?? '?'} uri={m.profile?.photo} seed={m.user_id} size={54} />
               <AppText variant="small" center numberOfLines={1}>
                 {m.profile?.first_name ?? ''}{m.role !== 'member' ? ' 👑' : ''}
               </AppText>
-            </View>
+            </Pressable>
           ))}
           {Array.from({ length: Math.min(freeSlots, 6) }, (_, i) => (
             <View key={`free-${i}`} style={styles.member}>
@@ -170,7 +176,11 @@ export default function GroupeScreen() {
 
       {organizer ? (
         <View style={styles.card}>
-          <View style={styles.organizer}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/membre/[id]', params: { id: organizer.id } })}
+            style={styles.organizer}
+          >
             <Avatar name={organizer.first_name} uri={organizer.photo} seed={organizer.id} size={48} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -182,7 +192,8 @@ export default function GroupeScreen() {
                 {organizer.outings_count} sorties · {Math.round(Number(organizer.attendance_rate))} % présence
               </AppText>
             </View>
-          </View>
+            <AppText variant="heading" color={colors.sub}>›</AppText>
+          </Pressable>
           {group.description ? (
             <>
               <AppText variant="label" color={colors.sub} style={{ marginTop: 12 }}>{t('group.about')}</AppText>
@@ -198,9 +209,14 @@ export default function GroupeScreen() {
           <AppText variant="heading">Salle d’attente · {pending.length}</AppText>
           {pending.map((p) => (
             <View key={p.user_id} style={styles.request}>
-              <Avatar name={p.profile?.first_name ?? '?'} uri={p.profile?.photo} seed={p.user_id} size={44} />
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/membre/[id]', params: { id: p.user_id } })}>
+                <Avatar name={p.profile?.first_name ?? '?'} uri={p.profile?.photo} seed={p.user_id} size={44} />
+              </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="bodyStrong">{p.profile?.first_name}</AppText>
+                <AppText variant="bodyStrong">
+                  {p.profile?.first_name}
+                  {p.profile?.rating_count ? `  ${Number(p.profile.rating_avg).toFixed(1)} ★` : ''}
+                </AppText>
                 {p.note ? <AppText variant="small" color={colors.sub}>💬 {p.note}</AppText> : null}
               </View>
               <Button small kind="outline" label="✕" accessibilityHint="Refuser" onPress={() => run(() => respondJoin(group.id, p.user_id, false))} />

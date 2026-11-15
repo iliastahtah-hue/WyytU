@@ -204,6 +204,48 @@ const fr = {
     confirm: 'Valider ce lieu',
     mapUnavailable: 'La carte s’affiche sur téléphone.',
   },
+  outings: {
+    title: 'Mes sorties',
+    upcoming: 'À venir',
+    past: 'Passées',
+    empty: 'Pas encore de sortie. Va jeter un œil à Explorer !',
+    emptyPast: 'Tes sorties passées apparaîtront ici.',
+    organizer: '👑 Tu organises',
+    member: '✓ Membre',
+    pending: '⏳ En attente',
+    confirm: 'Je confirme ma venue',
+    confirmed: 'Venue confirmée ✓',
+    confirmedCount: '{n}/{total} ont confirmé',
+    showQr: 'Mon QR de groupe',
+    chat: 'Chat',
+    rate: 'Noter le groupe ⭐',
+    rated: 'Notes envoyées ✓',
+    attendance: 'Pointer les présences',
+    noShow: 'Absence enregistrée',
+    contest: 'Contester',
+    qrTitle: 'QR du groupe',
+    qrBody: 'Montre ce QR à l’accueil du lieu partenaire : il valide la présence du groupe et la réduction.',
+    leave: 'Je ne peux plus venir',
+  },
+  chat: {
+    placeholder: 'Écris un message…',
+    send: 'Envoyer',
+    empty: 'Dis bonjour au groupe 👋',
+    report: 'Signaler ce message',
+    title: 'Messages',
+    noGroups: 'Rejoins un groupe pour discuter avec ses membres.',
+    noMessage: 'Aucun message pour l’instant',
+  },
+  notif: {
+    title: 'Notifications',
+    empty: 'Rien de neuf pour l’instant.',
+    join_request: '{name} veut rejoindre « {group} »',
+    join_accepted: 'Tu es accepté·e dans « {group} » 🎉',
+    join_declined: 'Ta demande pour « {group} » n’a pas été retenue',
+    now_co_organizer: 'L’organisateur est parti : tu deviens co-organisateur de « {group} »',
+    no_show: 'Absence enregistrée pour « {group} ». Tu peux contester sous 72 h.',
+    default: 'Nouvelle activité',
+  },
   soon: {
     title: 'Bientôt ici',
     body: 'Cet écran arrive dans le prochain bloc de développement.',
@@ -211,5 +253,8 @@ const fr = {
 } as const;
 
 type Widen<T> = { [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends string ? string : DeepPartial<T[K]> };
 export type Dictionary = Widen<typeof fr>;
+/** Les autres langues peuvent avoir des trous : le français sert de secours. */
+export type PartialDictionary = DeepPartial<Dictionary>;
 export default fr as Dictionary;

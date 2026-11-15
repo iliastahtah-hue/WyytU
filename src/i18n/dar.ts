@@ -1,10 +1,10 @@
-import type { Dictionary } from './fr';
+import type { PartialDictionary } from './fr';
 
 /**
  * Darija marocaine (écriture arabe, de droite à gauche).
  * À faire relire par une personne de Tanger avant le lancement.
  */
-const dar: Dictionary = {
+const dar: PartialDictionary = {
   common: {
     next: 'التالي',
     skip: 'دوز',

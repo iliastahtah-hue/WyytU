@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import dar from './dar';
 import en from './en';
-import fr, { type Dictionary } from './fr';
+import fr, { type Dictionary, type PartialDictionary } from './fr';
 
 export type Lang = 'dar' | 'fr' | 'en';
 
@@ -13,7 +13,7 @@ export const LANGS: { id: Lang; label: string; native: string; flag: string }[] 
   { id: 'en', label: 'English', native: 'English', flag: '🇬🇧' },
 ];
 
-const DICTS: Record<Lang, Dictionary> = { dar, fr, en };
+const DICTS: Record<Lang, PartialDictionary> = { dar, fr, en };
 const STORAGE_KEY = 'wyytu.lang';
 
 type Vars = Record<string, string | number>;
@@ -28,7 +28,7 @@ type I18nValue = {
 
 const I18nContext = createContext<I18nValue | null>(null);
 
-function lookup(dict: Dictionary, path: string): string | undefined {
+function lookup(dict: Dictionary | PartialDictionary, path: string): string | undefined {
   const value = path.split('.').reduce<unknown>((node, key) => {
     if (node && typeof node === 'object') return (node as Record<string, unknown>)[key];
     return undefined;
