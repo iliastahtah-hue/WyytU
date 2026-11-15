@@ -1,50 +1,76 @@
-# Welcome to your Expo app 👋
+# WyytU — V1
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App mobile de sorties en groupe à Tanger (pas de dating) : on rejoint ou on crée un groupe autour d'une activité, avec des profils vérifiés et des réductions chez les partenaires.
 
-## Get started
+**Stack** : React Native + Expo SDK 54 (Expo Router) · Supabase (Auth, Postgres + RLS, Storage, Realtime) · TypeScript strict.
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Lancer le projet
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env      # puis colle l'URL et la clé "publishable" de ton projet Supabase
+npx expo start            # scanne le QR code avec Expo Go
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Préparer Supabase (une seule fois)
 
-## Learn more
+1. **Appliquer le schéma** : Supabase › SQL Editor › colle et exécute
+   `supabase/migrations/20261115120000_v1_schema.sql`
+   (ou `npx supabase db push` avec la CLI). Les nouvelles tables sont en anglais et
+   **ne touchent pas** aux anciennes tables (`activites`, `utilisateurs`…).
+2. **Connexion par SMS** : Authentication › Providers › Phone → activer, et brancher un
+   fournisseur SMS (Twilio, MessageBird ou Vonage). Sans fournisseur, utilise la connexion
+   par e-mail (déjà prévue dans l'app) ou des numéros de test (Authentication › Phone › Test OTP).
+3. **Connexion par e-mail** : Authentication › Email templates › « Magic Link » : mets
+   `{{ .Token }}` dans le modèle pour envoyer un code à 6 chiffres.
+4. **Modération** : depuis le tableau de bord, passer `profiles.verification_status` à
+   `verified` après contrôle du selfie, et `ratings.moderation_status` à `approved` pour publier
+   un avis (la note moyenne se recalcule toute seule).
 
-To learn more about developing your project with Expo, look at the following resources:
+## Ce qui est en place (blocs 1 et 2)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Parcours | Écrans |
+|---|---|
+| Premier lancement | Choix de la langue (darija, français, anglais) → tutoriel en 4 écrans |
+| Inscription | Numéro marocain +212 ou e-mail → code à 6 chiffres → profil (prénom, date de naissance 18+, âge affiché ou non, genre, 3 photos minimum) → selfie avec consentement explicite → autorisations |
+| App | Barre du bas sable · Explorer (univers, sports, recherche) · fiche d'un groupe (membres, demande pour rejoindre avec un mot, annulation, salle d'attente de l'organisateur avec accepter/refuser) · Profil (photos, langue, déconnexion, suppression du compte) |
 
-## Join the community
+### Sécurité côté base (testée)
 
-Join our community of developers creating universal apps.
+- Toutes les tables sous RLS ; écriture dans `group_members` **uniquement** via les fonctions
+  `request_join`, `respond_join`, `leave_group`, `confirm_presence`.
+- 18 ans minimum vérifié par la base ; champs système (vérifié, premium, notes) non modifiables par l'utilisateur.
+- Quota de 2 groupes créés par semaine en gratuit ; « Femmes uniquement » réservé aux organisatrices.
+- Champs privés 🔒 (taille, situation, quartier) visibles seulement par les membres d'un groupe en commun.
+- Chat réservé aux membres acceptés ; notes seulement après la sortie, entre membres, motif obligatoire si ≤ 2 ★.
+- Si l'organisateur part, le premier membre accepté devient co-organisateur.
+- Blocage : on ne voit plus les profils ni les groupes de la personne bloquée.
+- Suppression du compte depuis l'app (exigence App Store).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Structure
+
+```
+app/                     écrans (Expo Router)
+  (onboarding)/          langue, tutoriel
+  (auth)/                inscription, code, création du profil, selfie, autorisations
+  (tabs)/                explorer, sorties, créer, messages, profil
+  groupe/[id].tsx        fiche d'un groupe
+src/
+  components/ui/         boutons, champs, puces, avatars, badge vérifié…
+  features/              logique par domaine (groupes, onboarding)
+  i18n/                  traductions dar / fr / en
+  lib/                   client Supabase, types de la base, stockage, dates
+  providers/             session, avancement de l'inscription
+  theme/                 couleurs, polices, icônes 3D
+supabase/migrations/     schéma SQL
+```
+
+## Prochains blocs
+
+3. Créer une sortie (formulaire + carte « Où ? » avec les partenaires)
+4. Mes sorties, confirmation de présence, chat en temps réel, notifications
+5. Notation et avis, signalement, blocage, contestation
+6. Plans partenaires, scan du QR, espace partenaire
+7. Mode swipe, Premium (achats intégrés), profil complet
+
+Icônes 3D : Microsoft Fluent Emoji (MIT), voir `assets/3d/LICENSE.md`.

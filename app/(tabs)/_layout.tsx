@@ -1,120 +1,23 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { router, Tabs } from 'expo-router';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Redirect, Tabs } from 'expo-router';
+import { TabBar } from '@/src/components/TabBar';
+import { isFullyOnboarded } from '@/src/features/onboarding/nextRoute';
+import { useAppState } from '@/src/features/onboarding/useAppState';
+import { colors } from '@/src/theme/tokens';
 
-const C = {
-  gold: '#C9A84C',
-  goldLight: '#E8C96A',
-  brown: '#1A1209',
-  white: '#FFFFFF',
-  inactive: 'rgba(255,255,255,0.3)',
-};
+export default function TabsLayout() {
+  const { ready, state } = useAppState();
+  if (ready && !isFullyOnboarded(state)) return <Redirect href="/" />;
 
-const TAB_ICONS = {
-  explore: { active: '🏠', inactive: '🏠', label: 'Explorer' },
-  carte: { active: '🗺️', inactive: '🗺️', label: 'Carte' },
-  chat: { active: '💬', inactive: '💬', label: 'Chat' },
-  profil: { active: '👤', inactive: '👤', label: 'Profil' },
-};
-
-function TabIcon({ name, focused }: { name: keyof typeof TAB_ICONS; focused: boolean }) {
-  const tab = TAB_ICONS[name];
   return (
-    <View style={s.itemWrapper}>
-      {focused ? (
-        <LinearGradient colors={[C.goldLight, C.gold]} style={s.iconBubbleActive} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={s.iconEmoji}>{tab.active}</Text>
-        </LinearGradient>
-      ) : (
-        <View style={s.iconBubble}>
-          <Text style={s.iconEmoji}>{tab.inactive}</Text>
-        </View>
-      )}
-      <Text style={[s.label, { color: focused ? C.gold : C.inactive }]}>{tab.label}</Text>
-    </View>
-  );
-}
-
-function PlusButton() {
-  return (
-    <TouchableOpacity
-      style={s.plusWrapper}
-      onPress={() => router.push('/creer-activite' as any)}
-      activeOpacity={0.85}>
-      <LinearGradient colors={[C.goldLight, C.gold]} style={s.plusBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <Text style={s.plusIcon}>+</Text>
-      </LinearGradient>
-      <View style={s.plusGlow} />
-    </TouchableOpacity>
-  );
-}
-
-export default function TabLayout() {
-  return (
-    <Tabs screenOptions={{ headerShown: false, tabBarStyle: s.tabBar, tabBarItemStyle: s.tabItem }}>
-
-      <Tabs.Screen
-        name="explore"
-        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="explore" focused={focused} />, tabBarLabel: () => null }}
-      />
-
-      <Tabs.Screen
-        name="carte"
-        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="carte" focused={focused} />, tabBarLabel: () => null }}
-      />
-
-      {/* BOUTON + CENTRAL */}
-      <Tabs.Screen
-        name="creer"
-        options={{
-          title: '',
-          tabBarIcon: () => <PlusButton />,
-          tabBarLabel: () => null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="chat"
-        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="chat" focused={focused} />, tabBarLabel: () => null }}
-      />
-
-      <Tabs.Screen
-        name="profil"
-        options={{ title: '', tabBarIcon: ({ focused }) => <TabIcon name="profil" focused={focused} />, tabBarLabel: () => null }}
-      />
-
-      {/* CACHÉES */}
-      <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="connexion" options={{ href: null }} />
-      <Tabs.Screen name="groupe" options={{ href: null }} />
+    <Tabs
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
+    >
+      <Tabs.Screen name="explorer" />
+      <Tabs.Screen name="sorties" />
+      <Tabs.Screen name="creer" />
+      <Tabs.Screen name="messages" />
+      <Tabs.Screen name="profil" />
     </Tabs>
   );
 }
-
-const s = StyleSheet.create({
-  tabBar: {
-    backgroundColor: C.brown,
-    borderTopWidth: 0.5,
-    borderTopColor: C.gold,
-    height: Platform.OS === 'ios' ? 90 : 72,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 8,
-    paddingTop: 8,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: C.brown,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  tabItem: { paddingTop: 4 },
-  itemWrapper: { alignItems: 'center', gap: 5 },
-  iconBubble: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  iconBubbleActive: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: C.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8 },
-  iconEmoji: { fontSize: 20 },
-  label: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
-  plusWrapper: { alignItems: 'center', justifyContent: 'center', marginBottom: Platform.OS === 'ios' ? 8 : 4 },
-  plusBtn: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', shadowColor: C.gold, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.6, shadowRadius: 14, elevation: 10 },
-  plusGlow: { position: 'absolute', width: 58, height: 58, borderRadius: 29, backgroundColor: C.gold, opacity: 0.15, transform: [{ scale: 1.3 }] },
-  plusIcon: { fontSize: 32, color: C.brown, fontWeight: '300', lineHeight: 36 },
-});

@@ -1,49 +1,56 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import {
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { I18nProvider } from '@/src/i18n';
+import { AuthProvider } from '@/src/providers/AuthProvider';
+import { OnboardingProvider } from '@/src/providers/OnboardingProvider';
+import { colors } from '@/src/theme/tokens';
+
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
-  const router = useRouter();
-  const segments = useSegments();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [fontsLoaded, fontError] = useFonts({
+    BricolageGrotesque_700Bold,
+    BricolageGrotesque_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => undefined);
+  }, [fontsLoaded, fontError]);
 
-  useEffect(() => {
-    if (loading) return;
-    const inAuthGroup = segments[0] === '(tabs)';
-    const inPublic = segments[0] === 'connexion' || segments[0] === 'inscription' || segments[0] === 'mot-de-passe-oublie';
-    if (!user && inAuthGroup) {
-      router.replace('/connexion' as any);
-    } else if (user && !inAuthGroup && !inPublic) {
-      router.replace('/(tabs)/explore' as any);
-    }
-  }, [user, loading, segments]);
+  if (!fontsLoaded && !fontError) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="inscription" options={{ headerShown: false }} />
-      <Stack.Screen name="connexion" options={{ headerShown: false }} />
-      <Stack.Screen name="mot-de-passe-oublie" options={{ headerShown: false }} />
-      <Stack.Screen name="matching" options={{ headerShown: false }} />
-      <Stack.Screen name="creer-activite" options={{ headerShown: false }} />
-      <Stack.Screen name="carte" options={{ headerShown: false }} />
-      <Stack.Screen name="activite/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="appel/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="mes-activites" options={{ headerShown: false }} />
-      <Stack.Screen name="profils/[id]" options={{ headerShown: false }} />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <I18nProvider>
+          <OnboardingProvider>
+            <AuthProvider>
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(onboarding)" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="groupe/[id]" options={{ animation: 'slide_from_right' }} />
+              </Stack>
+            </AuthProvider>
+          </OnboardingProvider>
+        </I18nProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
