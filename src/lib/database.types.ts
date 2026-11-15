@@ -175,8 +175,11 @@ export type AppNotification = {
   type: string;
   payload: Record<string, unknown>;
   read_at: string | null;
+  pushed_at: string | null;
   created_at: string;
 };
+
+export type PushToken = { token: string; user_id: string; platform: 'ios' | 'android' | null; updated_at: string };
 
 export type Database = {
   public: {
@@ -205,6 +208,7 @@ export type Database = {
       reports: Table<Report, 'reporter_id' | 'reason', 'reported_user_id' | 'group_id' | 'message_id' | 'details'>;
       blocks: Table<Block, 'blocker_id' | 'blocked_id'>;
       notifications: Table<AppNotification, 'user_id' | 'type', 'payload' | 'read_at'>;
+      push_tokens: Table<PushToken, 'token' | 'user_id', 'platform'>;
       attendance_disputes: Table<AttendanceDispute, 'group_id' | 'user_id' | 'message'>;
     };
     Views: { [_ in never]: never };
@@ -214,6 +218,7 @@ export type Database = {
       leave_group: { Args: { p_group: string }; Returns: undefined };
       confirm_presence: { Args: { p_group: string }; Returns: undefined };
       delete_my_account: { Args: Record<string, never>; Returns: undefined };
+      register_push_token: { Args: { p_token: string; p_platform: 'ios' | 'android' }; Returns: undefined };
       mark_attendance: { Args: { p_group: string; p_user: string; p_present: boolean }; Returns: undefined };
       contest_no_show: { Args: { p_group: string; p_message: string }; Returns: undefined };
       partner_check_in: {

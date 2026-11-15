@@ -16,6 +16,7 @@ const ICONS: Record<string, string> = {
   join_declined: '😕',
   now_co_organizer: '👑',
   no_show: '⚠️',
+  confirm_reminder: '⏰',
 };
 
 export default function NotificationsScreen() {

@@ -73,10 +73,31 @@ src/
 supabase/migrations/     schéma SQL
 ```
 
+## Version compilée (EAS) — notifications push et Premium
+
+Expo Go suffit pour tester l'app, mais les **notifications push** et l'**abonnement Premium** demandent une version compilée :
+
+```bash
+npm i -g eas-cli
+eas login                 # compte Expo
+eas init                  # crée le projet EAS et ajoute extra.eas.projectId dans app.json
+eas build --profile development --platform ios   # ou android : app de test installable
+eas build --profile production --platform all    # versions pour les stores
+eas submit --platform ios                         # envoi sur TestFlight / App Store
+```
+
+- **Push** : rien d'autre à faire. Chaque notification de la base part automatiquement sur le téléphone
+  (trigger `notifications_push` → fonction `send-push` → Expo Push). Rappel « Tu viens toujours ? »
+  envoyé à tout le groupe 2 h avant chaque sortie (tâche planifiée toutes les 15 min).
+- **Premium (RevenueCat)** : créer le produit mensuel dans App Store Connect / Google Play, un
+  *entitlement* `premium` et une *offering* dans RevenueCat, mettre les clés publiques dans `.env`
+  (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`), puis dans RevenueCat ›
+  Webhooks : URL `https://mmfzjsyrbgphdktwilrq.supabase.co/functions/v1/revenuecat-webhook` et en-tête
+  `Authorization: Bearer <secret>` ; ajouter ce même secret dans Supabase › Edge Functions › Secrets
+  sous le nom `REVENUECAT_WEBHOOK_SECRET`. Premium s'active alors côté serveur (jamais depuis l'app).
+
 ## Reste à faire avant la publication
 
-- **Achats intégrés Premium** : nécessitent une version compilée (EAS Build) + RevenueCat ; l'écran est prêt.
-- **Notifications push** (téléphone verrouillé) : Expo Push + une Edge Function Supabase ; les notifications dans l'app marchent déjà.
 - **Modération** : valider selfies, avis, partenaires et contestations depuis le tableau de bord Supabase (ou un petit back-office).
 - **Textes** : relecture de la darija ; traduction anglaise/darija des derniers écrans (le français s'affiche en secours) ; CGU par un avocat.
 - **Connexion SMS** : brancher Twilio dans Supabase.

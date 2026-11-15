@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PushRegistrar } from '@/src/components/PushRegistrar';
 import { I18nProvider } from '@/src/i18n';
 import { AuthProvider } from '@/src/providers/AuthProvider';
 import { OnboardingProvider } from '@/src/providers/OnboardingProvider';
@@ -40,6 +41,7 @@ export default function RootLayout() {
           <OnboardingProvider>
             <AuthProvider>
               <StatusBar style="dark" />
+              <PushRegistrar />
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="(onboarding)" />

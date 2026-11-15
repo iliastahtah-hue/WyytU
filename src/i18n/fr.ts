@@ -244,6 +244,7 @@ const fr = {
     join_declined: 'Ta demande pour « {group} » n’a pas été retenue',
     now_co_organizer: 'L’organisateur est parti : tu deviens co-organisateur de « {group} »',
     no_show: 'Absence enregistrée pour « {group} ». Tu peux contester sous 72 h.',
+    confirm_reminder: 'Tu viens toujours ? Confirme ta venue pour « {group} » ⏰',
     default: 'Nouvelle activité',
   },
   soon: {
