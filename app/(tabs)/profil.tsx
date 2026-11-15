@@ -51,6 +51,12 @@ export default function ProfilScreen() {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
+            // 1. supprimer ses fichiers (photos, selfie) via l'API Storage
+            for (const bucket of ['photos', 'selfies'] as const) {
+              const { data: files } = await supabase.storage.from(bucket).list(profile.id);
+              if (files?.length) await supabase.storage.from(bucket).remove(files.map((f) => `${profile.id}/${f.name}`));
+            }
+            // 2. supprimer le compte et toutes ses données
             const { error } = await supabase.rpc('delete_my_account');
             if (error) return Alert.alert(readableError(error, t('common.error')));
             await signOut();

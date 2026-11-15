@@ -11,7 +11,9 @@ export function GroupCard({ group }: { group: GroupCardData }) {
   const { t, lang } = useI18n();
   const u = universeColors[group.universe];
   const count = group.members.length;
-  const kind = group.subcategory ? t(`sports.${group.subcategory}`) : t(`universes.${group.universe}`);
+  const tag = group.subcategory
+    ? `${t(`universes.${group.universe}`)} · ${t(`sports.${group.subcategory}`)}`
+    : t(`universes.${group.universe}`);
   const time = new Date(group.starts_at).toLocaleTimeString(localeOf(lang), { hour: '2-digit', minute: '2-digit' });
 
   let action: { label: string; bg: string } | null = null;
@@ -28,8 +30,8 @@ export function GroupCard({ group }: { group: GroupCardData }) {
     >
       <View style={[styles.band, { backgroundColor: u.bg }]}>
         <View style={styles.bandTop}>
-          <AppText variant="tag" color={u.fg}>
-            {`${t(`universes.${group.universe}`)} · ${kind}`.toUpperCase()}
+          <AppText variant="tag" color={u.fg} style={{ flex: 1 }} numberOfLines={1}>
+            {tag.toUpperCase()}
           </AppText>
           <AppText variant="tag" color={u.fg}>⏱ {relativeStart(group.starts_at, t, lang)}</AppText>
         </View>
@@ -67,14 +69,14 @@ export function GroupCard({ group }: { group: GroupCardData }) {
 
         <View style={styles.row}>
           {group.organizer ? (
-            <View style={styles.organizer}>
+            <View style={[styles.organizer, { minWidth: 0 }]}>
               <Avatar name={group.organizer.first_name} uri={group.organizer.photo} seed={group.organizer.id} size={36} />
-              <View>
+              <View style={{ flex: 1 }}>
                 <View style={styles.nameRow}>
                   <AppText variant="label">{group.organizer.first_name}</AppText>
                   {group.organizer.verification_status === 'verified' ? <VerifiedBadge size={14} /> : null}
                 </View>
-                <AppText variant="small" color={colors.sub}>
+                <AppText variant="small" color={colors.sub} numberOfLines={1}>
                   {group.organizer.rating_count ? `${Number(group.organizer.rating_avg).toFixed(1)} ★ · ` : ''}
                   {t('group.organizer')}
                 </AppText>

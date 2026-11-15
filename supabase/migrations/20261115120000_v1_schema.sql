@@ -1,6 +1,6 @@
 -- ============================================================================
 -- WyytU V1 — schéma complet
--- Nouvelles tables en anglais : elles ne touchent PAS aux anciennes tables
+-- Nouvelles tables en anglais (le chat s’appelle group_messages) : elles ne touchent PAS aux anciennes tables
 -- (activites, participations, utilisateurs, …), qui restent intactes.
 -- Toutes les tables ont la sécurité RLS activée.
 -- ============================================================================
@@ -144,7 +144,7 @@ create table public.group_members (
 
 create index group_members_user_idx on public.group_members (user_id, status);
 
-create table public.messages (
+create table public.group_messages (
   id         uuid primary key default gen_random_uuid(),
   group_id   uuid not null references public.groups (id) on delete cascade,
   sender_id  uuid not null references public.profiles (id) on delete cascade,
@@ -152,7 +152,7 @@ create table public.messages (
   created_at timestamptz not null default now()
 );
 
-create index messages_group_idx on public.messages (group_id, created_at);
+create index group_messages_group_idx on public.group_messages (group_id, created_at);
 
 -- ---------------------------------------------------------------------------
 -- Confiance : notes, avis, signalements, blocages
@@ -178,7 +178,7 @@ create table public.reports (
   reporter_id      uuid not null references public.profiles (id) on delete cascade,
   reported_user_id uuid references public.profiles (id) on delete cascade,
   group_id         uuid references public.groups (id) on delete set null,
-  message_id       uuid references public.messages (id) on delete set null,
+  message_id       uuid references public.group_messages (id) on delete set null,
   reason           text not null check (reason in ('comportement', 'faux_profil', 'harcelement', 'absence', 'contenu', 'autre')),
   details          text check (char_length(details) <= 1000),
   status           public.moderation_status not null default 'pending',
@@ -549,7 +549,8 @@ declare
   v_uid uuid := auth.uid();
 begin
   if v_uid is null then raise exception 'Non connecté'; end if;
-  delete from storage.objects where bucket_id in ('photos', 'selfies') and (storage.foldername(name))[1] = v_uid::text;
+  -- les fichiers (photos, selfie) sont supprimés par l'app via l'API Storage
+  -- juste avant cet appel ; ici on supprime le compte et, en cascade, ses données.
   delete from auth.users where id = v_uid;
 end $$;
 
@@ -574,7 +575,7 @@ alter table public.partners        enable row level security;
 alter table public.partner_offers  enable row level security;
 alter table public.groups          enable row level security;
 alter table public.group_members   enable row level security;
-alter table public.messages        enable row level security;
+alter table public.group_messages  enable row level security;
 alter table public.ratings         enable row level security;
 alter table public.reports         enable row level security;
 alter table public.blocks          enable row level security;
@@ -636,9 +637,9 @@ create policy members_select on public.group_members for select to authenticated
          or public.is_group_organizer(group_id, auth.uid()));
 
 -- messages : réservés aux membres acceptés du groupe
-create policy messages_select on public.messages for select to authenticated
+create policy messages_select on public.group_messages for select to authenticated
   using (public.is_accepted_member(group_id, auth.uid()));
-create policy messages_insert on public.messages for insert to authenticated
+create policy messages_insert on public.group_messages for insert to authenticated
   with check (sender_id = auth.uid() and public.is_accepted_member(group_id, auth.uid()));
 
 -- notes : on voit les avis approuvés, ceux qu'on a écrits, pas ceux en attente
@@ -663,7 +664,7 @@ create policy notifications_update on public.notifications for update to authent
 -- ---------------------------------------------------------------------------
 -- Temps réel : chat et notifications
 -- ---------------------------------------------------------------------------
-alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.group_messages;
 alter publication supabase_realtime add table public.notifications;
 alter publication supabase_realtime add table public.group_members;
 
@@ -690,3 +691,8 @@ create policy selfies_read on storage.objects for select to authenticated
   using (bucket_id = 'selfies' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy selfies_write on storage.objects for insert to authenticated
   with check (bucket_id = 'selfies' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy selfies_update on storage.objects for update to authenticated
+  using (bucket_id = 'selfies' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'selfies' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy selfies_remove on storage.objects for delete to authenticated
+  using (bucket_id = 'selfies' and (storage.foldername(name))[1] = auth.uid()::text);

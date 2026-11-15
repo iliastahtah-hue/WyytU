@@ -14,7 +14,7 @@ npx expo start            # scanne le QR code avec Expo Go
 
 ## Préparer Supabase (une seule fois)
 
-1. **Appliquer le schéma** : Supabase › SQL Editor › colle et exécute
+1. **Appliquer le schéma** (déjà fait sur le projet `wyytu` le 15/11/2026) : Supabase › SQL Editor › colle et exécute
    `supabase/migrations/20261115120000_v1_schema.sql`
    (ou `npx supabase db push` avec la CLI). Les nouvelles tables sont en anglais et
    **ne touchent pas** aux anciennes tables (`activites`, `utilisateurs`…).
@@ -27,12 +27,13 @@ npx expo start            # scanne le QR code avec Expo Go
    `verified` après contrôle du selfie, et `ratings.moderation_status` à `approved` pour publier
    un avis (la note moyenne se recalcule toute seule).
 
-## Ce qui est en place (blocs 1 et 2)
+## Ce qui est en place (blocs 1 à 3)
 
 | Parcours | Écrans |
 |---|---|
 | Premier lancement | Choix de la langue (darija, français, anglais) → tutoriel en 4 écrans |
 | Inscription | Numéro marocain +212 ou e-mail → code à 6 chiffres → profil (prénom, date de naissance 18+, âge affiché ou non, genre, 3 photos minimum) → selfie avec consentement explicite → autorisations |
+| Créer | Univers et sport, nom (proposé automatiquement), jour et heure, lieu via l'écran « Où ? » (carte des partenaires avec réductions ou lieu libre), nombre de places, niveau C à A+, budget resto, « Femmes uniquement » réservé aux organisatrices, quota de 2 groupes par semaine affiché |
 | App | Barre du bas sable · Explorer (univers, sports, recherche) · fiche d'un groupe (membres, demande pour rejoindre avec un mot, annulation, salle d'attente de l'organisateur avec accepter/refuser) · Profil (photos, langue, déconnexion, suppression du compte) |
 
 ### Sécurité côté base (testée)
@@ -67,7 +68,6 @@ supabase/migrations/     schéma SQL
 
 ## Prochains blocs
 
-3. Créer une sortie (formulaire + carte « Où ? » avec les partenaires)
 4. Mes sorties, confirmation de présence, chat en temps réel, notifications
 5. Notation et avis, signalement, blocage, contestation
 6. Plans partenaires, scan du QR, espace partenaire
