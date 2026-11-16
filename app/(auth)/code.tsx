@@ -6,13 +6,15 @@ import { useI18n } from '@/src/i18n';
 import { supabase } from '@/src/lib/supabase';
 import { colors, fonts, radius, TOUCH } from '@/src/theme/tokens';
 
-const LENGTH = 6;
+/** Supabase envoie 8 chiffres par e-mail, 6 par SMS */
+const lengthFor = (mode?: string) => (mode === 'email' ? 8 : 6);
 const RESEND_DELAY = 30;
 
 export default function CodeScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const { mode, target } = useLocalSearchParams<{ mode: 'phone' | 'email'; target: string }>();
+  const LENGTH = lengthFor(mode);
   const inputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +113,7 @@ const styles = StyleSheet.create({
   head: { gap: 8, marginBottom: 28 },
   row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
   link: { minHeight: TOUCH, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 8 },
-  boxes: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  boxes: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
   box: {
     flex: 1, aspectRatio: 0.85, maxWidth: 56, borderRadius: radius.md, backgroundColor: colors.card,
     borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center',
