@@ -1,7 +1,10 @@
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Avatar, VerifiedBadge } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
+import { coverFor } from '@/src/theme/images';
 import { colors, radius, universeColors } from '@/src/theme/tokens';
 import { fmtTime } from '@/src/lib/tz';
 import type { GroupCardData } from './api';
@@ -29,14 +32,23 @@ export function GroupCard({ group }: { group: GroupCardData }) {
       onPress={() => router.push({ pathname: '/groupe/[id]', params: { id: group.id } })}
       style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.99 }] }]}
     >
-      <View style={[styles.band, { backgroundColor: u.bg }]}>
+      <View style={styles.band}>
+        <Image source={coverFor(group.universe, group.subcategory)} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
+        <LinearGradient
+          colors={['rgba(17,16,20,0.15)', 'rgba(17,16,20,0)', 'rgba(17,16,20,0.78)']}
+          locations={[0, 0.35, 1]}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.bandTop}>
-          <AppText variant="tag" color={u.fg} style={{ flex: 1 }} numberOfLines={1}>
-            {tag.toUpperCase()}
-          </AppText>
-          <AppText variant="tag" color={u.fg}>⏱ {relativeStart(group.starts_at, t, lang)}</AppText>
+          <View style={[styles.pill, { backgroundColor: u.bg }]}>
+            <AppText variant="tag" color={u.fg} numberOfLines={1}>{tag.toUpperCase()}</AppText>
+          </View>
+          <View style={[styles.pill, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>
+            <AppText variant="tag" color={colors.ink}>⏱ {relativeStart(group.starts_at, t, lang)}</AppText>
+          </View>
         </View>
-        <AppText variant="heading" color={u.fg} numberOfLines={2} style={{ fontSize: 22, lineHeight: 26 }}>
+        <View style={{ flex: 1 }} />
+        <AppText variant="heading" color={colors.white} numberOfLines={2} style={styles.title}>
           {group.title}
         </AppText>
         {group.level ? (
@@ -99,8 +111,10 @@ export function GroupCard({ group }: { group: GroupCardData }) {
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.xl, overflow: 'hidden' },
-  band: { padding: 16, gap: 6 },
+  band: { padding: 14, gap: 6, minHeight: 168, backgroundColor: colors.sand },
   bandTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  pill: { flexShrink: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
+  title: { fontSize: 22, lineHeight: 26, textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 8 },
   level: {
     alignSelf: 'flex-end', backgroundColor: colors.lime, paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 10, transform: [{ rotate: '-4deg' }], marginTop: -4,

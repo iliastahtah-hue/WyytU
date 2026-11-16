@@ -8,7 +8,10 @@ import { useI18n } from '@/src/i18n';
 import { fmtDate, fmtTime } from '@/src/lib/tz';
 import { readableError } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
+import { coverFor } from '@/src/theme/images';
 import { colors, fonts, radius, universeColors } from '@/src/theme/tokens';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function GroupeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -118,11 +121,16 @@ export default function GroupeScreen() {
     <Screen scroll footer={footer}>
       <TopBar />
 
-      <View style={[styles.hero, { backgroundColor: u.bg }]}>
-        <AppText variant="tag" color={u.fg}>
-          {`${t(`universes.${group.universe}`)}${group.subcategory ? ` · ${t(`sports.${group.subcategory}`)}` : ''}`.toUpperCase()}
-        </AppText>
-        <AppText variant="title" color={u.fg}>{group.title}</AppText>
+      <View style={styles.hero}>
+        <Image source={coverFor(group.universe, group.subcategory)} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+        <LinearGradient colors={['rgba(17,16,20,0.1)', 'rgba(17,16,20,0.8)']} locations={[0.2, 1]} style={StyleSheet.absoluteFill} />
+        <View style={{ flex: 1 }} />
+        <View style={[styles.uTag, { backgroundColor: u.bg }]}>
+          <AppText variant="tag" color={u.fg}>
+            {`${t(`universes.${group.universe}`)}${group.subcategory ? ` · ${t(`sports.${group.subcategory}`)}` : ''}`.toUpperCase()}
+          </AppText>
+        </View>
+        <AppText variant="title" color={colors.white}>{group.title}</AppText>
         <View style={styles.pills}>
           <View style={styles.pill}><AppText variant="label">🕗 {relativeStart(group.starts_at, t, lang)}</AppText></View>
           <View style={styles.pill}><AppText variant="label" numberOfLines={1}>📍 {group.place_name}</AppText></View>
@@ -250,7 +258,8 @@ export default function GroupeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: radius.xl, padding: 20, gap: 10, marginBottom: 14 },
+  hero: { borderRadius: radius.xl, padding: 20, gap: 10, marginBottom: 14, minHeight: 280, overflow: 'hidden', backgroundColor: colors.sand },
+  uTag: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { backgroundColor: 'rgba(255,255,255,0.85)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, maxWidth: '100%' },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 16, gap: 6, marginBottom: 12 },

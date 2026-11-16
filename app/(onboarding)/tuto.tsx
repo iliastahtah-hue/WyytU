@@ -5,56 +5,19 @@ import { FlatList, Pressable, StyleSheet, useWindowDimensions, View, type ImageS
 import { AppText, Button } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
 import { useOnboarding } from '@/src/providers/OnboardingProvider';
-import { img3d } from '@/src/theme/images';
+import { photos } from '@/src/theme/images';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, TOUCH } from '@/src/theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Float = { src: ImageSourcePropType; x: number; y: number; size: number; rotate: number };
-type Slide = { key: string; bg: string; floats: Float[]; card: { tag: string; title: string; color: string } };
+type Slide = { key: string; photo: ImageSourcePropType; card: { tag: string; title: string; color: string } };
 
+/* Une vraie photo par écran + une carte de l'app posée dessus */
 const SLIDES: Slide[] = [
-  {
-    key: 's1', bg: '#DDF7EA',
-    floats: [
-      { src: img3d.tennis, x: 0.08, y: 0.08, size: 84, rotate: -18 },
-      { src: img3d.pancakes, x: 0.42, y: 0.04, size: 70, rotate: 0 },
-      { src: img3d.popcorn, x: 0.74, y: 0.12, size: 76, rotate: 12 },
-      { src: img3d.clapper, x: 0.06, y: 0.66, size: 70, rotate: -8 },
-      { src: img3d.hamburger, x: 0.42, y: 0.74, size: 64, rotate: 0 },
-      { src: img3d.party, x: 0.76, y: 0.62, size: 80, rotate: 10 },
-    ],
-    card: { tag: 'SPORT · PADEL · 20:30', title: 'Il manque 2 joueurs', color: '#12B76A' },
-  },
-  {
-    key: 's2', bg: '#FFF1D6',
-    floats: [
-      { src: img3d.speech, x: 0.1, y: 0.08, size: 80, rotate: -10 },
-      { src: img3d.party, x: 0.72, y: 0.06, size: 84, rotate: 12 },
-      { src: img3d.hamburger, x: 0.12, y: 0.7, size: 72, rotate: 0 },
-      { src: img3d.sparkles, x: 0.74, y: 0.68, size: 70, rotate: 0 },
-    ],
-    card: { tag: 'RESTO · DEMAIN 21:00', title: 'Dîner street-food à 6', color: '#FFB020' },
-  },
-  {
-    key: 's3', bg: '#E1F1FF',
-    floats: [
-      { src: img3d.shield, x: 0.1, y: 0.06, size: 88, rotate: -8 },
-      { src: img3d.camera, x: 0.72, y: 0.08, size: 80, rotate: 10 },
-      { src: img3d.star, x: 0.12, y: 0.7, size: 72, rotate: 0 },
-      { src: img3d.check, x: 0.74, y: 0.68, size: 74, rotate: 0 },
-    ],
-    card: { tag: 'PROFIL VÉRIFIÉ', title: '4,8 ★ · 100 % présence', color: '#1D9BF0' },
-  },
-  {
-    key: 's4', bg: '#FFE3EF',
-    floats: [
-      { src: img3d.money, x: 0.08, y: 0.06, size: 86, rotate: -12 },
-      { src: img3d.tennis, x: 0.74, y: 0.06, size: 78, rotate: 14 },
-      { src: img3d.popcorn, x: 0.1, y: 0.7, size: 72, rotate: 0 },
-      { src: img3d.trophy, x: 0.74, y: 0.68, size: 76, rotate: 0 },
-    ],
-    card: { tag: 'CLUB PARTENAIRE', title: '−10 % pour ton groupe', color: '#FF6A3D' },
-  },
+  { key: 's1', photo: photos.tuto[0], card: { tag: 'RESTO · CE SOIR 20:30', title: 'Il reste 1 place à table', color: '#FFB020' } },
+  { key: 's2', photo: photos.tuto[1], card: { tag: 'SPORT · PADEL · 19:00', title: 'Il manque 2 joueurs', color: '#12B76A' } },
+  { key: 's3', photo: photos.tuto[2], card: { tag: 'PROFIL VÉRIFIÉ ✓', title: '4,8 ★ · 100 % présence', color: '#FFFFFF' } },
+  { key: 's4', photo: photos.tuto[3], card: { tag: 'CLUB PARTENAIRE', title: '−10 % pour ton groupe', color: '#FF6A3D' } },
 ];
 
 export default function TutoScreen() {
@@ -64,7 +27,7 @@ export default function TutoScreen() {
   const { markTutoDone } = useOnboarding();
   const listRef = useRef<FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
-  const heroH = Math.min(height * 0.46, 420);
+  const heroH = Math.min(height * 0.55, 520);
 
   const finish = async () => {
     await markTutoDone();
@@ -93,18 +56,13 @@ export default function TutoScreen() {
         getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         renderItem={({ item, index: i }) => (
           <View style={{ width }}>
-            <View style={[styles.hero, { height: heroH, backgroundColor: item.bg }]}>
-              {item.floats.map((f, k) => (
-                <Image
-                  key={k}
-                  source={f.src}
-                  accessibilityIgnoresInvertColors
-                  style={{
-                    position: 'absolute', left: f.x * width, top: 70 + f.y * (heroH - 90),
-                    width: f.size, height: f.size, transform: [{ rotate: `${f.rotate}deg` }],
-                  }}
-                />
-              ))}
+            <View style={[styles.hero, { height: heroH }]}>
+              <Image source={item.photo} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} accessibilityIgnoresInvertColors />
+              <LinearGradient
+                colors={['rgba(17,16,20,0.35)', 'rgba(17,16,20,0)', 'rgba(17,16,20,0)', 'rgba(17,16,20,0.45)']}
+                locations={[0, 0.22, 0.6, 1]}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={[styles.mock, { backgroundColor: item.card.color }]}>
                 <AppText variant="tag" color={colors.ink}>{item.card.tag}</AppText>
                 <AppText variant="heading" color={colors.ink}>{item.card.title}</AppText>
@@ -141,9 +99,12 @@ export default function TutoScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
-  hero: { borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
-  mock: { width: '74%', borderRadius: radius.lg, padding: 18, gap: 6, transform: [{ rotate: '-3deg' }], marginTop: 40 },
-  text: { paddingHorizontal: 24, paddingTop: 24, gap: 12 },
+  hero: { borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', justifyContent: 'flex-end', backgroundColor: colors.sand },
+  mock: {
+    alignSelf: 'flex-start', maxWidth: '78%', margin: 20, borderRadius: radius.lg, padding: 16, gap: 4,
+    transform: [{ rotate: '-2deg' }], shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6,
+  },
+  text: { paddingHorizontal: 24, paddingTop: 22, gap: 10 },
   tag: { alignSelf: 'flex-start', backgroundColor: colors.lime, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 4 },
   skip: {
     position: 'absolute', top: 54, right: 20, minHeight: TOUCH, paddingHorizontal: 18,
