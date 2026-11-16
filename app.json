@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "WyytU",
-    "slug": "WyytU",
+    "slug": "wyytu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -75,6 +75,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "diliastah",
+    "extra": {
+      "eas": {
+        "projectId": "231e5d2f-e8d0-43de-b79e-a2c22160751b"
+      }
     }
   }
 }
