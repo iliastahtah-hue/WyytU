@@ -34,11 +34,11 @@ export function Intro() {
 
   useEffect(() => {
     photo.value = withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) });
-    zoom.value = withTiming(1, { duration: 3200, easing: Easing.out(Easing.quad) });
+    zoom.value = withTiming(1, { duration: 5000, easing: Easing.out(Easing.quad) });
     logo.value = withDelay(250, withSpring(1, { damping: 11, stiffness: 140 }));
     text.value = withDelay(650, withTiming(1, { duration: 550, easing: Easing.out(Easing.cubic) }));
     out.value = withSequence(
-      withDelay(2600, withTiming(0, { duration: 450 }, (ok) => {
+      withDelay(4300, withTiming(0, { duration: 600 }, (ok) => {
         if (ok) runOnJS(setDone)(true);
       })),
     );
