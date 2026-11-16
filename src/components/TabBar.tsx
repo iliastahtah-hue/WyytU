@@ -1,4 +1,7 @@
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { ComponentProps } from 'react';
+import type { Tabs } from 'expo-router';
+
+type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

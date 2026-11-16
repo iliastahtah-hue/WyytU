@@ -11,7 +11,7 @@ type Props = { partners: Partner[]; selectedId: string | null; onSelect: (p: Par
 /** Carte des lieux partenaires : pastille logo + étiquette promo. */
 export function PlaceMap({ partners, selectedId, onSelect }: Props) {
   return (
-    <MapView style={StyleSheet.absoluteFill} initialRegion={TANGER} showsUserLocation showsPointsOfInterest={false}>
+    <MapView style={StyleSheet.absoluteFill} initialRegion={TANGER} showsUserLocation showsPointsOfInterests={false}>
       {partners
         .filter((p) => p.lat != null && p.lng != null)
         .map((p) => {
