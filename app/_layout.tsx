@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Intro } from '@/src/components/Intro';
 import { PushRegistrar } from '@/src/components/PushRegistrar';
 import { I18nProvider } from '@/src/i18n';
 import { AuthProvider } from '@/src/providers/AuthProvider';
@@ -50,6 +51,7 @@ export default function RootLayout() {
                 <Stack.Screen name="groupe/[id]" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="lieu" options={{ presentation: 'modal' }} />
               </Stack>
+              <Intro />
             </AuthProvider>
           </OnboardingProvider>
         </I18nProvider>

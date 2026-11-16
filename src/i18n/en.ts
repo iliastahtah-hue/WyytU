@@ -42,6 +42,7 @@ const en: PartialDictionary = {
     yoga: 'Yoga',
     randonnee: 'Hiking',
   },
+  intro: { tagline: 'Go out in groups, near you.' },
   language: {
     title: 'Choose your language',
     subtitle: 'You can change it anytime in settings.',

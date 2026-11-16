@@ -26,6 +26,7 @@ export const img3d = {
 
 /* Photos de marque (générées pour WyytU, personnes fictives) */
 export const photos = {
+  intro: require('@/assets/photos/intro.jpg'),
   tuto: [
     require('@/assets/photos/tuto-1.jpg'),
     require('@/assets/photos/tuto-2.jpg'),

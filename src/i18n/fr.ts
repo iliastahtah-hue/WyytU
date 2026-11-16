@@ -40,6 +40,7 @@ const fr = {
     yoga: 'Yoga',
     randonnee: 'Randonnée',
   },
+  intro: { tagline: 'Sors en groupe, près de chez toi.' },
   language: {
     title: 'Choisis ta langue',
     subtitle: 'Tu pourras la changer à tout moment dans les réglages.',

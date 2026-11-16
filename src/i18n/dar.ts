@@ -46,6 +46,7 @@ const dar: PartialDictionary = {
     yoga: 'يوغا',
     randonnee: 'رندوني',
   },
+  intro: { tagline: 'خرج مع الجماعة، قريب ليك.' },
   language: {
     title: 'ختار اللغة ديالك',
     subtitle: 'تقدر تبدلها فأي وقت من الإعدادات.',
