@@ -8,7 +8,8 @@ import { Countdown } from '@/src/components/Countdown';
 import { Cover } from '@/src/components/Cover';
 import { AppText, Avatar, Button, Screen, TopBar, VerifiedBadge } from '@/src/components/ui';
 import { fetchUpcomingGroups, requestJoin, type GroupCardData } from '@/src/features/groups/api';
-import { relativeStart } from '@/src/features/groups/time';
+import { localeOf } from '@/src/features/groups/time';
+import { fmtDate, fmtTime } from '@/src/lib/tz';
 import { useI18n } from '@/src/i18n';
 import { usePremiumGate } from '@/src/lib/premium';
 import { readableError, supabase } from '@/src/lib/supabase';
@@ -61,7 +62,7 @@ function SwipeCard({ group, onDone, onSave, premium }: { group: GroupCardData; o
             <Countdown startsAt={group.starts_at} style={{ marginTop: 8 }} />
           </Cover>
           <View style={{ padding: 18, gap: 12, flex: 1 }}>
-            <AppText variant="bodyStrong">🕗 {relativeStart(group.starts_at, t, lang)}</AppText>
+            <AppText variant="bodyStrong">🗓️ {fmtDate(group.starts_at, localeOf(lang), { weekday: 'long', day: 'numeric', month: 'long' })} · {fmtTime(group.starts_at, localeOf(lang))}</AppText>
             <AppText variant="bodyStrong">📍 {group.place_name}</AppText>
             {group.level ? <AppText variant="bodyStrong">🎯 {t('explore.level', { level: group.level })}</AppText> : null}
             {group.budget ? <AppText variant="bodyStrong">💰 {group.budget}</AppText> : null}

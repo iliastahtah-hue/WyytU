@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { AppText, Avatar, Button, Screen, TopBar, VerifiedBadge } from '@/src/components/ui';
 import { fetchGroupDetail, leaveGroup, requestJoin, respondJoin, type GroupDetail } from '@/src/features/groups/api';
-import { localeOf, relativeStart } from '@/src/features/groups/time';
+import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
 import { fmtDate, fmtTime } from '@/src/lib/tz';
 import { readableError } from '@/src/lib/supabase';
@@ -130,7 +130,6 @@ export default function GroupeScreen() {
           <AppText variant="title" color={colors.ink} style={{ maxWidth: '80%' }}>{group.title}</AppText>
           <Countdown startsAt={group.starts_at} style={{ marginTop: 8 }} />
           <View style={styles.pills}>
-            <View style={styles.pill}><AppText variant="label">🕗 {relativeStart(group.starts_at, t, lang)}</AppText></View>
             <View style={styles.pill}><AppText variant="label" numberOfLines={1}>📍 {group.place_name}</AppText></View>
             {group.level ? (
               <View style={[styles.pill, { backgroundColor: colors.lime }]}>

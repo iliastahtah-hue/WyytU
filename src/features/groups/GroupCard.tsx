@@ -31,7 +31,7 @@ export function GroupCard({ group }: { group: GroupCardData }) {
       style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.99 }] }]}
     >
       <View style={styles.clip}>
-      <Cover universe={group.universe} subcategory={group.subcategory} height={176}>
+      <Cover universe={group.universe} subcategory={group.subcategory} height={176} iconSize={96}>
         <View style={styles.tagPill}>
           <AppText variant="tag" color={colors.ink} numberOfLines={1}>{tag.toUpperCase()}</AppText>
         </View>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   clip: { borderRadius: radius.xl, overflow: 'hidden' },
   tagPill: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, maxWidth: '62%' },
-  title: { fontSize: 23, lineHeight: 27, maxWidth: '72%' },
+  title: { fontSize: 23, lineHeight: 27, maxWidth: '68%' },
   bandBottom: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' },
   level: { backgroundColor: colors.lime, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   body: { padding: 16, gap: 12 },
