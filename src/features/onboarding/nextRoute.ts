@@ -12,12 +12,12 @@ type State = {
 
 /**
  * Décide quel écran afficher selon l'avancement :
- * langue → tutoriel → inscription → profil → selfie → autorisations → app.
+ * accueil (connexion) → profil → selfie → autorisations → app.
  */
 export function nextRoute(s: State): Href {
+  // pas connecté : l'accueil avec toutes les façons de se connecter (la présentation est en lien)
+  if (!s.session) return '/bienvenue';
   if (!s.lang) return '/langue';
-  if (!s.tutoDone) return '/tuto';
-  if (!s.session) return '/inscription';
   if (!s.profile) return '/creation-profil';
   // selfie jamais envoyé, ou refusé par la modération (après validation, le
   // fichier est supprimé : selfie_path redevient vide mais le statut est « verified »)

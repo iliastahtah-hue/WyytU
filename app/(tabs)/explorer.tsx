@@ -8,6 +8,7 @@ import { fetchUpcomingGroups, type GroupCardData } from '@/src/features/groups/a
 import { unreadCount } from '@/src/features/outings/api';
 import { GroupCard } from '@/src/features/groups/GroupCard';
 import { PremiumBanner } from '@/src/components/PremiumBanner';
+import { PartnerInvite } from '@/src/features/partners/PartnerInvite';
 import { useI18n } from '@/src/i18n';
 import type { Universe } from '@/src/lib/database.types';
 import { readableError } from '@/src/lib/supabase';
@@ -161,6 +162,7 @@ export default function ExplorerScreen() {
           </>
         )}
         ListHeaderComponent={header}
+        ListFooterComponent={visible.length ? <View style={{ marginTop: 14 }}><PartnerInvite /></View> : null}
         ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={colors.coral} />}

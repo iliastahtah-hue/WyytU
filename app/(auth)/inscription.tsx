@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Button, Screen, StepHeader, TextField } from '@/src/components/ui';
@@ -19,7 +19,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export default function InscriptionScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const [mode, setMode] = useState<'phone' | 'email'>('phone');
+  const params = useLocalSearchParams<{ mode?: 'phone' | 'email' }>();
+  const [mode, setMode] = useState<'phone' | 'email'>(params.mode === 'email' ? 'email' : 'phone');
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

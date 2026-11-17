@@ -9,7 +9,9 @@ import { AppText, VerifiedBadge } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
 import { ageFrom } from '@/src/lib/dates';
 import { signedUrls } from '@/src/lib/storage';
-import type { ProfilePrivate } from '@/src/lib/database.types';
+import { fetchMyPartner } from '@/src/features/partners/api';
+import { PartnerInvite, PartnerSwitch } from '@/src/features/partners/PartnerInvite';
+import type { Partner, ProfilePrivate } from '@/src/lib/database.types';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, radius } from '@/src/theme/tokens';
@@ -36,12 +38,14 @@ export default function ProfilScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [priv, setPriv] = useState<ProfilePrivate | null>(null);
+  const [partner, setPartner] = useState<Partner | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
       refreshProfile();
       supabase.from('admins').select('user_id').eq('user_id', profile.id).maybeSingle().then(({ data }) => setIsAdmin(!!data));
+      fetchMyPartner(profile.id).then(setPartner).catch(() => undefined);
       supabase.from('profile_private').select('*').eq('user_id', profile.id).maybeSingle().then(({ data }) => setPriv(data ?? null));
       supabase
         .from('profile_photos')
@@ -112,6 +116,8 @@ export default function ProfilScreen() {
             <Ionicons name="settings-outline" size={20} color={colors.ink} />
           </Pressable>
         </View>
+
+        {partner ? <PartnerSwitch name={partner.name} /> : null}
 
         {profile.verification_status !== 'verified' ? (
           <Pressable accessibilityRole="button" disabled={profile.verification_status !== 'rejected' && profile.verification_status !== 'none'}
@@ -231,10 +237,12 @@ export default function ProfilScreen() {
           </LinearGradient>
         </Pressable>
 
+        {!partner ? <PartnerInvite /> : null}
+
         {/* Plus */}
         <View style={styles.group}>
           <Row icon="shield-checkmark-outline" label={t('profile.safety')} hint={t('profile.safetyHint')} onPress={() => router.push('/reglages')} />
-          <Row icon="storefront-outline" label={t('profile.partner')} hint={t('profile.partnerHint')} onPress={() => router.push('/partenaire')} />
+          <Row icon="storefront-outline" label={partner ? t('pro.mode') : t('profile.partner')} hint={partner ? t('pro.switchHint') : t('profile.partnerHint')} onPress={() => router.push('/aujourdhui')} />
           <Row icon="person-add-outline" label={t('profile.invite')} onPress={() => Share.share({ message: t('profile.inviteMsg') })} />
           {isAdmin ? <Row icon="hammer-outline" label="Modération" hint="Selfies, avis, signalements, partenaires" onPress={() => router.push('/moderation')} /> : null}
         </View>

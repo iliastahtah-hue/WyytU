@@ -48,6 +48,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(onboarding)" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(pro)" options={{ animation: 'fade' }} />
                 <Stack.Screen name="groupe/[id]" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="lieu" options={{ presentation: 'modal' }} />
               </Stack>

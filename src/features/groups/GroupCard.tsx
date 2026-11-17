@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Avatar, VerifiedBadge } from '@/src/components/ui';
@@ -32,8 +33,16 @@ export function GroupCard({ group }: { group: GroupCardData }) {
     >
       <View style={styles.clip}>
       <Cover universe={group.universe} subcategory={group.subcategory} height={176} iconSize={96}>
-        <View style={styles.tagPill}>
-          <AppText variant="tag" color={colors.ink} numberOfLines={1}>{tag.toUpperCase()}</AppText>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <View style={styles.tagPill}>
+            <AppText variant="tag" color={colors.ink} numberOfLines={1}>{tag.toUpperCase()}</AppText>
+          </View>
+          {group.partner_id ? (
+            <View style={[styles.tagPill, { backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+              <Ionicons name="storefront" size={11} color={colors.lime} />
+              <AppText variant="tag" color={colors.lime}>{t('pro.badge').toUpperCase()}</AppText>
+            </View>
+          ) : null}
         </View>
         <View style={{ flex: 1 }} />
         <AppText variant="heading" color={colors.ink} numberOfLines={2} style={styles.title}>
@@ -112,7 +121,7 @@ const styles = StyleSheet.create({
     shadowColor: '#3A2A1A', shadowOpacity: 0.1, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 4,
   },
   clip: { borderRadius: radius.xl, overflow: 'hidden' },
-  tagPill: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, maxWidth: '62%' },
+  tagPill: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, maxWidth: '62%', flexShrink: 1 },
   title: { fontSize: 23, lineHeight: 27, maxWidth: '68%' },
   bandBottom: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' },
   level: { backgroundColor: colors.lime, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },

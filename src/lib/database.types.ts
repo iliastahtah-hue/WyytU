@@ -74,6 +74,9 @@ export type Partner = {
   logo_path: string | null;
   discount_pct: number;
   status: PartnerStatus;
+  description: string | null;
+  opening_hours: string | null;
+  phone: string | null;
   created_at: string;
 };
 
@@ -88,6 +91,7 @@ export type PartnerOffer = {
   price_mad: number | null;
   boosted: boolean;
   booked: boolean;
+  discount_pct: number | null;
   created_at: string;
 };
 
@@ -194,11 +198,11 @@ export type Database = {
       >;
       profile_private: Table<ProfilePrivate, 'user_id', 'residence' | 'height_cm' | 'relationship_status'>;
       profile_photos: Table<ProfilePhoto, 'user_id' | 'path', 'position'>;
-      partners: Table<Partner, 'owner_id' | 'name' | 'universe', 'address' | 'lat' | 'lng' | 'logo_path' | 'discount_pct'>;
+      partners: Table<Partner, 'owner_id' | 'name' | 'universe', 'address' | 'lat' | 'lng' | 'logo_path' | 'discount_pct' | 'description' | 'opening_hours' | 'phone'>;
       partner_offers: Table<
         PartnerOffer,
         'partner_id' | 'title' | 'starts_at',
-        'subcategory' | 'duration_min' | 'capacity' | 'price_mad' | 'boosted' | 'booked'
+        'subcategory' | 'duration_min' | 'capacity' | 'price_mad' | 'boosted' | 'booked' | 'discount_pct'
       >;
       groups: Table<
         Group,
