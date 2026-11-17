@@ -203,6 +203,11 @@ const dar: PartialDictionary = {
     errTime: 'ختار ساعة جاية.',
   },
   place: {
+    searchAll: "ريسطو، تيران، سينما، جردة…",
+    osm: "البلايص © OpenStreetMap",
+    selected: "البلاصة لي ختاريتي",
+    cityPlaces: "بلايص المدينة ({n})",
+    noResult: "ما لقينا والو. كتبها لتحت.",
     title: 'فين؟',
     search: 'قلّب على بلاصة…',
     partners: 'البلايص الشركاء',

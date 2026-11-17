@@ -197,6 +197,11 @@ const fr = {
     errTime: 'Choisis une heure à venir.',
   },
   place: {
+    searchAll: "Resto, terrain, ciné, parc…",
+    osm: "Lieux © contributeurs OpenStreetMap",
+    selected: "Lieu choisi",
+    cityPlaces: "Lieux de la ville ({n})",
+    noResult: "Aucun lieu trouvé. Écris-le ci-dessous.",
     title: 'Où ?',
     search: 'Chercher un lieu…',
     partners: 'Lieux partenaires',

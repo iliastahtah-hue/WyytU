@@ -215,6 +215,7 @@ export type Database = {
       admins: Table<{ user_id: string; created_at: string }, 'user_id'>;
       group_secrets: Table<{ group_id: string; check_in_code: string }, 'group_id'>;
       attendance_disputes: Table<AttendanceDispute, 'group_id' | 'user_id' | 'message'>;
+      places: Table<{ id: number; osm_id: string | null; name: string; name_fr: string | null; lat: number; lng: number; kind: string; detail: string | null; address: string | null; universe: Universe | null; city: string; created_at: string }, 'name' | 'lat' | 'lng' | 'kind'>;
       saved_groups: Table<{ user_id: string; group_id: string; created_at: string }, 'user_id' | 'group_id'>;
     };
     Views: { [_ in never]: never };

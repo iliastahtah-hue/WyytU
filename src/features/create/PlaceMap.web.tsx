@@ -1,12 +1,12 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
-import type { Partner } from '@/src/lib/database.types';
 import { colors } from '@/src/theme/tokens';
 
 export const TANGER = { latitude: 35.7595, longitude: -5.834, latitudeDelta: 0.08, longitudeDelta: 0.08 };
 
-type Props = { partners: Partner[]; selectedId: string | null; onSelect: (p: Partner) => void };
+export type MapItem = { key: string; name: string; lat: number; lng: number; emoji: string; discount?: number | null };
+type Props = { items: MapItem[]; selectedKey: string | null; onSelect: (key: string) => void };
 
 /** Sur le web (aperçu), pas de carte native : simple encart. */
 export function PlaceMap(_props: Props) {

@@ -199,6 +199,11 @@ const en: PartialDictionary = {
     errTime: 'Choose a time in the future.',
   },
   place: {
+    searchAll: "Restaurant, pitch, cinema, park…",
+    osm: "Places © OpenStreetMap contributors",
+    selected: "Selected place",
+    cityPlaces: "Places in the city ({n})",
+    noResult: "No place found. Type it below.",
     title: 'Where?',
     search: 'Search a place…',
     partners: 'Partner places',
