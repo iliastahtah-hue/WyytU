@@ -65,7 +65,7 @@ export default function MessagesScreen() {
               <View style={[styles.icon, { backgroundColor: u.soft }]}><AppText style={{ fontSize: 24 }}>{emoji}</AppText></View>
               <View style={{ flex: 1, gap: 2 }}>
                 <AppText variant="bodyStrong" numberOfLines={1}>{item.title}</AppText>
-                <AppText variant="small" color={colors.sub} numberOfLines={1}>{item.last?.body ?? t('chat.noMessage')}</AppText>
+                <AppText variant="small" color={colors.sub} numberOfLines={1}>{item.last ? item.last.body || `📎 ${t('chat.photoVideo')}` : t('chat.noMessage')}</AppText>
               </View>
               {item.last ? (
                 <AppText variant="small" color={colors.muted}>

@@ -73,7 +73,14 @@
       "expo-font",
       "expo-image",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-video",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "WyytU utilise le micro pour envoyer des messages vocaux dans le chat de ton groupe."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

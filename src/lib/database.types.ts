@@ -131,6 +131,9 @@ export type Message = {
   group_id: string;
   sender_id: string;
   body: string;
+  kind: 'text' | 'image' | 'video' | 'audio';
+  media_path: string | null;
+  duration_ms: number | null;
   created_at: string;
 };
 
@@ -203,7 +206,7 @@ export type Database = {
         'subcategory' | 'description' | 'duration_min' | 'partner_id' | 'offer_id' | 'lat' | 'lng' | 'level' | 'women_only' | 'budget'
       >;
       group_members: Table<GroupMember, 'group_id' | 'user_id'>;
-      group_messages: Table<Message, 'group_id' | 'sender_id' | 'body'>;
+      group_messages: Table<Message, 'group_id' | 'sender_id', 'body' | 'kind' | 'media_path' | 'duration_ms'>;
       ratings: Table<Rating, 'group_id' | 'rater_id' | 'rated_id' | 'stars', 'comment' | 'reason'>;
       reports: Table<Report, 'reporter_id' | 'reason', 'reported_user_id' | 'group_id' | 'message_id' | 'details'>;
       blocks: Table<Block, 'blocker_id' | 'blocked_id'>;
