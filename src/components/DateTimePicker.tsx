@@ -133,7 +133,8 @@ export function DateTimePicker({ value, onChange, locked, accent, soft }: Props)
       ) : null}
 
       <AppText variant="tag" color={colors.sub}>{t('calendar.hour')}</AppText>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}
+        contentOffset={{ x: Math.max(0, HOURS.indexOf(v.h) - 2) * 60, y: 0 }}>
         {HOURS.map((h) => {
           const on = h === v.h;
           const pastHour = dayKey(value) === todayKey && h < now.h && h >= 6;
