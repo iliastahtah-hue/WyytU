@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Button, Screen, TopBar } from '@/src/components/ui';
+import { useLogout } from '@/src/features/onboarding/useLogout';
 import { LANGS, useI18n } from '@/src/i18n';
 import { readableError, supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -20,13 +21,9 @@ function Row({ label, onPress, danger }: { label: string; onPress: () => void; d
 export default function ReglagesScreen() {
   const router = useRouter();
   const { lang, setLang, t } = useI18n();
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
 
-  const leave = async () => {
-    await signOut();
-    if (router.canDismiss()) router.dismissAll();
-    router.replace('/');
-  };
+  const leave = useLogout();
 
   const deleteAccount = () =>
     Alert.alert(

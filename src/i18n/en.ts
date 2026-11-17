@@ -398,6 +398,8 @@ const en: PartialDictionary = {
     invalid: 'Invalid QR.',
   },
   premium: {
+    trialLine: "7 days free, then a monthly subscription",
+    monthlyPrice: "the monthly price shown by your store",
     bannerTitle: "Go Premium",
     bannerBody: "Save outings for later, create without limits, advanced filters.",
     saveTitle: "Save for later",

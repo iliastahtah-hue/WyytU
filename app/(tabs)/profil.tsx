@@ -3,12 +3,13 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState, type ComponentProps } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, VerifiedBadge } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
 import { ageFrom } from '@/src/lib/dates';
 import { signedUrls } from '@/src/lib/storage';
+import { useLogout } from '@/src/features/onboarding/useLogout';
 import { fetchMyPartner } from '@/src/features/partners/api';
 import { PartnerInvite, PartnerSwitch } from '@/src/features/partners/PartnerInvite';
 import type { Partner, ProfilePrivate } from '@/src/lib/database.types';
@@ -37,6 +38,7 @@ export default function ProfilScreen() {
   const { t } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const logout = useLogout();
   const [priv, setPriv] = useState<ProfilePrivate | null>(null);
   const [partner, setPartner] = useState<Partner | null>(null);
 
@@ -74,6 +76,11 @@ export default function ProfilScreen() {
   const completion = Math.round((filled / 6) * 100);
 
   const goEdit = () => router.push('/modifier-profil');
+  const confirmLogout = () =>
+    Alert.alert(t('settings.signOut'), '', [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.signOut'), style: 'destructive', onPress: logout },
+    ]);
   const chips: { icon: IconName; label: string }[] = [
     { icon: 'location-outline', label: priv?.residence ? `${priv.residence}, ${profile.city}` : profile.city },
     ...(priv?.height_cm ? [{ icon: 'resize-outline' as IconName, label: t('profile.heightCm', { n: priv.height_cm }) }] : []),
@@ -244,6 +251,7 @@ export default function ProfilScreen() {
           <Row icon="shield-checkmark-outline" label={t('profile.safety')} hint={t('profile.safetyHint')} onPress={() => router.push('/reglages')} />
           <Row icon="storefront-outline" label={partner ? t('pro.mode') : t('profile.partner')} hint={partner ? t('pro.switchHint') : t('profile.partnerHint')} onPress={() => router.push('/aujourdhui')} />
           <Row icon="person-add-outline" label={t('profile.invite')} onPress={() => Share.share({ message: t('profile.inviteMsg') })} />
+          <Row icon="log-out-outline" label={t('settings.signOut')} onPress={confirmLogout} />
           {isAdmin ? <Row icon="hammer-outline" label="Modération" hint="Selfies, avis, signalements, partenaires" onPress={() => router.push('/moderation')} /> : null}
         </View>
       </ScrollView>

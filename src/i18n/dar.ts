@@ -402,6 +402,8 @@ const dar: PartialDictionary = {
     invalid: 'QR ماشي صالح.',
   },
   premium: {
+    trialLine: "7 يام فابور، من بعد اشتراك شهري",
+    monthlyPrice: "الثمن الشهري لي كيبان فالستور",
     bannerTitle: "دوز لبريميوم",
     bannerBody: "خلّي الخرجات على جنب، كريي بلا حدود، فلاتر متقدمة.",
     saveTitle: "خلّيها على جنب",

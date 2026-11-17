@@ -5,6 +5,7 @@ type Flags = { tutoDone: boolean; permissionsDone: boolean };
 type OnboardingValue = Flags & {
   ready: boolean;
   markTutoDone: () => Promise<void>;
+  resetTuto: () => Promise<void>;
   markPermissionsDone: () => Promise<void>;
 };
 
@@ -37,6 +38,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       ...flags,
       ready,
       markTutoDone: () => update({ tutoDone: true }),
+      resetTuto: () => update({ tutoDone: false }),
       markPermissionsDone: () => update({ permissionsDone: true }),
     }),
     [flags, ready, update],

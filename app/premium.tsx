@@ -35,7 +35,7 @@ export default function PremiumScreen() {
       .catch(() => setPkg(null));
   }, [available, session]);
 
-  const price = pkg?.product.priceString ?? '[PRIX] DH';
+  const price = pkg?.product.priceString ?? null;
 
   const notYet = () =>
     Alert.alert(t('premium.soonTitle'), t('premium.soonBody'));
@@ -97,7 +97,7 @@ export default function PremiumScreen() {
       <View style={styles.hero}>
         <Image source={img3d.crown} style={{ width: 88, height: 88 }} />
         <AppText variant="display" center>WyytU Premium</AppText>
-        <AppText variant="bodyStrong" center>{t('premium.priceLine', { price })}</AppText>
+        <AppText variant="bodyStrong" center>{price ? t('premium.priceLine', { price }) : t('premium.trialLine')}</AppText>
       </View>
       <View style={{ gap: 10 }}>
         {PERKS.map(([e, key]) => (
@@ -111,7 +111,7 @@ export default function PremiumScreen() {
         ))}
       </View>
       <AppText variant="small" color={colors.sub} style={{ marginTop: 16 }}>
-        {t('premium.legal', { price })}
+        {t('premium.legal', { price: price ?? t('premium.monthlyPrice') })}
       </AppText>
       <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
         <AppText variant="small" color={colors.coralDark} onPress={() => Linking.openURL('https://wyytu.app/cgu')}>{t('premium.terms')}</AppText>

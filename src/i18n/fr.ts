@@ -396,6 +396,8 @@ const fr = {
     invalid: 'QR non valide.',
   },
   premium: {
+    trialLine: "7 jours gratuits, puis abonnement mensuel",
+    monthlyPrice: "le prix mensuel affiché par ton store",
     bannerTitle: "Passe en Premium",
     bannerBody: "Garde des sorties de côté, crée sans limite, filtres avancés.",
     saveTitle: "Garder de côté",
