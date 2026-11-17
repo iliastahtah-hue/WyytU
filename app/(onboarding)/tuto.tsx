@@ -14,7 +14,7 @@ type Slide = { key: string; photo: ImageSourcePropType; card: { tag: string; tit
 
 /* Une vraie photo par écran + une carte de l'app posée dessus */
 const SLIDES: Slide[] = [
-  { key: 's1', photo: photos.tuto[0], card: { tag: 'RESTO · CE SOIR 20:30', title: 'Il reste 1 place à table', color: '#FFB020' } },
+  { key: 's1', photo: photos.tuto[0], card: { tag: 'RESTO · ⏳ DANS 2 H 14 MIN', title: 'Il reste 1 place à table', color: '#FFB020' } },
   { key: 's2', photo: photos.tuto[1], card: { tag: 'SPORT · PADEL · 19:00', title: 'Il manque 2 joueurs', color: '#12B76A' } },
   { key: 's3', photo: photos.tuto[2], card: { tag: 'PROFIL VÉRIFIÉ ✓', title: '4,8 ★ · 100 % présence', color: '#FFFFFF' } },
   { key: 's4', photo: photos.tuto[3], card: { tag: 'CLUB PARTENAIRE', title: '−10 % pour ton groupe', color: '#FF6A3D' } },
