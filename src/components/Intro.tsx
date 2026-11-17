@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { AppText } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
+import { useAuth } from '@/src/providers/AuthProvider';
 import { logoMark, photos } from '@/src/theme/images';
 import { colors } from '@/src/theme/tokens';
 
@@ -24,7 +25,10 @@ import { colors } from '@/src/theme/tokens';
  */
 export function Intro() {
   const { t } = useI18n();
+  const { session, loading } = useAuth();
   const [done, setDone] = useState(false);
+  // pas connecté : l'écran d'accueil joue lui-même l'arrivée du logo, avant les boutons
+  const skip = !loading && !session;
 
   const photo = useSharedValue(0);
   const zoom = useSharedValue(1.12);
@@ -52,7 +56,7 @@ export function Intro() {
   }));
   const textStyle = useAnimatedStyle(() => ({ opacity: text.value, transform: [{ translateY: (1 - text.value) * 18 }] }));
 
-  if (done) return null;
+  if (done || skip) return null;
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]} pointerEvents="none">

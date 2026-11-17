@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import type { ComponentProps } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
@@ -21,6 +22,33 @@ const LANGS = [
 export default function BienvenueScreen() {
   const router = useRouter();
   const { t, lang, setLang } = useI18n();
+
+  // d'abord la photo et le logo seuls, au centre ; puis le logo monte et les boutons arrivent
+  const reveal = useSharedValue(0);
+  const pop = useSharedValue(0);
+  const zoom = useSharedValue(1.12);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    zoom.value = withTiming(1, { duration: 6000, easing: Easing.out(Easing.quad) });
+    pop.value = withDelay(200, withSpring(1, { damping: 11, stiffness: 140 }));
+    reveal.value = withDelay(3000, withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) }, (ok) => {
+      if (ok) runOnJS(setReady)(true);
+    }));
+  }, [reveal, pop, zoom]);
+  const photoStyle = useAnimatedStyle(() => ({ transform: [{ scale: zoom.value }] }));
+  const logoStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, pop.value * 1.5),
+    transform: [{ scale: 0.4 + pop.value * 0.6 }, { rotate: `${(1 - pop.value) * -12}deg` }],
+  }));
+  const taglineStyle = useAnimatedStyle(() => ({ opacity: pop.value, transform: [{ translateY: (1 - pop.value) * 14 }] }));
+  const brandStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (1 - reveal.value) * 190 }, { scale: 1.25 - reveal.value * 0.25 }],
+  }));
+  const bottomStyle = useAnimatedStyle(() => ({
+    opacity: reveal.value,
+    transform: [{ translateY: (1 - reveal.value) * 40 }],
+  }));
+  const langStyle = useAnimatedStyle(() => ({ opacity: reveal.value }));
 
   const ensureLang = async () => {
     if (!lang) await setLang('fr');
@@ -40,14 +68,16 @@ export default function BienvenueScreen() {
 
   return (
     <View style={styles.fill}>
-      <Image source={photos.intro} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
+        <Image source={photos.intro} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </Animated.View>
       <LinearGradient
         colors={['rgba(17,16,20,0.55)', 'rgba(17,16,20,0.05)', 'rgba(17,16,20,0.55)', 'rgba(17,16,20,0.92)']}
         locations={[0, 0.3, 0.55, 1]}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <View style={styles.langs}>
+        <Animated.View style={[styles.langs, langStyle]} pointerEvents={ready ? 'auto' : 'none'}>
           {LANGS.map((l) => {
             const on = (lang ?? 'fr') === l.id;
             return (
@@ -57,15 +87,19 @@ export default function BienvenueScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </Animated.View>
 
-        <View style={styles.brand}>
-          <Image source={logoMark} style={styles.logo} accessibilityLabel="WyytU" />
-          <AppText style={styles.word}>wyytu</AppText>
-          <AppText variant="bodyStrong" color={colors.white} center style={styles.tagline}>{t('intro.tagline')}</AppText>
-        </View>
+        <Animated.View style={[styles.brand, brandStyle]}>
+          <Animated.View style={logoStyle}>
+            <Image source={logoMark} style={styles.logo} accessibilityLabel="WyytU" />
+          </Animated.View>
+          <Animated.View style={[{ alignItems: 'center', gap: 6 }, taglineStyle]}>
+            <AppText style={styles.word}>wyytu</AppText>
+            <AppText variant="bodyStrong" color={colors.white} center style={styles.tagline}>{t('intro.tagline')}</AppText>
+          </Animated.View>
+        </Animated.View>
 
-        <View style={styles.bottom}>
+        <Animated.View style={[styles.bottom, bottomStyle]} pointerEvents={ready ? 'auto' : 'none'}>
           {buttons.map((b) => (
             <Pressable key={b.label} accessibilityRole="button" onPress={b.onPress}
               style={({ pressed }) => [styles.btn, { backgroundColor: b.bg, borderColor: b.border ?? b.bg }, pressed && { opacity: 0.85 }]}>
@@ -78,7 +112,7 @@ export default function BienvenueScreen() {
             <Ionicons name="play-circle-outline" size={18} color={colors.white} />
             <AppText variant="label" color={colors.white} style={{ textDecorationLine: 'underline' }}>{t('welcome.how')}</AppText>
           </Pressable>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );
