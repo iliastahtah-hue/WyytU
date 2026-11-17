@@ -11,7 +11,7 @@ export const colors = {
   sub: '#55535C',
   muted: '#8E8B93',
   line: '#DAD7D0',
-  bg: '#F6F5F2',
+  bg: '#F1EBE1',
   card: '#FFFFFF',
   sand: '#EADFCB',
   verified: '#1D9BF0',

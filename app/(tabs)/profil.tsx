@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { PremiumBanner } from '@/src/components/PremiumBanner';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, VerifiedBadge } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
@@ -121,6 +122,7 @@ export default function ProfilScreen() {
           </Pressable>
         ) : null}
 
+        <PremiumBanner />
         <View style={styles.group}>
           <Row emoji="✏️" label={t('profile.edit')} hint={t('profile.editHint')} onPress={() => router.push('/modifier-profil')} />
           <Row emoji="👀" label={t('profile.viewPublic')} onPress={() => router.push({ pathname: '/membre/[id]', params: { id: profile.id } })} />

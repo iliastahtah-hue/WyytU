@@ -47,6 +47,7 @@ const dar: PartialDictionary = {
     randonnee: 'رندوني',
   },
   intro: { tagline: 'خرج مع الجماعة، قريب ليك.' },
+  countdown: { days: 'باقي {d} يام و {h} سوايع', hours: 'باقي {h} س و {m} د', minutes: 'باقي {m} د و {s} ث', live: 'دابا بدات', ended: 'سالات' },
   language: {
     title: 'ختار اللغة ديالك',
     subtitle: 'تقدر تبدلها فأي وقت من الإعدادات.',
@@ -136,7 +137,7 @@ const dar: PartialDictionary = {
     messages: 'الميساجات',
     profile: 'البروفيل',
   },
-  explore: {
+  explore: { lastSpot: 'آخر بلاصة!', 
     hello: 'السلام {name}',
     title1: 'شنو نديرو',
     title2: 'الليلة؟',
@@ -330,6 +331,15 @@ const dar: PartialDictionary = {
     invalid: 'QR ماشي صالح.',
   },
   premium: {
+    bannerTitle: "دوز لبريميوم",
+    bannerBody: "خلّي الخرجات على جنب، كريي بلا حدود، فلاتر متقدمة.",
+    saveTitle: "خلّيها على جنب",
+    saveBody: "خلّي خرجة على جنب من السوايب ولقاها من بعد.",
+    lockedTitle: "غير للبريميوم",
+    locked_save: "« خلّيها على جنب » جزء من WyytU Premium.",
+    locked_unlimited: "وصلتي 2 خرجات هاد السيمانة. البريميوم = بلا حدود.",
+    locked_filters: "الفلاتر المتقدمة جزء من WyytU Premium.",
+    locked_boost: "الإبراز جزء من WyytU Premium.",
     unlimitedTitle: 'مجموعات بلا حدود',
     unlimitedBody: 'دير الخرجات اللي بغيتي (2 فالسيمانة فالمجاني).',
     boostTitle: 'الخرجات ديالك هوما الأولين',
@@ -398,6 +408,8 @@ const dar: PartialDictionary = {
     empty: 'مازال ما كاين حتى بلان هنا. الشركاء الأولين جايين قريب!',
   },
   swipe: {
+    save: "خلّيها على جنب",
+    saved: "تخلّات على جنب ⭐",
     title: 'ما عارفش شنو ندير',
     yes: 'بغيت ✓',
     no: 'دوز ✕',

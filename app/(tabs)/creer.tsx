@@ -8,6 +8,7 @@ import { placeStore, usePickedPlace } from '@/src/features/create/draft';
 import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
 import type { Level, Universe } from '@/src/lib/database.types';
+import { usePremiumGate } from '@/src/lib/premium';
 import { readableError, supabase } from '@/src/lib/supabase';
 import { atTime, dayKey, fmtDate, fmtTime, fromWall, startOfDayPlus, wall } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -81,6 +82,7 @@ export default function CreerScreen() {
   const isWoman = profile?.gender === 'femme';
   const premium = !!profile?.is_premium;
   const quotaReached = !premium && weekCount >= 2;
+  const gate = usePremiumGate();
   const locale = localeOf(lang);
   const u = universeColors[universe];
 
@@ -119,6 +121,7 @@ export default function CreerScreen() {
     if (!place) return setError(t('create.errPlace'));
     if (start.getTime() < Date.now() + 5 * 60000) return setError(t('create.errTime'));
     if (!session) return;
+    if (quotaReached && !gate('unlimited')) return;
 
     setLoading(true);
     const { data, error: err } = await supabase
@@ -144,6 +147,7 @@ export default function CreerScreen() {
       .single();
     setLoading(false);
 
+    if (err?.message?.includes('WEEKLY_LIMIT')) return void gate('unlimited');
     if (err || !data) return setError(readableError(err, t('common.error')));
 
     // on remet le formulaire à zéro pour la prochaine fois
@@ -161,11 +165,16 @@ export default function CreerScreen() {
       <KeyboardAvoidingView style={styles.fill} behavior="padding">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <AppText variant="display">{t('create.title')}</AppText>
-        <View style={[styles.quota, quotaReached && { backgroundColor: colors.coralSoft }]}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={premium}
+          onPress={() => gate('unlimited')}
+          style={[styles.quota, quotaReached && { backgroundColor: colors.coralSoft }]}
+        >
           <AppText variant="label">
-            {premium ? `⭐ ${t('create.quotaPremium')}` : quotaReached ? t('create.quotaReached') : `🎟️ ${t('create.quota', { n: weekCount + 1 })}`}
+            {premium ? `⭐ ${t('create.quotaPremium')}` : quotaReached ? `${t('create.quotaReached')} · ⭐ Premium →` : `🎟️ ${t('create.quota', { n: weekCount + 1 })}`}
           </AppText>
-        </View>
+        </Pressable>
 
         <Section title={t('create.what')}>
           <View style={styles.wrap}>

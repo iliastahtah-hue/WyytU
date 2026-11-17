@@ -1,11 +1,10 @@
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Avatar, VerifiedBadge } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
-import { coverFor } from '@/src/theme/images';
-import { colors, radius, universeColors } from '@/src/theme/tokens';
+import { Countdown } from '@/src/components/Countdown';
+import { Cover } from '@/src/components/Cover';
+import { colors, radius } from '@/src/theme/tokens';
 import { fmtTime } from '@/src/lib/tz';
 import type { GroupCardData } from './api';
 import { localeOf, relativeStart } from './time';
@@ -13,7 +12,6 @@ import { localeOf, relativeStart } from './time';
 export function GroupCard({ group }: { group: GroupCardData }) {
   const router = useRouter();
   const { t, lang } = useI18n();
-  const u = universeColors[group.universe];
   const count = group.members.length;
   const tag = group.subcategory
     ? `${t(`universes.${group.universe}`)} · ${t(`sports.${group.subcategory}`)}`
@@ -32,31 +30,29 @@ export function GroupCard({ group }: { group: GroupCardData }) {
       onPress={() => router.push({ pathname: '/groupe/[id]', params: { id: group.id } })}
       style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.99 }] }]}
     >
-      <View style={styles.band}>
-        <Image source={coverFor(group.universe, group.subcategory)} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
-        <LinearGradient
-          colors={['rgba(17,16,20,0.15)', 'rgba(17,16,20,0)', 'rgba(17,16,20,0.78)']}
-          locations={[0, 0.35, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.bandTop}>
-          <View style={[styles.pill, { backgroundColor: u.bg }]}>
-            <AppText variant="tag" color={u.fg} numberOfLines={1}>{tag.toUpperCase()}</AppText>
-          </View>
-          <View style={[styles.pill, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>
-            <AppText variant="tag" color={colors.ink}>⏱ {relativeStart(group.starts_at, t, lang)}</AppText>
-          </View>
+      <View style={styles.clip}>
+      <Cover universe={group.universe} subcategory={group.subcategory} height={176}>
+        <View style={styles.tagPill}>
+          <AppText variant="tag" color={colors.ink} numberOfLines={1}>{tag.toUpperCase()}</AppText>
         </View>
         <View style={{ flex: 1 }} />
-        <AppText variant="heading" color={colors.white} numberOfLines={2} style={styles.title}>
+        <AppText variant="heading" color={colors.ink} numberOfLines={2} style={styles.title}>
           {group.title}
         </AppText>
-        {group.level ? (
-          <View style={styles.level}>
-            <AppText variant="tag">{t('explore.level', { level: group.level })}</AppText>
-          </View>
-        ) : null}
-      </View>
+        <View style={styles.bandBottom}>
+          <Countdown startsAt={group.starts_at} />
+          {group.level ? (
+            <View style={styles.level}>
+              <AppText variant="tag">{t('explore.level', { level: group.level })}</AppText>
+            </View>
+          ) : null}
+          {group.capacity - count === 1 && group.status === 'open' ? (
+            <View style={[styles.level, { backgroundColor: colors.ink }]}>
+              <AppText variant="tag" color={colors.white}>{t('explore.lastSpot')}</AppText>
+            </View>
+          ) : null}
+        </View>
+      </Cover>
 
       <View style={styles.body}>
         <View style={styles.row}>
@@ -105,20 +101,21 @@ export function GroupCard({ group }: { group: GroupCardData }) {
           ) : null}
         </View>
       </View>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.xl, overflow: 'hidden' },
-  band: { padding: 14, gap: 6, minHeight: 168, backgroundColor: colors.sand },
-  bandTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  pill: { flexShrink: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
-  title: { fontSize: 22, lineHeight: 26, textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 8 },
-  level: {
-    alignSelf: 'flex-end', backgroundColor: colors.lime, paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 10, transform: [{ rotate: '-4deg' }], marginTop: -4,
+  card: {
+    backgroundColor: colors.card, borderRadius: radius.xl,
+    shadowColor: '#3A2A1A', shadowOpacity: 0.1, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 4,
   },
+  clip: { borderRadius: radius.xl, overflow: 'hidden' },
+  tagPill: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, maxWidth: '62%' },
+  title: { fontSize: 23, lineHeight: 27, maxWidth: '72%' },
+  bandBottom: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' },
+  level: { backgroundColor: colors.lime, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   body: { padding: 16, gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stack: { flexDirection: 'row', alignItems: 'center' },

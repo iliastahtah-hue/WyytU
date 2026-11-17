@@ -8,10 +8,9 @@ import { useI18n } from '@/src/i18n';
 import { fmtDate, fmtTime } from '@/src/lib/tz';
 import { readableError } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
-import { coverFor } from '@/src/theme/images';
-import { colors, fonts, radius, universeColors } from '@/src/theme/tokens';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Countdown } from '@/src/components/Countdown';
+import { Cover } from '@/src/components/Cover';
+import { colors, fonts, radius } from '@/src/theme/tokens';
 
 export default function GroupeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,7 +72,6 @@ export default function GroupeScreen() {
   }
 
   const { group, organizer, members, pending, mine, isOrganizer } = detail;
-  const u = universeColors[group.universe];
   const freeSlots = Math.max(group.capacity - members.length, 0);
   const locale = localeOf(lang);
   const blockedForGender = group.women_only && profile?.gender !== 'femme';
@@ -122,24 +120,25 @@ export default function GroupeScreen() {
       <TopBar />
 
       <View style={styles.hero}>
-        <Image source={coverFor(group.universe, group.subcategory)} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
-        <LinearGradient colors={['rgba(17,16,20,0.1)', 'rgba(17,16,20,0.8)']} locations={[0.2, 1]} style={StyleSheet.absoluteFill} />
-        <View style={{ flex: 1 }} />
-        <View style={[styles.uTag, { backgroundColor: u.bg }]}>
-          <AppText variant="tag" color={u.fg}>
-            {`${t(`universes.${group.universe}`)}${group.subcategory ? ` · ${t(`sports.${group.subcategory}`)}` : ''}`.toUpperCase()}
-          </AppText>
-        </View>
-        <AppText variant="title" color={colors.white}>{group.title}</AppText>
-        <View style={styles.pills}>
-          <View style={styles.pill}><AppText variant="label">🕗 {relativeStart(group.starts_at, t, lang)}</AppText></View>
-          <View style={styles.pill}><AppText variant="label" numberOfLines={1}>📍 {group.place_name}</AppText></View>
-          {group.level ? (
-            <View style={[styles.pill, { backgroundColor: colors.lime }]}>
-              <AppText variant="label">{t('explore.level', { level: group.level })}</AppText>
-            </View>
-          ) : null}
-        </View>
+        <Cover universe={group.universe} subcategory={group.subcategory} height={290} iconSize={150}>
+          <View style={styles.uTag}>
+            <AppText variant="tag" color={colors.ink}>
+              {`${t(`universes.${group.universe}`)}${group.subcategory ? ` · ${t(`sports.${group.subcategory}`)}` : ''}`.toUpperCase()}
+            </AppText>
+          </View>
+          <View style={{ flex: 1 }} />
+          <AppText variant="title" color={colors.ink} style={{ maxWidth: '80%' }}>{group.title}</AppText>
+          <Countdown startsAt={group.starts_at} style={{ marginTop: 8 }} />
+          <View style={styles.pills}>
+            <View style={styles.pill}><AppText variant="label">🕗 {relativeStart(group.starts_at, t, lang)}</AppText></View>
+            <View style={styles.pill}><AppText variant="label" numberOfLines={1}>📍 {group.place_name}</AppText></View>
+            {group.level ? (
+              <View style={[styles.pill, { backgroundColor: colors.lime }]}>
+                <AppText variant="label">{t('explore.level', { level: group.level })}</AppText>
+              </View>
+            ) : null}
+          </View>
+        </Cover>
       </View>
 
       <View style={styles.card}>
@@ -258,8 +257,8 @@ export default function GroupeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: radius.xl, padding: 20, gap: 10, marginBottom: 14, minHeight: 280, overflow: 'hidden', backgroundColor: colors.sand },
-  uTag: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
+  hero: { borderRadius: radius.xl, marginBottom: 14, overflow: 'hidden' },
+  uTag: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.9)' },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { backgroundColor: 'rgba(255,255,255,0.85)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, maxWidth: '100%' },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 16, gap: 6, marginBottom: 12 },

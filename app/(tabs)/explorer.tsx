@@ -7,13 +7,13 @@ import { AppText, Button, Chip } from '@/src/components/ui';
 import { fetchUpcomingGroups, type GroupCardData } from '@/src/features/groups/api';
 import { unreadCount } from '@/src/features/outings/api';
 import { GroupCard } from '@/src/features/groups/GroupCard';
+import { PremiumBanner } from '@/src/components/PremiumBanner';
 import { useI18n } from '@/src/i18n';
 import type { Universe } from '@/src/lib/database.types';
 import { readableError } from '@/src/lib/supabase';
 import { useAuth } from '@/src/providers/AuthProvider';
-import { coverFor, img3d } from '@/src/theme/images';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, radius, SPORTS, TOUCH, UNIVERSES } from '@/src/theme/tokens';
+import { coverFor, iconFor, img3d } from '@/src/theme/images';
+import { colors, fonts, radius, SPORTS, TOUCH, UNIVERSES, universeColors } from '@/src/theme/tokens';
 
 export default function ExplorerScreen() {
   const router = useRouter();
@@ -121,9 +121,10 @@ export default function ExplorerScreen() {
               onPress={() => { setUniverse(u.id); setSport(null); }}
               style={[styles.tile, on && styles.tileOn]}
             >
-              <Image source={coverFor(u.id)} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-              <LinearGradient colors={['rgba(17,16,20,0)', 'rgba(17,16,20,0.7)']} style={StyleSheet.absoluteFill} />
-              <AppText variant="label" color={colors.white} numberOfLines={2} style={{ fontSize: 13, lineHeight: 16, width: '100%' }}>{t(`universes.${u.id}`)}</AppText>
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: universeColors[u.id].bg }]} />
+              <Image source={coverFor(u.id)} style={[StyleSheet.absoluteFill, { opacity: 0.18 }]} contentFit="cover" />
+              <Image source={iconFor(u.id)} style={styles.tileIcon} contentFit="contain" />
+              <AppText variant="label" color={colors.ink} numberOfLines={2} style={{ fontSize: 13, lineHeight: 16, width: '100%' }}>{t(`universes.${u.id}`)}</AppText>
             </Pressable>
           );
         })}
@@ -153,7 +154,12 @@ export default function ExplorerScreen() {
       <FlatList
         data={visible}
         keyExtractor={(g) => g.id}
-        renderItem={({ item }) => <GroupCard group={item} />}
+        renderItem={({ item, index }) => (
+          <>
+            <GroupCard group={item} />
+            {index === 1 ? <View style={{ marginTop: 14 }}><PremiumBanner compact /></View> : null}
+          </>
+        )}
         ListHeaderComponent={header}
         ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
         contentContainerStyle={styles.list}
@@ -198,6 +204,7 @@ const styles = StyleSheet.create({
   },
   tileAll: { backgroundColor: colors.coral, justifyContent: 'center', alignItems: 'center' },
   tileOn: { borderColor: colors.ink },
+  tileIcon: { position: 'absolute', width: 64, height: 64, top: 10, right: 6, transform: [{ rotate: '10deg' }] },
   empty: { alignItems: 'center', gap: 14, padding: 24, backgroundColor: colors.card, borderRadius: radius.xl },
   error: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: radius.md, backgroundColor: colors.coralSoft },
 });

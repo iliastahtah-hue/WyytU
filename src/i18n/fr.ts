@@ -41,6 +41,7 @@ const fr = {
     randonnee: 'Randonnée',
   },
   intro: { tagline: 'Sors en groupe, près de chez toi.' },
+  countdown: { days: 'Dans {d} j {h} h', hours: 'Dans {h} h {m} min', minutes: 'Dans {m} min {s} s', live: 'En cours', ended: 'Terminé' },
   language: {
     title: 'Choisis ta langue',
     subtitle: 'Tu pourras la changer à tout moment dans les réglages.',
@@ -130,7 +131,7 @@ const fr = {
     messages: 'Messages',
     profile: 'Profil',
   },
-  explore: {
+  explore: { lastSpot: 'Dernière place !', 
     hello: 'Salut {name}',
     title1: 'On sort quoi',
     title2: 'ce soir ?',
@@ -324,6 +325,15 @@ const fr = {
     invalid: 'QR non valide.',
   },
   premium: {
+    bannerTitle: "Passe en Premium",
+    bannerBody: "Garde des sorties de côté, crée sans limite, filtres avancés.",
+    saveTitle: "Garder de côté",
+    saveBody: "Mets une sortie de côté depuis le swipe et retrouve-la plus tard.",
+    lockedTitle: "Réservé au Premium",
+    locked_save: "« Garder de côté » fait partie de WyytU Premium.",
+    locked_unlimited: "Tu as atteint 2 sorties cette semaine. Premium = sorties illimitées.",
+    locked_filters: "Les filtres avancés font partie de WyytU Premium.",
+    locked_boost: "La mise en avant fait partie de WyytU Premium.",
     unlimitedTitle: 'Groupes illimités',
     unlimitedBody: 'Crée autant de sorties que tu veux (2 par semaine en gratuit).',
     boostTitle: 'Tes sorties en avant',
@@ -392,6 +402,8 @@ const fr = {
     empty: 'Pas encore de plan ici. Les premiers partenaires arrivent bientôt !',
   },
   swipe: {
+    save: "Garder de côté",
+    saved: "Gardée de côté ⭐",
     title: 'Je sais pas quoi faire',
     yes: 'JE VEUX ✓',
     no: 'PASSER ✕',

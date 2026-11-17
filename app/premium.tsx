@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, StyleSheet, View } from 'react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
@@ -11,6 +12,7 @@ import { img3d } from '@/src/theme/images';
 import { colors, radius } from '@/src/theme/tokens';
 
 const PERKS = [
+  ['🔖', 'save'],
   ['🎟️', 'unlimited'],
   ['🚀', 'boost'],
   ['🎯', 'filters'],
@@ -19,6 +21,7 @@ const PERKS = [
 
 export default function PremiumScreen() {
   const { session, profile, refreshProfile } = useAuth();
+  const { feature } = useLocalSearchParams<{ feature?: string }>();
   const { t } = useI18n();
   const [pkg, setPkg] = useState<PurchasesPackage | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,8 +85,17 @@ export default function PremiumScreen() {
       }
     >
       <TopBar title="Premium" />
+      {feature && !profile?.is_premium ? (
+        <View style={styles.locked}>
+          <AppText style={{ fontSize: 22 }}>🔒</AppText>
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyStrong">{t('premium.lockedTitle')}</AppText>
+            <AppText variant="small" color={colors.sub}>{t(`premium.locked_${feature}`)}</AppText>
+          </View>
+        </View>
+      ) : null}
       <View style={styles.hero}>
-        <Image source={img3d.star} style={{ width: 88, height: 88 }} />
+        <Image source={img3d.crown} style={{ width: 88, height: 88 }} />
         <AppText variant="display" center>WyytU Premium</AppText>
         <AppText variant="bodyStrong" center>{t('premium.priceLine', { price })}</AppText>
       </View>
@@ -111,5 +123,6 @@ export default function PremiumScreen() {
 
 const styles = StyleSheet.create({
   hero: { backgroundColor: colors.lime, borderRadius: radius.xl, padding: 24, alignItems: 'center', gap: 8, marginBottom: 16 },
+  locked: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: colors.coralSoft, borderRadius: radius.lg, padding: 14, marginBottom: 12, borderWidth: 1.5, borderColor: colors.coral },
   perk: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, padding: 14 },
 });

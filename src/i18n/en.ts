@@ -43,6 +43,7 @@ const en: PartialDictionary = {
     randonnee: 'Hiking',
   },
   intro: { tagline: 'Go out in groups, near you.' },
+  countdown: { days: 'In {d}d {h}h', hours: 'In {h}h {m}m', minutes: 'In {m}m {s}s', live: 'Live now', ended: 'Ended' },
   language: {
     title: 'Choose your language',
     subtitle: 'You can change it anytime in settings.',
@@ -132,7 +133,7 @@ const en: PartialDictionary = {
     messages: 'Messages',
     profile: 'Profile',
   },
-  explore: {
+  explore: { lastSpot: 'Last spot!', 
     hello: 'Hey {name}',
     title1: 'What are we',
     title2: 'doing tonight?',
@@ -326,6 +327,15 @@ const en: PartialDictionary = {
     invalid: 'Invalid QR.',
   },
   premium: {
+    bannerTitle: "Go Premium",
+    bannerBody: "Save outings for later, create without limits, advanced filters.",
+    saveTitle: "Save for later",
+    saveBody: "Set an outing aside from the swipe and find it later.",
+    lockedTitle: "Premium only",
+    locked_save: "“Save for later” is part of WyytU Premium.",
+    locked_unlimited: "You’ve reached 2 outings this week. Premium = unlimited.",
+    locked_filters: "Advanced filters are part of WyytU Premium.",
+    locked_boost: "Boosting is part of WyytU Premium.",
     unlimitedTitle: 'Unlimited groups',
     unlimitedBody: 'Create as many outings as you like (2 a week on the free plan).',
     boostTitle: 'Your outings first',
@@ -394,6 +404,8 @@ const en: PartialDictionary = {
     empty: 'No plans here yet. The first partners are coming soon!',
   },
   swipe: {
+    save: "Save for later",
+    saved: "Saved for later ⭐",
     title: 'No idea what to do',
     yes: 'I’M IN ✓',
     no: 'SKIP ✕',

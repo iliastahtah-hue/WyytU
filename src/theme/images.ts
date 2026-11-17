@@ -22,7 +22,38 @@ export const img3d = {
   lotus: require('@/assets/3d/lotus_3d.png'),
   speech: require('@/assets/3d/speech_balloon_3d.png'),
   trophy: require('@/assets/3d/trophy_3d.png'),
+  biceps: require('@/assets/3d/flexed_biceps_3d_default.png'),
+  lotusPerson: require('@/assets/3d/person_in_lotus_position_3d_default.png'),
+  basketball: require('@/assets/3d/basketball_3d.png'),
+  volleyball: require('@/assets/3d/volleyball_3d.png'),
+  runningShoe: require('@/assets/3d/running_shoe_3d.png'),
+  bicycle: require('@/assets/3d/bicycle_3d.png'),
+  goggles: require('@/assets/3d/goggles_3d.png'),
+  wave: require('@/assets/3d/water_wave_3d.png'),
+  boxing: require('@/assets/3d/boxing_glove_3d.png'),
+  hikingBoot: require('@/assets/3d/hiking_boot_3d.png'),
+  mirrorBall: require('@/assets/3d/mirror_ball_3d.png'),
+  camping: require('@/assets/3d/camping_3d.png'),
+  hourglass: require('@/assets/3d/hourglass_not_done_3d.png'),
+  bookmark: require('@/assets/3d/bookmark_3d.png'),
+  crown: require('@/assets/3d/crown_3d.png'),
+  microphone: require('@/assets/3d/microphone_3d.png'),
+  smile: require('@/assets/3d/smiling_face_with_smiling_eyes_3d.png'),
 } as const;
+
+const SPORT_ICON: Record<string, keyof typeof img3d> = {
+  padel: 'tennis', tennis: 'tennis', foot: 'soccer', musculation: 'biceps', pilates: 'lotusPerson',
+  basket: 'basketball', volley: 'volleyball', running: 'runningShoe', velo: 'bicycle', natation: 'goggles',
+  surf: 'wave', boxe: 'boxing', yoga: 'lotusPerson', randonnee: 'hikingBoot',
+};
+const UNIVERSE_ICON: Record<string, keyof typeof img3d> = {
+  sport: 'soccer', resto: 'hamburger', cine: 'popcorn', soiree: 'mirrorBall', jeux: 'die', nature: 'camping', bienetre: 'lotus',
+};
+
+/** Icône 3D d'une sortie : celle du sport si précisé, sinon celle de l'univers */
+export function iconFor(universe: string, subcategory?: string | null): ImageSourcePropType {
+  return img3d[(subcategory && SPORT_ICON[subcategory]) || UNIVERSE_ICON[universe] || 'sparkles'];
+}
 
 /* Photos de marque (générées pour WyytU, personnes fictives) */
 export const photos = {
