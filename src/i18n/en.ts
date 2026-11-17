@@ -44,6 +44,7 @@ const en: PartialDictionary = {
   },
   intro: { tagline: 'Go out in groups, near you.' },
   countdown: { days: 'In {d}d {h}h', hours: 'In {h}h {m}m', minutes: 'In {m}m {s}s', live: 'Live now', ended: 'Ended' },
+  calendar: { weekend: "This weekend", nextWeek: "In 1 week", pick: "Pick a date", hour: "TIME", inDays: "In {n} days" },
   language: {
     title: 'Choose your language',
     subtitle: 'You can change it anytime in settings.',

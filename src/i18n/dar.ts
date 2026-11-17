@@ -48,6 +48,7 @@ const dar: PartialDictionary = {
   },
   intro: { tagline: 'خرج مع الجماعة، قريب ليك.' },
   countdown: { days: 'باقي {d} يام و {h} سوايع', hours: 'باقي {h} س و {m} د', minutes: 'باقي {m} د و {s} ث', live: 'دابا بدات', ended: 'سالات' },
+  calendar: { weekend: "هاد الويكاند", nextWeek: "من دابا سيمانة", pick: "ختار نهار", hour: "الساعة", inDays: "من دابا {n} يام" },
   language: {
     title: 'ختار اللغة ديالك',
     subtitle: 'تقدر تبدلها فأي وقت من الإعدادات.',

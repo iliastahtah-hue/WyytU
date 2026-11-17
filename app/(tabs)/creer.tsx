@@ -1,21 +1,20 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, Chip, TextField } from '@/src/components/ui';
 import { countMyGroupsThisWeek } from '@/src/features/create/api';
 import { placeStore, usePickedPlace } from '@/src/features/create/draft';
-import { localeOf } from '@/src/features/groups/time';
 import { useI18n } from '@/src/i18n';
 import type { Level, Universe } from '@/src/lib/database.types';
+import { DateTimePicker } from '@/src/components/DateTimePicker';
 import { usePremiumGate } from '@/src/lib/premium';
 import { readableError, supabase } from '@/src/lib/supabase';
-import { atTime, dayKey, fmtDate, fmtTime, fromWall, startOfDayPlus, wall } from '@/src/lib/tz';
+import { fromWall, wall } from '@/src/lib/tz';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { colors, fonts, LEVELS, radius, SPORTS, TOUCH, UNIVERSES, universeColors } from '@/src/theme/tokens';
 
 const BUDGETS = ['< 50 DH', '50–100 DH', '100–200 DH', '200 DH +'];
-const STEP_MIN = 15;
 
 /** Heure ronde dans 2 h, heure de Tanger (ex. il est 17:20 → 19:00) */
 function defaultStart() {
@@ -49,7 +48,7 @@ function Section({ title, children, hint }: { title: string; children: React.Rea
 
 export default function CreerScreen() {
   const router = useRouter();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { session, profile } = useAuth();
   const place = usePickedPlace();
   // Pré-remplissage quand on vient d'un plan partenaire
@@ -83,7 +82,6 @@ export default function CreerScreen() {
   const premium = !!profile?.is_premium;
   const quotaReached = !premium && weekCount >= 2;
   const gate = usePremiumGate();
-  const locale = localeOf(lang);
   const u = universeColors[universe];
 
   useFocusEffect(
@@ -92,22 +90,7 @@ export default function CreerScreen() {
     }, [session]),
   );
 
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => startOfDayPlus(i)), []);
   const locked = !!offerId; // créneau partenaire : jour, heure et lieu imposés
-
-  const setDay = (day: Date) => {
-    const w = wall(start);
-    setStart(atTime(day, w.h, w.min));
-  };
-
-  const shiftTime = (deltaMin: number) => {
-    const next = new Date(start.getTime() + deltaMin * 60000);
-    if (dayKey(next) !== dayKey(start)) return; // reste sur le même jour
-    setStart(next);
-  };
-
-  const dayLabel = (d: Date, i: number) =>
-    i === 0 ? t('create.today') : i === 1 ? t('create.tomorrow') : fmtDate(d, locale, { weekday: 'short', day: 'numeric' });
 
   const suggestedTitle =
     universe === 'sport' && sport
@@ -212,24 +195,7 @@ export default function CreerScreen() {
         </Section>
 
         <Section title={t('create.when')}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {days.map((d, i) => (
-              <Chip key={d.toISOString()} label={dayLabel(d, i)} selected={dayKey(d) === dayKey(start)} onPress={() => !locked && setDay(d)} />
-            ))}
-          </ScrollView>
-          <View style={styles.timeRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel="−15 min" disabled={locked} onPress={() => shiftTime(-STEP_MIN)} style={[styles.stepBtn, locked && { opacity: 0.35 }]}>
-              <AppText variant="heading">−</AppText>
-            </Pressable>
-            <View style={[styles.timeBox, { backgroundColor: u.soft }]}>
-              <AppText style={styles.time} center>
-                {fmtTime(start, locale)}
-              </AppText>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="+15 min" disabled={locked} onPress={() => shiftTime(STEP_MIN)} style={[styles.stepBtn, locked && { opacity: 0.35 }]}>
-              <AppText variant="heading">+</AppText>
-            </Pressable>
-          </View>
+          <DateTimePicker value={start} onChange={setStart} locked={locked} accent={u.bg} soft={u.soft} />
         </Section>
 
         <Section title={t('create.where')}>

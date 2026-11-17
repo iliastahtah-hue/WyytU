@@ -42,6 +42,7 @@ const fr = {
   },
   intro: { tagline: 'Sors en groupe, près de chez toi.' },
   countdown: { days: 'Dans {d} j {h} h', hours: 'Dans {h} h {m} min', minutes: 'Dans {m} min {s} s', live: 'En cours', ended: 'Terminé' },
+  calendar: { weekend: "Ce week-end", nextWeek: "Dans 1 semaine", pick: "Choisir une date", hour: "HEURE", inDays: "Dans {n} jours" },
   language: {
     title: 'Choisis ta langue',
     subtitle: 'Tu pourras la changer à tout moment dans les réglages.',
