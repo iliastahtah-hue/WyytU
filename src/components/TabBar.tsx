@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import type { Tabs } from 'expo-router';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,12 +10,12 @@ import { AppText } from '@/src/components/ui';
 import { useI18n } from '@/src/i18n';
 import { colors } from '@/src/theme/tokens';
 
-const ICONS: Record<string, string> = {
-  explorer: '🧭',
-  sorties: '📅',
-  creer: '+',
-  messages: '💬',
-  profil: '👤',
+type IconName = ComponentProps<typeof Ionicons>['name'];
+const ICONS: Record<string, [IconName, IconName]> = {
+  explorer: ['compass-outline', 'compass'],
+  sorties: ['calendar-outline', 'calendar'],
+  messages: ['chatbubbles-outline', 'chatbubbles'],
+  profil: ['person-circle-outline', 'person-circle'],
 };
 const LABELS: Record<string, string> = {
   explorer: 'tabs.explore',
@@ -46,7 +47,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             return (
               <Pressable key={route.key} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.item}>
                 <View style={styles.plus}>
-                  <AppText style={styles.plusText} color={colors.white} center>+</AppText>
+                  <Ionicons name="add" size={32} color={colors.white} />
                 </View>
               </Pressable>
             );
@@ -61,10 +62,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               onPress={onPress}
               style={styles.item}
             >
-              <AppText style={{ fontSize: 20, lineHeight: 24, opacity: focused ? 1 : 0.55 }} center>
-                {ICONS[route.name]}
-              </AppText>
-              <AppText variant="tag" color={focused ? colors.ink : colors.sub} center numberOfLines={1} style={{ letterSpacing: 0 }}>
+              <Ionicons name={ICONS[route.name]?.[focused ? 1 : 0] ?? 'ellipse-outline'} size={25} color={focused ? colors.ink : colors.muted} />
+              <AppText variant="tag" color={focused ? colors.ink : colors.muted} center numberOfLines={1} style={{ letterSpacing: 0, textTransform: 'none', fontSize: 11 }}>
                 {label}
               </AppText>
             </Pressable>
@@ -78,7 +77,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 12, paddingTop: 6, backgroundColor: 'transparent', position: 'absolute', left: 0, right: 0, bottom: 0 },
   bar: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.sand, borderRadius: 30,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(17,16,20,0.06)',
     paddingVertical: 8, paddingHorizontal: 6,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8,
   },
